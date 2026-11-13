@@ -3,7 +3,7 @@
 import { HERO_BUILDERS } from './models/heroes.js';
 import { FOE1 } from './models/foes1.js';
 import { FOE2 } from './models/foes2.js';
-import { box, sphere, group, gradientMap, outlineMat } from './kit.js';
+import { box, sphere, group, gradientMap, outlineMat, toonify } from './kit.js';
 
 // 回傳 THREE.Group：腳底在 y=0、面向 +Z。userData.height = 頭頂高度；userData.parts 供程序動畫使用。
 export function buildUnit(key) {
@@ -23,7 +23,7 @@ export function buildUnit(key) {
 // 先擾動契約部位並掃過 anim(t)，記下會變的物件與材質；其餘「同一骨架群組內不會單獨動」的網格
 // 純色 toon 併成一個頂點色網格、其他同材質者各自合併，描邊另併成一個子網格。網址加 ?nomerge=1 可關閉。
 let _vc = null;
-function vcMat() { return _vc || (_vc = new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: gradientMap() })); }
+function vcMat() { return _vc || (_vc = toonify(new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: gradientMap() }))); }
 function isPlain(m) {
   return m.isMeshToonMaterial && !m.map && !m.transparent && !m.vertexColors && m.side === THREE.FrontSide && (!m.emissive || m.emissive.getHex() === 0);
 }

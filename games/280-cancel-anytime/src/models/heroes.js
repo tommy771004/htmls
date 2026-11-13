@@ -6,7 +6,7 @@
 // 動畫層以「靜止值＋偏移」驅動。眼睛群組原點在眼球中心（縮 scale.y 就是眨眼）。
 // 細節很多，所以同一個關節下的靜態零件用 bake() 依材質合併成少數網格，描邊也合成一個。
 /* global THREE */
-import { part, box, sphere, cyl, cone, capsule, torus, group, textPlane, gradientMap, outlineMat } from '../kit.js';
+import { part, box, sphere, cyl, cone, capsule, torus, group, textPlane, gradientMap, outlineMat, seg, toonify } from '../kit.js';
 
 const NO = { outline: false };
 
@@ -36,7 +36,7 @@ function tube(ra, rb, a, b, color, o) { return span(cyl(rb, ra, dist(a, b), colo
 function fz(R, cy, x, y, cz = 0) { return cz + Math.sqrt(Math.max(0, R * R - x * x - (y - cy) * (y - cy))); }
 // 旋轉體（pts = [[半徑, y], ...] 由下往上）
 function lathe(pts, color, o = {}) {
-  const g = new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), o.seg || 18, o.phi0 || 0, o.phiLen || Math.PI * 2);
+  const g = new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), seg(o.seg || 18), o.phi0 || 0, o.phiLen || Math.PI * 2);
   return part(g, color, o);
 }
 function DS() { return { side: THREE.DoubleSide }; }
@@ -197,7 +197,7 @@ function stripeMat() {
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(7, 1);
   t.magFilter = THREE.NearestFilter;
-  _stripe = new THREE.MeshToonMaterial({ map: t, gradientMap: gradientMap(), side: THREE.DoubleSide });
+  _stripe = toonify(new THREE.MeshToonMaterial({ map: t, gradientMap: gradientMap(), side: THREE.DoubleSide }));
   return _stripe;
 }
 

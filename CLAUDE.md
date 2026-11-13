@@ -90,5 +90,6 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 | 279 | 黃昏月台 | `games/279-dusk-platform/`（Blender MCP 逐步建模＋背景 Cycles 渲染；頁面是無 build 的單檔 `web/279-dusk-platform.html`，影片在 `assets/279/`） | 同資料夾 `CLAUDE.md` |
 | 280 | 絕命免運費 · CANCEL ANYTIME | `games/280-cancel-anytime/`（Three.js r186 全程序建模＋toon 描邊、純規則引擎＋機器人模擬、esbuild） | 同資料夾 `CLAUDE.md` |
 | 282 | 仙境人生 · RO LIFE | `games/282-ro-life/`、帳號與雲端存檔 `server/ro-life/`、`api/ro.mjs`、大廳 Worker `games/282-ro-life/worker/`（PixiJS 8 2.5D 渲染器＋10 大遊戲子系統模組＋10 份 JSON 遊戲資料庫、esbuild；素材留在 `assets/282/`，不內嵌） | 同資料夾 `CLAUDE.md`（含 `window.__ro` 掛點、手機只做橫向等規則） |
+| 283 | 午夜退房 · LATE CHECKOUT | `games/283-late-checkout/`（Three.js r186 全程序建模＋逐頂點烘焙光＋自製 HDR 後製、純邏輯對戰模擬與 bot AI、esbuild；零外部素材） | 同資料夾 `CLAUDE.md` |
 
 新增有原始碼的作品時，把專屬說明寫進該資料夾的 `CLAUDE.md`，這裡只加一列。

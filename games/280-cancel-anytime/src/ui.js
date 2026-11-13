@@ -169,8 +169,10 @@ export function createUI(V, game) {
     const box = $('#tipAsk');
     box.innerHTML = `<p>${esc(info)}</p><div><button class="b tip">💵 付小費給 DM 重擲（剩 ${game.s.party.tips}）</button><button class="b ghost">算了</button></div>`;
     box.hidden = false;
-    $('#tray').classList.add('open');
-    const done = (v) => { box.hidden = true; res(v); };
+    // 手機上紀錄面板平常收著：問的時候打開（只露出骰子和這個提示），問完恢復原狀，不要蓋住棋盤
+    const tray = $('#tray'), was = tray.classList.contains('open');
+    tray.classList.add('open', 'asking');
+    const done = (v) => { box.hidden = true; tray.classList.remove('asking'); if (!was) tray.classList.remove('open'); res(v); };
     box.querySelector('.tip').onclick = () => { SFX.play('refund'); done(true); };
     box.querySelector('.ghost').onclick = () => done(false);
     box.querySelector('.tip').focus({ preventScroll: true });
@@ -252,8 +254,8 @@ export function createUI(V, game) {
       if (u.gone) state = `<p class="gone">🚑 被救護車載走<br><b>$50,000 USD</b></p>`;
       else if (u.downed) state = `<p class="saves">🚑 死亡豁免 <span>${'✔'.repeat(u.saves.s)}${'·'.repeat(3 - u.saves.s)}</span> <span class="f">${'✘'.repeat(Math.min(3, u.saves.f))}${'·'.repeat(Math.max(0, 3 - u.saves.f))}</span></p>`;
       return `<div class="poster${cur && cur.id === k ? ' now' : ''}${u.downed ? ' down' : ''}${u.gone ? ' gone' : ''}" data-id="${k}" style="--c:${H.color}">
-        <div class="ph"><img alt="" src="${portrait(k)}"><span class="w">WANTED</span></div>
-        <div class="pi"><b>${esc(H.name)}</b><span class="ac" title="護甲等級">🛡️${u.ac}</span><span class="ht">⛰️${LAYER_LABEL[h]}</span>
+        <div class="ph"><img alt="" src="${portrait(k)}"></div>
+        <div class="pi"><b>${esc(H.name)}</b><span class="ac" title="護甲等級">🛡️${u.ac}</span>${h > 0 ? `<span class="ht">⛰️${LAYER_LABEL[h]}</span>` : ''}
         <i class="bar"><i style="width:${u.hp / u.maxHp * 100}%"></i><em>${u.hp}/${u.maxHp}</em></i>
         <span class="slots" title="${esc(H.slotName)}">${slots}</span><span class="ic">${chip}${loot}${sts}</span>${state}</div></div>`;
     }).join('');
@@ -529,6 +531,23 @@ export function createUI(V, game) {
     await new Promise(r => setTimeout(r, (RM ? 200 : 400) / V.speed));
     lvCard.classList.remove('bye');
     lvCard.innerHTML = '';
+  };
+
+  // ── 首領登場名字卡（配合 V.bossIntro 的鏡頭）──
+  const bossCard = $('#bossCard');
+  UI.bossCard = (u) => {
+    if (!bossCard) return;
+    const i = u.name.lastIndexOf('・');
+    const nm = (i >= 0 ? u.name.slice(i + 1) : u.name).replace(/^【.*?】/, ''), sub = (i >= 0 ? u.name.slice(0, i) : '').replace(/^【.*?】/, '');
+    bossCard.innerHTML = `<span class="tag">${u.final ? 'FINAL BOSS' : 'BOSS FIGHT'}</span><br><h3><span>${esc(u.icon || '')} ${esc(nm)}</span></h3>${sub ? `<p>${esc(sub)}</p>` : ''}`;
+    bossCard.classList.remove('bye');
+    replay(bossCard, 'go');
+  };
+  UI.bossCardOut = () => {
+    if (!bossCard || !bossCard.classList.contains('go')) return;
+    bossCard.classList.remove('go');
+    replay(bossCard, 'bye');
+    setTimeout(() => { bossCard.classList.remove('bye'); bossCard.innerHTML = ''; }, 340);
   };
 
   // 鏡頭／速度按鈕的小回饋

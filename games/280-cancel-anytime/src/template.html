@@ -86,6 +86,17 @@ button{cursor:pointer}
 .tb:active{transform:translateY(2px);box-shadow:none}
 #lvSel{max-width:190px}
 #restBtn{background:var(--mustard);color:#2a1a00}
+#topBtns{position:relative}
+#gear{position:absolute;right:0;top:44px;z-index:9;width:264px;padding:12px;display:grid;gap:9px;background:linear-gradient(#2c2632,#1b1820);border:3px solid #000;border-radius:12px;box-shadow:0 4px 0 #000,0 14px 34px #000a}
+#gear .gr{display:flex;align-items:center;justify-content:space-between;gap:8px;font:800 13px/1.2 var(--body);color:var(--cream)}
+#gear .gr small{display:block;margin-top:2px;font:600 10.5px/1.2 var(--body);color:#a89fb4}
+#gear select{height:34px;padding:0 8px;border-radius:7px;border:2px solid #000;background:var(--asphalt3);color:var(--cream);font-weight:700;box-shadow:0 2px 0 #000;max-width:150px}
+#gear .gr:last-child .tb{flex:1}
+#gearBtn[aria-expanded="true"],#cineBtn.on{background:var(--mustard);color:#2a1a00}
+#logTgl{align-self:flex-end;height:26px;padding:0 10px;font-size:12px;margin-top:-2px}
+#tray:not(.logopen) #log{max-height:66px;overflow:hidden;display:flex;flex-direction:column-reverse;justify-content:flex-start;padding:6px 10px 8px;cursor:pointer;-webkit-mask:linear-gradient(#000 60%,#0000);mask:linear-gradient(#000 60%,#0000);opacity:.94}
+#tray:not(.logopen) #log::before{display:none}
+#tray:not(.logopen) #log p{flex:0 0 auto}
 
 /* 左：通緝令 */
 #party{position:fixed;left:12px;top:96px;z-index:4;width:232px;display:flex;flex-direction:column;gap:8px}
@@ -201,6 +212,54 @@ button{cursor:pointer}
 #banner.hero{font-size:26px}
 #banner.warn{color:#ffb0b0;font-size:20px;font-family:var(--body);font-weight:900}
 #banner.good{color:#9dff9a}
+/* 新手引導、成就、評分 */
+#coach{position:fixed;left:50%;top:88px;z-index:6;transform:translateX(-50%);width:min(520px,calc(100vw - 600px));min-width:300px;display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:center;padding:9px 12px;background:#fff8e6;color:#1b1226;border:3px solid #000;border-radius:12px;box-shadow:0 4px 0 #000,0 10px 24px #0008;animation:coachIn .28s var(--ease-out)}
+#coach[hidden]{display:none}
+#coach b{grid-row:1/3;padding:5px 9px;background:var(--mustard);border:2px solid #000;border-radius:8px;font:900 15px/1 var(--head);white-space:nowrap}
+#coach p{margin:0;font-size:13px;line-height:1.45;font-weight:700}
+#coach em{font:700 11px/1 var(--mono);font-style:normal;color:#0008;grid-column:2}
+#coach button{grid-row:1/3;grid-column:3;height:30px;padding:0 9px;border:2px solid #000;border-radius:8px;background:#fff;color:#1b1226;font-size:12px;font-weight:900;white-space:nowrap}
+@keyframes coachIn{from{opacity:0;transform:translate(-50%,-10px)}}
+body.cine #coach{opacity:0;pointer-events:none}
+#ach{position:fixed;left:50%;top:14px;z-index:26;display:flex;gap:10px;align-items:center;padding:9px 16px 9px 10px;background:#1b1820;color:#fff;border:3px solid var(--mustard);border-radius:999px;box-shadow:0 4px 0 #000,0 12px 30px #000a;transform:translate(-50%,-90px);opacity:0;transition:transform .26s var(--ease-out),opacity .2s;pointer-events:none;max-width:calc(100vw - 20px)}
+#ach[hidden]{display:none}
+#ach.show{transform:translate(-50%,0);opacity:1}
+#ach i{font-style:normal;font-size:28px;line-height:1}
+#ach div{display:grid;min-width:0}
+#ach small{font:900 10px/1.2 var(--head);letter-spacing:.16em;color:var(--mustard)}
+#ach b{font-size:15px;line-height:1.25}
+#ach span{font-size:11.5px;color:#fffb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rate{margin:8px 0 4px;padding:8px 0 2px;border-top:2px dashed #999;text-align:center}
+.rate .stars{margin:0;font-size:40px;line-height:1;letter-spacing:6px}
+.rate .stars i{display:inline-block;font-style:normal;color:#d9d4c8;-webkit-text-stroke:2px #000}
+.rate .stars i.on{color:var(--mustard);animation:starPop .42s var(--ease-out) backwards;animation-delay:calc(.5s + var(--i) * .22s)}
+@keyframes starPop{from{transform:scale(2.6) rotate(-30deg);opacity:0}}
+.rate .rstat{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:center;margin:6px 0 2px;font-weight:700}
+.rate .rstat small{margin-left:5px}
+.rate .rbest{margin:4px 0 0;padding-left:4px;text-align:left;color:#0e6b3f;font-weight:900;letter-spacing:.08em}
+#modal.records .card{width:min(760px,100%)}
+.achs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:10px 0 14px}
+.ach{display:grid;grid-template-columns:34px 1fr;column-gap:8px;padding:7px 9px;background:#fff;border:2px solid #000;border-radius:9px;opacity:.55}
+.ach.got{opacity:1;box-shadow:0 3px 0 #000;background:#fff8d8}
+.ach i{grid-row:1/3;font-style:normal;font-size:24px;align-self:center}
+.ach b{font-size:14px}
+.ach small{font-size:11.5px;color:#555}
+.rec{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px}
+.rec th,.rec td{padding:5px 6px;border-bottom:1px dotted #0004;text-align:center}
+.rec td.ln{text-align:left;font-weight:700}
+.rec td{color:#0005}
+.rec td.got{color:#b77a00;font-size:15px;letter-spacing:1px}
+.rec td small{display:block;font-size:10.5px;color:#666;letter-spacing:0}
+#dailyBtn{display:grid;justify-items:center;line-height:1.25}
+#dailyBtn small{font-size:11px;font-weight:700;color:#0009}
+@media (max-width:700px){
+  #coach{left:62px;right:8px;top:118px;width:auto;min-width:0;transform:none;animation:none;grid-template-columns:1fr auto}
+  #coach b{grid-row:auto;justify-self:start}
+  #coach p{grid-column:1/3;font-size:12.5px}
+  #coach em{display:none}
+  #coach button{grid-row:1;grid-column:2}
+  .rate .stars{font-size:34px}
+}
 
 /* 對話框 */
 #modal{position:fixed;inset:0;z-index:20;display:none;place-items:center;padding:16px;background:#0a0810b8;backdrop-filter:blur(2px)}
@@ -261,8 +320,23 @@ button{cursor:pointer}
 .help li{margin-bottom:6px}
 
 /* 標題 */
-#title{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:16px;background:radial-gradient(circle at 50% 40%,#1b182055,#1b1820dd 70%);overflow-y:auto}
-.tcard{width:min(720px,100%);text-align:center}
+#title{position:fixed;inset:0;z-index:10;display:grid;place-items:center end;padding:16px clamp(20px,6vw,104px) 16px 16px;background:linear-gradient(90deg,#120e1a00 36%,#120e1a8c 60%,#120e1ae8);overflow-y:auto}
+.tcard{width:min(440px,100%);text-align:center}
+body.titled .plate,body.titled .float{display:none!important}
+.tgo .b.big{flex:1 1 180px;font-size:19px;padding:14px 18px}
+@@END
+@@FIND
+#titleLv{min-width:0;flex:0 1 auto}
+@@REPLACE
+#titleLv{min-width:0;flex:0 1 auto}
+#title .tcard{justify-self:end}
+@media (max-width:860px),(orientation:portrait){
+  #title{place-items:stretch center;padding:max(14px,env(safe-area-inset-top)) 14px 14px;background:linear-gradient(#120e1ab8,#120e1a00 24%,#120e1a00 50%,#120e1ad9 70%,#120e1af5)}
+  #title .tcard{display:flex;flex-direction:column;justify-content:space-between;justify-self:center;min-height:100%;width:min(520px,100%)}
+  .tsign{align-self:center;margin-top:52px}
+  .tsub{font-size:13px;margin:8px auto 6px}
+  .tfine{font-size:10px;margin-top:8px}
+}
 .tsign{display:inline-block;padding:14px 22px 16px;background:var(--hwy);border:4px solid #fff;outline:4px solid var(--hwy);border-radius:14px;box-shadow:0 8px 0 #000a}
 .tsign small{display:block;font:900 13px/1 var(--head);letter-spacing:.3em;color:#cfe8d8}
 .tsign h1{margin:6px 0 4px;font:900 clamp(34px,8vw,64px)/1 var(--body);color:#fff;letter-spacing:.04em}
@@ -312,7 +386,7 @@ button{cursor:pointer}
 #troad::after{top:54px;height:3px;background:#f3ead8aa;animation:none}
 @keyframes road{to{transform:translateX(-96px)}}
 #title{grid-template-columns:minmax(0,1fr)}
-#title .tcard{position:relative;z-index:1;justify-self:center;min-width:0}
+#title .tcard{position:relative;z-index:1;min-width:0}
 #titleLv{min-width:0;flex:0 1 auto}
 
 /* 轉場層（不吃點擊；超出畫面的部分裁掉，避免手機水平溢出）*/
@@ -335,6 +409,22 @@ button{cursor:pointer}
 @keyframes toastIn{from{opacity:0;transform:translateY(-16px) scale(.85)}}
 @keyframes toastOut{to{opacity:0;transform:translateY(-10px) scale(.9)}}
 /* 關卡標題卡（州際出口標誌）*/
+#fx::before,#fx::after{content:"";position:absolute;left:0;right:0;height:9vh;background:#000;transition:transform .35s var(--ease-out);z-index:3}
+#fx::before{top:0;transform:translateY(-101%)}#fx::after{bottom:0;transform:translateY(101%)}
+body.cine #fx::before,body.cine #fx::after{transform:none}
+#hud{transition:opacity .3s}
+body.cine #hud{opacity:0;pointer-events:none}body.cine .plate{opacity:0!important}
+#bossCard{position:absolute;left:0;bottom:15%;max-width:min(760px,94vw);padding-left:clamp(14px,5vw,72px);opacity:0;z-index:4}
+#bossCard .tag{display:inline-block;padding:6px 16px 4px;background:var(--ketchup);color:#fff;font:900 clamp(13px,2.4vw,19px)/1 var(--head);letter-spacing:.24em;transform:skewX(-12deg);border:3px solid #000;box-shadow:4px 4px 0 #000}
+#bossCard h3{display:inline-block;margin:8px 0 0;padding:6px 26px 10px 20px;background:var(--mustard);color:#1a1020;font:900 clamp(30px,7vw,68px)/1.05 var(--body);transform:skewX(-12deg);border:4px solid #000;box-shadow:8px 8px 0 #000}
+#bossCard h3>span{display:inline-block;transform:skewX(12deg)}
+#bossCard p{margin:12px 0 0;font:800 clamp(13px,2.6vw,20px)/1.3 var(--body);color:#fff;text-shadow:0 2px 0 #000,0 0 14px #000}
+#bossCard .st{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+#bossCard .st b{padding:4px 10px 3px;background:#111c;border:2px solid #fff;border-radius:4px;font:900 clamp(11px,2.2vw,15px)/1 var(--head);letter-spacing:.08em;color:#fff;text-shadow:none}
+#bossCard.go{animation:bossIn .5s var(--ease-out) both}
+#bossCard.bye{animation:bossOut .3s ease-in both}
+@keyframes bossIn{from{opacity:0;transform:translateX(-70px)}to{opacity:1;transform:none}}
+@keyframes bossOut{from{opacity:1}to{opacity:0;transform:translateX(-40px)}}
 #lvCard{position:absolute;left:50%;top:15%;width:min(560px,calc(100vw - 32px));transform:translateX(-50%);opacity:0;text-align:center}
 #lvCard .ex{display:inline-block;padding:4px 14px 3px;background:var(--hwy);border:3px solid #fff;border-bottom:0;border-radius:8px 8px 0 0;font:900 14px/1 var(--head);letter-spacing:.2em;color:#fff}
 #lvCard .sg{padding:14px 18px 12px;background:var(--hwy);border:4px solid #fff;outline:4px solid var(--hwy);border-radius:12px;box-shadow:0 10px 0 #0008}
@@ -464,18 +554,26 @@ button{cursor:pointer}
   .star img{width:32px;height:32px}
   #topBtns{margin-left:auto;margin-top:18px;gap:4px}
   .tb,#lvSel{height:40px;min-width:36px;padding:0 6px;font-size:13px}
-  #lvSel,#zoomIn,#zoomOut,#restBtn{display:none}
+  #restBtn,#gear .desk{display:none}
   #trayBtn{display:inline-block}
-  #party{top:auto;bottom:196px;left:6px;right:6px;width:auto;flex-direction:row;gap:5px}
-  .poster{flex:1;min-width:0;padding:4px;gap:4px;transform:none!important;flex-direction:column}
-  .poster .ph{flex:0 0 auto;height:34px;width:100%}
+  #gear{top:48px;width:min(264px,calc(100vw - 16px))}
+  /* 隊伍：左緣一排小頭像＋血條，不擋棋盤中間 */
+  #party{top:112px;bottom:auto;left:6px;right:auto;width:46px;flex-direction:column;gap:6px}
+  .poster{padding:2px;gap:2px;transform:none!important;flex-direction:column;border-radius:6px}
+  .poster.now{transform:translateX(3px)!important}
+  .poster .ph{flex:0 0 auto;height:38px;width:100%;border-width:1px}
   .poster .ph img{object-position:50% 20%}
-  .poster .w,.poster .ht,.poster .slots,.poster .ic,.poster .ac{display:none}
-  .poster .pi b{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .poster .saves,.poster .gone{font-size:9px}
+  .poster .w,.poster .ht,.poster .slots,.poster .ic,.poster .ac,.poster .pi b,.poster .bar em{display:none}
+  .poster .pi{display:block}
+  .poster .bar{display:block;height:6px;margin:0}
+  .poster .saves,.poster .gone{font-size:8px;line-height:1.1;margin:1px 0 0;white-space:nowrap;overflow:hidden}
+  .poster .gone b{display:none}
   #tray{top:auto;bottom:196px;right:6px;width:min(86vw,320px);display:none;z-index:8}
   #tray.open{display:flex}
-  #log{max-height:30vh}
+  #tray.asking #log{display:none}
+  #logTgl{display:none}
+  #tray #log,#tray:not(.logopen) #log{max-height:30vh;overflow-y:auto;display:block;padding:12px 14px 18px;-webkit-mask:none;mask:none;opacity:1;cursor:auto}
+  #tray:not(.logopen) #log::before{display:block}
   #hotbar{bottom:4px;width:calc(100vw - 8px);grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:6px;padding:6px;border-radius:10px}
   #who{grid-column:1;grid-row:1}
   #who img{width:36px;height:36px}
@@ -502,9 +600,52 @@ button{cursor:pointer}
   .stamp{font-size:22px;top:30px}
   #skTip{display:none}
 }
+/* ── 介面減量：每個元件只留一層框（底色＋一道陰影），重複或裝飾性的文字拿掉 ── */
+#lvName{display:none}
+.poster,.poster:nth-child(even){transform:none;border:0;border-radius:8px;background:var(--paper);box-shadow:0 2px 0 #0007}
+.poster:hover{transform:translateX(3px)}
+.poster.now{outline:0;transform:translateX(4px);box-shadow:0 0 0 3px var(--c)}
+.poster .ph{border:0;border-radius:6px}
+.poster .w{display:none}
+#dicebox{border:0;box-shadow:0 2px 0 #0008}
+#dicebox:has(#formula:empty){display:none}
+#dicebox.crit{box-shadow:0 0 0 3px var(--mustard),0 0 28px #ffc531}
+#hotbar{border:0;box-shadow:0 10px 30px #0009}
+#who img{border-width:2px}
+#who small{display:none}
+.sk{min-height:44px;border:0;box-shadow:0 2px 0 #000}
+.sk.sel{box-shadow:0 2px 0 #000}
+.sk:not(.off):hover{box-shadow:0 5px 0 #000}
+.sk small{display:none}
+#endBtn{border:0;box-shadow:0 4px 0 #000}
+#endBtn::after{display:none}
+.star .sp{border:0;box-shadow:none}
+.star.now .sp{box-shadow:0 0 0 3px var(--mustard)}
+.star.intern .sp{box-shadow:0 0 0 2px var(--neon)}
+.tb,#lvSel,#gear select{border:0;box-shadow:0 2px 0 #000}
+#gear{border:0;box-shadow:0 14px 34px #000a}
+#coach{border:0;box-shadow:0 8px 24px #0009}
+#coach b{border:0}
+#coach em{display:none}
+#coach button{border:0;background:#1b122614}
+#modal .scene{padding:0;border:0;background:none}
+.rate{border-top:0}
+.ach{border:0;background:#1b12260f}
+.ach.got{background:#fff;box-shadow:none}
+#tipAsk{border:0}
+#tray #log::before,#tray:not(.logopen) #log::before{display:none}
+#log p,#log p.head{border-bottom:0}
+.tsign{outline:0}
+#bossCard .tag{border:0;box-shadow:none}
+@media (max-width:700px){
+  .poster{border-radius:6px}
+  .poster .ph{border-radius:4px}
+}
 @media (prefers-reduced-motion:reduce){
   #banner,.star,.poster,.sk{transition:none}
   #endBtn.pulse{animation:none}
+  .rate .stars i.on,#coach{animation:none!important}
+  #ach{transition:opacity .2s}
   #title.enter .tsign,#title.enter .tsub,#title.enter .trow,#title.enter #diffNote,#title.enter .tfine,#startBtn::after,#troad::before,#trip::before,#trip::after,
   .route.go .car,.star.now .sp,.poster.now,.sk.sel,.sk.sel .ico,#lvCard.go .sg,#skills.enter .sk,#modal .card>*,#modal .heroes>.b,#modal .powers>.b,.receipt li,.star.new,#dicebox.crit,#dicebox.fumble{animation:none!important}
   #turnBan.go,#lvCard.go,#lvCard.bye,#trip.in,#trip.out,#trip.in .tripc,.toast,.toast.out,.receipt,.stamp,#modal .card,#modal.out .card{animation-name:fadeIn!important;animation-duration:.2s!important}
@@ -524,49 +665,57 @@ button{cursor:pointer}
     <div id="lvName"></div>
     <div id="ribbon" aria-label="先攻順序"></div>
     <div id="topBtns">
-      <select id="lvSel" aria-label="跳關"></select>
       <button class="tb" id="restBtn" title="得來速短休（R）">🍔 短休</button>
       <button class="tb" id="rotL" title="旋轉鏡頭（Q）">⟲</button>
       <button class="tb" id="rotR" title="旋轉鏡頭（E）">⟳</button>
-      <button class="tb" id="zoomIn" title="放大">＋</button>
-      <button class="tb" id="zoomOut" title="縮小">－</button>
       <button class="tb" id="emoteBtn" title="嘴砲一句（B）" aria-label="嘴砲一句">📣</button>
       <button class="tb" id="spd" title="演出速度">1×</button>
-      <button class="tb" id="snd" title="聲音">🔊</button>
       <button class="tb" id="trayBtn" title="骰盤與紀錄">🎲</button>
-      <button class="tb" id="helpBtn" title="操作說明">？</button>
-      <button class="tb" id="menuBtn" title="回標題">☰</button>
+      <button class="tb" id="gearBtn" title="設定" aria-label="設定" aria-haspopup="true" aria-expanded="false">⚙</button>
+      <div id="gear" hidden>
+        <div class="gr"><span>聲音</span><button class="tb" id="snd" title="聲音">🔊</button></div>
+        <div class="gr"><span>演出鏡頭<small>攻擊特寫、擊殺、首領登場</small></span><button class="tb" id="cineBtn">開</button></div>
+        <div class="gr"><span>畫質<small>自動：太慢會自己降一級</small></span><select id="qSel" aria-label="畫質"><option value="auto">自動</option><option value="high">高</option><option value="med">中</option><option value="low">低</option></select></div>
+        <div class="gr desk"><span>縮放</span><span><button class="tb" id="zoomOut" title="縮小">－</button> <button class="tb" id="zoomIn" title="放大">＋</button></span></div>
+        <div class="gr desk"><span>章節</span><select id="lvSel" aria-label="跳關"></select></div>
+        <div class="gr"><button class="tb" id="helpBtn" title="操作說明">？ 操作說明</button><button class="tb" id="menuBtn" title="回標題">☰ 回標題</button></div>
+      </div>
     </div>
   </header>
   <aside id="party" aria-label="小隊"></aside>
   <aside id="tray">
     <div id="dicebox"><svg id="die" viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,3 93,27 93,73 50,97 7,73 7,27"/><polygon class="f" points="50,22 76,66 24,66"/><text x="50" y="58">20</text></svg>
-      <div id="formula">每次攻擊與檢定都會在這裡拆解 D20 公式。</div><div id="verdict"></div></div>
+      <div id="formula"></div><div id="verdict"></div></div>
     <div id="tipAsk" hidden></div>
+    <button class="tb" id="logTgl" title="展開／收合戰術紀錄" aria-expanded="false">🧾 紀錄 ▾</button>
     <div id="log" aria-live="polite"></div>
   </aside>
   <footer id="hotbar">
     <div id="who"></div>
     <div id="mid"><div id="res"></div><div id="skills"></div></div>
-    <button id="endBtn">⏳ 結束回合<small>Enter</small></button>
+    <button id="endBtn" title="結束回合（Enter）">⏳ 結束回合</button>
   </footer>
 </div>
 <div id="inspect" hidden></div>
 <div id="skTip" hidden></div>
-<div id="fx" aria-hidden="true"><div id="vig"></div><div id="turnBan"><b></b><span></span></div><div id="lvCard"></div><div id="toasts"></div></div>
+<div id="fx" aria-hidden="true"><div id="vig"></div><div id="turnBan"><b></b><span></span></div><div id="lvCard"></div><div id="bossCard"></div><div id="toasts"></div></div>
 <div id="trip" hidden></div>
 <div id="banner"></div>
+<div id="coach" hidden role="status"><b></b><p></p><em></em><button id="coachSkip" type="button">跳過教學</button></div>
+<div id="ach" hidden role="status"></div>
 <div id="modal"></div>
 <div id="title" hidden>
-  <div id="troad" aria-hidden="true"></div>
   <div class="tcard">
     <div class="tsign"><small>INTERSTATE · EXIT 10 · FREE TRIAL</small><h1>絕命免運費</h1><p>CANCEL ANYTIME</p></div>
-    <p class="tsub" style="--d:.5s">你和三個美國邊緣人在 66 號公路吃深夜速食，被墜毀的外送母艦綁走，腦袋裡多了一顆「5G 自動續訂晶片」。七天免費試用期內殺進母艦，找到藏在 48 層子選單後面的取消訂閱按鈕，否則就會變成只講企業黑話的無腦實習生。</p>
-    <div class="trow" style="--d:.62s"><div id="diffs"><button data-d="story">企劃原始數值</button><button data-d="standard" class="sel">標準</button><button data-d="hard">硬派</button></div></div>
-    <p id="diffNote" style="--d:.7s"></p>
-    <div class="trow" style="--d:.8s"><button class="b big" id="startBtn">開始免費試用（第 1 關）</button><button class="b big ghost" id="contBtn" hidden>繼續</button></div>
-    <div class="trow" style="--d:.9s"><select id="titleLv" aria-label="選關"></select><button class="b ghost" id="titleHelp">操作說明</button></div>
-    <p class="tfine" style="--d:1.05s">原創作品，與任何遊戲、品牌、餐廳或真實人物無關。3D 模型全部即時程式建模，音效以 WebAudio 合成。</p>
+    <div class="tmenu">
+      <p class="tsub" style="--d:.5s">七天免費試用期內殺進外送母艦，按下取消訂閱。</p>
+      <div class="trow" style="--d:.62s"><div id="diffs"><button data-d="story">企劃原始數值</button><button data-d="standard" class="sel">標準</button><button data-d="hard">硬派</button></div></div>
+      <p id="diffNote" style="--d:.7s"></p>
+      <div class="trow tgo" style="--d:.8s"><button class="b big" id="startBtn">開始免費試用</button><button class="b big ghost" id="contBtn" hidden>繼續</button></div>
+      <div class="trow" style="--d:.9s"><select id="titleLv" aria-label="章節選擇"></select></div>
+      <div class="trow tmore" style="--d:.97s"><button class="b ghost" id="dailyBtn">📅 每日挑戰<small id="dailyNote"></small></button><button class="b ghost" id="recBtn">🏆 成就</button><button class="b ghost" id="titleHelp">操作說明</button></div>
+      <p class="tfine" style="--d:1.05s">原創作品，與任何遊戲、品牌、餐廳或真實人物無關。</p>
+    </div>
   </div>
 </div>
 <script type="module">

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>午夜退房 · LATE CHECKOUT｜夜間廢棄飯店 5v5 第一人稱射擊</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%230d0907'/%3E%3Ccircle cx='16' cy='10' r='5.5' fill='none' stroke='%23c9a45c' stroke-width='3'/%3E%3Cpath d='M16 15v12M16 21h5M16 26h4' stroke='%23c9a45c' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+<meta name="description" content="午夜退房 LATE CHECKOUT：全程序生成的夜間廢棄飯店第一人稱射擊。Vanguard 對 Ember 五對五回合制，bot 會巡邏、找掩體、包抄；槍匠可換瞄具、槍管、彈匣。模型、貼圖、動畫與音效全部由程式生成。">
+<!--
+  283 午夜退房 · LATE CHECKOUT
+  原始碼在 games/283-late-checkout/（esbuild 把 Three.js 0.186.0 與全部模組打包進這一個檔）。
+  不載入任何外部模型、貼圖、動畫或音檔：幾何、材質、光照烘焙、角色動畫、音效全部在瀏覽器裡用程式生成。
+-->
+<style>
+:root{--ink:#0b0806;--brass:#c9a45c;--brass-l:#e6cf96;--paper:#ece0c6;--dim:rgba(236,224,198,.5);--van:#48d6cc;--emb:#ff7a33;--red:#e0503a;
+  --serif:"Didot","Bodoni 72","Bodoni MT","Songti TC","Noto Serif TC","PMingLiU",Georgia,serif;--num:"DIN Condensed","Avenir Next Condensed","Roboto Condensed","Arial Narrow",sans-serif;--sans:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  /* 所有介面尺寸都由這兩個量推出：--u 是字級單位（跟著視窗短邊縮放），--pad 是貼邊距離 */
+  --u:clamp(11.5px,1.2vmin + 5px,24px);--pad:clamp(14px,3.2vmin,52px)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;color:var(--paper);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+/* —— HUD：沒有外框，只有字與細線；上下各一層淡淡的漸層讓字站得住 —— */
+.hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;font-size:var(--u);text-shadow:0 1px 6px rgba(0,0,0,.9);isolation:isolate}
+.hud.on{opacity:1}
+.hud:before,.hud:after{content:"";position:absolute;left:0;right:0;height:17vh;z-index:-1}
+.hud:before{top:0;background:linear-gradient(rgba(0,0,0,.45),transparent)}
+.hud:after{bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.5))}
+#top{position:absolute;top:max(var(--pad),env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:1.3em;white-space:nowrap}
+#top .side{display:flex;align-items:center;gap:.7em}
+#top .van{color:var(--van)}#top .emb{color:var(--emb)}
+.sc{font:700 2.5em/1 var(--num);min-width:.7em;text-align:center}
+#time{font:600 1.7em/1 var(--num);min-width:3.3ch;text-align:center;color:var(--paper)}
+#time.low{color:var(--red)}
+.pips{display:flex;gap:.28em}.pips i{width:.85em;height:.2em;background:currentColor;opacity:.22;transition:opacity .3s}.pips i.a{opacity:1}
+#feed{position:absolute;top:calc(max(var(--pad),env(safe-area-inset-top)) + 3.6em);right:max(var(--pad),env(safe-area-inset-right));display:flex;flex-direction:column;align-items:flex-end;gap:.4em;font:600 .92em/1.2 var(--sans)}
+#feed div{display:flex;align-items:center;gap:.55em;animation:feed 5.2s var(--ease) forwards}
+#feed .v{color:var(--van)}#feed .e{color:var(--emb)}#feed .me{color:#fff}
+#feed svg{width:2.3em;height:.75em;fill:var(--paper);filter:drop-shadow(0 1px 3px #000)}#feed svg.hs{fill:var(--brass-l)}#feed small{opacity:.6;font-weight:400}
+@keyframes feed{0%{opacity:0;transform:translateX(12px)}6%{opacity:1;transform:none}88%{opacity:1}100%{opacity:0}}
+#hp{position:absolute;left:max(var(--pad),env(safe-area-inset-left));bottom:max(var(--pad),env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:.5em}
+#hp b{font:700 3.2em/.85 var(--num)}
+#hp .bar{width:9em;height:.18em;background:rgba(255,255,255,.2)}#hp .bar i{display:block;height:100%;background:var(--paper);transition:width .15s}
+#hp.low b{color:var(--red)}#hp.low .bar i{background:var(--red)}
+#ammo{position:absolute;right:max(var(--pad),env(safe-area-inset-right));bottom:max(var(--pad),env(safe-area-inset-bottom));display:flex;align-items:baseline;gap:.5em}
+#ammo .n{font:700 3.8em/.85 var(--num)}#ammo .n.low{color:var(--red)}
+#ammo .r{font:600 1.5em/1 var(--num);opacity:.55}
+#cross{position:absolute;left:50%;top:50%;--g:8px;transition:opacity .12s}
+#cross i{position:absolute;background:rgba(236,224,198,.92);box-shadow:0 0 0 1px rgba(0,0,0,.45)}
+#cross i:nth-child(1){width:2px;height:9px;left:-1px;top:calc(-9px - var(--g))}#cross i:nth-child(2){width:2px;height:9px;left:-1px;top:var(--g)}
+#cross i:nth-child(3){height:2px;width:9px;top:-1px;left:calc(-9px - var(--g))}#cross i:nth-child(4){height:2px;width:9px;top:-1px;left:var(--g)}
+#cross i:nth-child(5){width:2px;height:2px;left:-1px;top:-1px}
+#hitm{position:absolute;left:50%;top:50%;width:0;height:0;opacity:0}
+#hitm i{position:absolute;width:11px;height:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+#hitm i:nth-child(1){transform:translate(7px,7px) rotate(45deg)}#hitm i:nth-child(2){transform:translate(-18px,7px) rotate(-45deg)}#hitm i:nth-child(3){transform:translate(7px,-9px) rotate(-45deg)}#hitm i:nth-child(4){transform:translate(-18px,-9px) rotate(45deg)}
+#hitm.h{animation:hm .22s ease-out}#hitm.k i{background:var(--red)}#hitm.hd i{background:var(--brass-l)}
+@keyframes hm{0%{opacity:1;transform:scale(1.5)}100%{opacity:0;transform:scale(1)}}
+#dmg{position:absolute;left:50%;top:50%;width:0;height:0}
+#dmg i{position:absolute;left:-12vmin;top:-4vmin;width:24vmin;height:8vmin;opacity:0;transform-origin:50% 50%;background:radial-gradient(ellipse 50% 36% at 50% 0,rgba(224,80,58,.9),rgba(224,80,58,0) 70%);transition:opacity .5s}
+#scope{position:absolute;inset:0;opacity:0}#scope svg{position:absolute;inset:0;width:100%;height:100%}
+#banner{position:absolute;left:0;right:0;top:19%;text-align:center;opacity:0;transform:translateY(8px);transition:opacity .45s var(--ease),transform .45s var(--ease)}
+#banner.on{opacity:1;transform:none}
+#banner b{display:block;font:500 clamp(30px,7.5vmin,88px)/1 var(--serif);letter-spacing:.1em}
+#banner span{display:block;margin-top:.7em;font:600 1.6em/1 var(--num);letter-spacing:.24em;opacity:.85}
+#banner.van b{color:var(--van)}#banner.emb b{color:var(--emb)}
+#spec{position:absolute;left:50%;bottom:calc(max(var(--pad),env(safe-area-inset-bottom)) + 5.2em);transform:translateX(-50%);font:500 .95em var(--sans);letter-spacing:.14em;white-space:nowrap;display:none}
+#spec b{color:var(--brass-l);font-weight:600}
+#tip{position:absolute;left:50%;top:61%;transform:translateX(-50%);font:600 1em var(--sans);letter-spacing:.18em;white-space:nowrap;opacity:0;transition:opacity .25s}
+#fps{position:absolute;left:max(var(--pad),env(safe-area-inset-left));top:max(var(--pad),env(safe-area-inset-top));font:600 .8em var(--num);letter-spacing:.08em;opacity:.7;display:none}
+.tag{position:absolute;left:0;top:0;font:600 11px var(--sans);letter-spacing:.06em;white-space:nowrap;will-change:transform;display:none}
+.tag:after{content:"";display:block;width:0;height:0;margin:2px auto 0;border:4px solid transparent;border-top-color:currentColor}
+#menuBtn{position:absolute;right:max(var(--pad),env(safe-area-inset-right));top:max(var(--pad),env(safe-area-inset-top));display:none;pointer-events:auto;width:2.6em;height:2.6em;align-items:center;justify-content:center;gap:.4em}
+#menuBtn i{width:.28em;height:1.2em;background:var(--paper);box-shadow:0 1px 5px rgba(0,0,0,.8)}
+body.watch #menuBtn{display:flex}
+
+/* —— 全螢幕畫面 —— */
+.ov{position:fixed;inset:0;display:none;z-index:5;font-size:var(--u)}
+.ov.on{display:flex}
+#loading{flex-direction:column;align-items:center;justify-content:center;gap:1.6em;background:#070504;z-index:9;transition:opacity .6s}
+#loading.off{opacity:0;pointer-events:none}
+#loading b{font:500 clamp(28px,6vmin,60px)/1 var(--serif);letter-spacing:.14em}
+#loading .bar{width:min(18em,60vw);height:1px;background:rgba(255,255,255,.14)}#loading .bar i{display:block;height:100%;width:0;background:var(--brass);transition:width .15s}
+#ldt{font:400 .9em var(--sans);opacity:.6;min-height:1.3em}
+#title{align-items:center;background:linear-gradient(90deg,rgba(7,5,4,.9),rgba(7,5,4,.5) 46%,rgba(7,5,4,0) 80%)}
+#title .col{width:min(40em,100%);max-height:100%;overflow-y:auto;padding:var(--pad) calc(var(--pad)*1.6);display:flex;flex-direction:column;gap:1.5em}
+#title h1{font:500 clamp(40px,11vmin,128px)/1 var(--serif);letter-spacing:.04em;white-space:nowrap}
+#title h2{font:500 clamp(11px,1.9vmin,20px)/1 var(--serif);letter-spacing:.72em;color:var(--brass-l);margin:-.2em 0 .6em}
+.seg{display:flex;gap:.3em 1.7em;flex-wrap:wrap}
+.seg button{padding:.35em 0;font:600 1em var(--sans);letter-spacing:.16em;color:var(--dim);border-bottom:2px solid transparent;transition:color .18s,border-color .18s}
+.seg button:hover{color:var(--paper)}
+.seg button.on{color:var(--paper);border-color:var(--brass)}
+.seg button[data-team="0"].on{color:var(--van);border-color:var(--van)}.seg button[data-team="1"].on{color:var(--emb);border-color:var(--emb)}
+.cta{display:flex;align-items:center;gap:.6em 1.9em;flex-wrap:wrap;margin-top:.5em}
+.btn{font:700 1.05em var(--sans);letter-spacing:.34em;transition:transform .12s var(--ease),background .18s,color .18s}
+.btn:active{transform:scale(.98)}
+.btn.pri{padding:1em 2.6em 1em 2.94em;background:var(--paper);color:#120c08}.btn.pri:hover{background:#fff}
+.btn.sec{padding:1em 0;color:rgba(236,224,198,.7)}.btn.sec:hover{color:#fff}
+.keys{font:400 .82em/1.9 var(--sans);color:rgba(236,224,198,.42);letter-spacing:.05em}
+#mobile{display:none;font:500 .9em/1.6 var(--sans);color:var(--brass-l)}
+@media (pointer:coarse){.keys{display:none}#mobile{display:block}}
+
+/* 暫停／結算：左邊選單、右邊計分板；放不下就自動換行堆疊 */
+#pause,#over{align-items:center;align-content:safe center;justify-content:center;gap:clamp(22px,6vw,110px);padding:var(--pad);background:rgba(6,4,3,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);flex-wrap:wrap;overflow-y:auto}
+.rack{flex:0 1 auto;min-width:0}
+.rail{display:flex;flex-direction:column;align-items:flex-start;gap:.35em}
+.key{font:600 2.3em/1.25 var(--num);letter-spacing:.2em;color:var(--dim);transition:color .15s,transform .25s var(--ease)}
+.key b{font-weight:inherit}
+.key:hover,.key:focus-visible{color:var(--paper);transform:translateX(.3em);outline:0}
+.hint{font:400 .85em var(--sans);color:var(--brass-l);margin-top:1em}.hint:empty{display:none}
+.res{display:block;font:500 clamp(36px,9vmin,104px)/1 var(--serif);letter-spacing:.1em;margin-bottom:.35em}
+.ledger{flex:1 1 20em;min-width:0;max-width:46em}
+.ledger .big{display:flex;justify-content:center;align-items:baseline;gap:.45em;font:700 3.4em/1 var(--num);margin-bottom:.55em}
+.ledger .big .v{color:var(--van)}.ledger .big .e{color:var(--emb)}.ledger .big u{text-decoration:none;opacity:.3}
+.ledger .teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15em),1fr));gap:1.4em 3em}
+.ledger table{width:100%;border-collapse:collapse}
+.ledger th{font:600 .78em/2.8 var(--sans);letter-spacing:.18em;text-align:right;color:var(--dim);border-bottom:1px solid rgba(236,224,198,.2)}
+.ledger th:first-child,.ledger td:first-child{text-align:left}
+.ledger .tv th:first-child{color:var(--van)}.ledger .te th:first-child{color:var(--emb)}
+.ledger td{width:3.4em;text-align:right;font:600 1.2em/2.1 var(--num);border-bottom:1px solid rgba(236,224,198,.07)}
+.ledger td:first-child{width:auto;font:500 1em/2.4 var(--sans)}
+.ledger tr.me td{color:var(--brass-l)}
+.ledger tr.dead td{opacity:.35}
+#board{align-items:center;justify-content:center;padding:var(--pad);background:rgba(6,4,3,.62);pointer-events:none;z-index:4}
+#board .ledger{flex:0 1 46em}
+
+/* 槍匠與設定：貼左的一欄，只靠一層漸層襯底；直式螢幕改成貼底 */
+.panel{position:fixed;inset:0 auto 0 0;width:min(28em,100%);display:none;flex-direction:column;justify-content:safe center;gap:1.5em;padding:var(--pad) calc(var(--pad)*1.5);font-size:var(--u);z-index:6;overflow-y:auto;background:linear-gradient(90deg,rgba(6,4,3,.92),rgba(6,4,3,.72) 62%,rgba(6,4,3,0))}
+.panel.on{display:flex}
+.panel h3{font:600 2em/1 var(--num);letter-spacing:.2em}
+.slot>span,.opt>span{display:block;font:600 .8em var(--sans);letter-spacing:.2em;color:var(--dim);margin-bottom:.45em}
+.slot div{display:flex;flex-wrap:wrap;gap:.2em 1.5em}
+.part{padding:.3em 0;font:600 1.05em var(--sans);letter-spacing:.06em;color:var(--dim);border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.part:hover{color:var(--paper)}.part.on{color:var(--paper);border-color:var(--brass)}
+.stats{display:grid;grid-template-columns:auto 1fr;gap:.6em 1em;align-items:center;font:500 .86em var(--sans);color:rgba(236,224,198,.6)}
+.stats u{display:block;height:2px;background:rgba(255,255,255,.13);text-decoration:none}.stats u i{display:block;height:100%;background:var(--brass);transition:width .3s var(--ease)}
+.row{display:grid;grid-template-columns:6.5em 1fr 2.6em;gap:1em;align-items:center;font:500 .95em var(--sans)}.row output{font:600 1.05em var(--num);text-align:right;color:var(--brass-l)}
+input[type=range]{-webkit-appearance:none;appearance:none;height:2px;background:rgba(236,224,198,.3);outline:0;width:100%}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--paper);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--paper);border:0;cursor:pointer}
+.back{align-self:flex-start;font:600 1.1em var(--num);letter-spacing:.24em;color:var(--dim);padding:.3em 0;transition:color .15s}.back:hover{color:#fff}
+
+@media (max-aspect-ratio:1/1){
+  #title{align-items:flex-end;background:linear-gradient(0deg,rgba(7,5,4,.94),rgba(7,5,4,.55) 62%,rgba(7,5,4,0))}
+  #title .col{width:100%;padding:calc(var(--pad)*1.6) calc(var(--pad)*1.4)}
+  .rail{flex-direction:row;flex-wrap:wrap;gap:.2em 1.4em}.key{font-size:1.45em;letter-spacing:.14em}.key:hover{transform:none}
+  .panel{inset:auto 0 0 0;width:100%;max-height:62vh;justify-content:flex-start;gap:1.2em;padding:calc(var(--pad)*2.4) calc(var(--pad)*1.4) max(var(--pad),env(safe-area-inset-bottom));background:linear-gradient(0deg,rgba(6,4,3,.96) 80%,rgba(6,4,3,0))}
+}
+@media (max-height:520px){#title .col{gap:.9em}.panel{gap:.9em}.key{font-size:1.6em}}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="午夜退房遊戲畫面"></canvas>
+
+<div class="hud" id="hud">
+  <div id="top">
+    <div class="side van"><span class="pips" id="pv"></span><b class="sc" id="sv">0</b></div>
+    <b id="time">1:50</b>
+    <div class="side emb"><b class="sc" id="se">0</b><span class="pips" id="pe"></span></div>
+  </div>
+  <div id="feed"></div>
+  <div id="hp"><b id="hpn">100</b><div class="bar"><i id="hpb"></i></div></div>
+  <div id="ammo"><span class="n" id="am">30</span><span class="r" id="ar">120</span></div>
+  <div id="cross"><i></i><i></i><i></i><i></i><i></i></div>
+  <div id="hitm"><i></i><i></i><i></i><i></i></div>
+  <div id="dmg"><i></i><i></i><i></i></div>
+  <div id="scope"><svg viewBox="-100 -100 200 200" preserveAspectRatio="xMidYMid slice"><g stroke="#0b0b0b" stroke-width=".28" fill="none"><path d="M-41 0H-6M6 0H41M0 -41V-6M0 6V41"/><path d="M-41 0H-18M18 0H41M0 18V41" stroke-width=".9"/><circle r="1.6"/><path d="M-12 -.9V.9M-9 -.9V.9M-15 -.9V.9M12 -.9V.9M9 -.9V.9M15 -.9V.9M-.9 9H.9M-.9 12H.9M-.9 15H.9"/></g><circle r=".28" fill="#d2452f"/></svg></div>
+  <div id="banner"><b id="bb"></b><span id="bt"></span></div>
+  <div id="spec"></div>
+  <div id="tip"></div>
+  <div id="fps"></div>
+  <div id="tags"></div>
+  <button id="menuBtn" aria-label="暫停選單"><i></i><i></i></button>
+</div>
+
+<div class="ov" id="board"><div class="ledger" id="boardL"></div></div>
+
+<div class="ov" id="pause" role="dialog" aria-label="暫停選單">
+  <div class="rack">
+    <nav class="rail">
+      <button class="key" data-act="resume"><b>RESUME</b></button>
+      <button class="key" data-act="gunsmith"><b>GUNSMITH</b></button>
+      <button class="key" data-act="settings"><b>SETTINGS</b></button>
+      <button class="key" data-act="quit"><b>QUIT</b></button>
+    </nav>
+    <p class="hint"></p>
+  </div>
+  <div class="ledger" id="pauseL"></div>
+</div>
+
+<div class="panel" id="gunsmith" role="dialog" aria-label="槍匠">
+  <h3>GUNSMITH</h3>
+  <div class="slot"><span>瞄具</span><div id="gsOptic"></div></div>
+  <div class="slot"><span>槍管</span><div id="gsBarrel"></div></div>
+  <div class="slot"><span>彈匣</span><div id="gsMag"></div></div>
+  <div class="stats" id="gsStats"></div>
+  <button class="back" data-act="back">BACK</button>
+</div>
+
+<div class="panel" id="settings" role="dialog" aria-label="設定">
+  <h3>SETTINGS</h3>
+  <label class="row"><span>靈敏度</span><input type="range" id="sSens" min="0.2" max="3" step="0.05" aria-label="滑鼠靈敏度"><output id="oSens"></output></label>
+  <label class="row"><span>視野</span><input type="range" id="sFov" min="55" max="95" step="1" aria-label="視野角度"><output id="oFov"></output></label>
+  <label class="row"><span>音量</span><input type="range" id="sVol" min="0" max="1" step="0.02" aria-label="音量"><output id="oVol"></output></label>
+  <div class="opt"><span>畫質</span><div class="seg" id="sQual"><button data-q="low">低</button><button data-q="med">中</button><button data-q="high">高</button></div></div>
+  <div class="seg" id="sMisc"><button data-k="invert">反轉 Y 軸</button><button data-k="fps">顯示 FPS</button><button data-k="hold">按住蹲下</button></div>
+  <button class="back" data-act="back">BACK</button>
+</div>
+
+<div class="ov" id="over" role="dialog" aria-label="比賽結束">
+  <div class="rack">
+    <b class="res" id="ovRes"></b>
+    <div class="cta"><button class="btn pri" data-act="again">再來一場</button><button class="btn sec" data-act="quit">離開</button></div>
+  </div>
+  <div class="ledger" id="overL"></div>
+</div>
+
+<div class="ov" id="title">
+  <div class="col">
+    <h1>午夜退房</h1>
+    <h2>LATE CHECKOUT</h2>
+    <div class="seg" id="tTeam"><button data-team="0" class="on">VANGUARD</button><button data-team="1">EMBER</button></div>
+    <div class="seg" id="tDiff"><button data-d="easy">新手</button><button data-d="normal" class="on">標準</button><button data-d="hard">老兵</button></div>
+    <div class="cta"><button class="btn pri" id="go">開始</button><button class="btn sec" id="watch">觀戰</button></div>
+    <p id="mobile">需要鍵盤與滑鼠，這台裝置請用觀戰。</p>
+    <p class="keys">WASD 移動　滑鼠 瞄準／射擊　右鍵 開鏡　Shift 衝刺　C 蹲下　R 換彈　F 槍燈　Tab 計分　Esc 選單</p>
+  </div>
+</div>
+
+<div class="ov on" id="loading"><b>午夜退房</b><div class="bar"><i id="ldb"></i></div><span id="ldt"></span></div>
+
+<script>/*BUNDLE*/</script>
+</body>
+</html>

@@ -6,7 +6,8 @@ import * as R from './rules.js';
 import { buildUnit } from './models.js';
 import { buildProp, buildSurface } from './props.js';
 import { buildScenery, themeStyle } from './scenery.js';
-import { toon, flat, part, box, cyl, sphere, group, textTexture, gradientMap, roundedBoxGeo } from './kit.js';
+import { toon, flat, part, box, cyl, sphere, group, textTexture, gradientMap, roundedBoxGeo, toonify, cloneMat, upgradeTree, rawOut, setLook, getLook, LOOK, LOOK_DEFAULT, GLSL_BOOST, setDetail } from './kit.js';
+import { createPost } from './post.js';
 import { SFX } from './audio.js';
 
 export const W = (x) => x * TILE + TILE / 2;           // 格 → 世界座標
@@ -49,11 +50,15 @@ const TILE_COL = `
 
 export function createView(canvas, overlay) {
   const isTouch = matchMedia('(pointer: coarse)').matches;
+  // 手機螢幕小：圓滑度只加一點、方塊用低面數版本，把三角形數壓在原本的 1.2 倍左右（要在任何模型建立之前設定）
+  if (isTouch || /[?&]q=low\b/.test(location.search)) setDetail(1.15);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(isTouch ? 1.75 : 2, devicePixelRatio || 1));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.info.autoReset = false; // 一幀有好幾次 render（後製），每幀自己 reset 才看得到真正的 draw call
+  const post = createPost(renderer);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.5, 400);
   const hemi = new THREE.HemisphereLight(0xffffff, 0x665544, 1.4);
@@ -72,6 +77,7 @@ export function createView(canvas, overlay) {
     fragmentShader: 'uniform vec3 top; uniform vec3 bot; varying vec3 vP; void main(){ float t = clamp((normalize(vP - cameraPosition).y + 0.15) * 1.6, 0., 1.); gl_FragColor = vec4(mix(bot, top, t), 1.); }',
     side: THREE.BackSide, depthWrite: false, fog: false,
   });
+  rawOut(skyMat);
   const sky = new THREE.Mesh(new THREE.SphereGeometry(300, 24, 12), skyMat);
   sky.renderOrder = -10;
   scene.add(sky);
@@ -82,19 +88,198 @@ export function createView(canvas, overlay) {
   const V = {
     renderer, scene, camera, s: null, units: new Map(), props: new Map(), surf: new Map(), tiles: null,
     speed: 1, anims: [], time: 0, shake: 0, plates: new Map(), floats: [], style: null, sceneryAnim: null,
-    hoverId: null, hitStop: 0, ambient: [], dustCol: null,
+    hoverId: null, hitStop: 0, slowT: 0, ambient: [], dustCol: null, post, baseFov: 35, focusDist: 27,
   };
+  // 畫質：high（HDR＋bloom＋景深）、med（HDR＋bloom）、low（不經後製）。網址 ?q= 可指定；沒指定時太慢會自動降一級。
+  const qm = /[?&]q=(high|med|low)\b/.exec(location.search);
+  let qLocked = !!qm, qT = 0, qN = 0;
+  V.setQuality = (t, lock = true) => {
+    post.setTier(t);
+    const on = post.tier !== 'low';
+    setLook({ lin: on ? 1 : 0, boost: on ? 2.5 : 1 });
+    V.quality = post.tier; qT = 0; qN = 0;
+    if (lock) qLocked = true;
+  };
+  V.setQuality(qm ? qm[1] : isTouch ? 'med' : 'high', !!qm);
+  V.setAutoQuality = () => { V.setQuality(isTouch ? 'med' : 'high', false); qLocked = false; };
+  function autoQuality(rdt) {
+    if (qLocked || V.quality === 'low' || document.hidden || loading) return;
+    if (++qN <= 40) return;            // 換關後前幾幀在編譯著色器，不算
+    qT += rdt;
+    if (qN < 160) return;
+    const avg = qT / (qN - 40);
+    if (avg > 0.03) V.setQuality(V.quality === 'high' ? 'med' : 'low', false);
+    else { qT = 0; qN = 41; }
+  }
 
   // ── 鏡頭 ──
   // yawT/distT/ftx/ftz 是玩家操作的目標；glide、punch、dMul、yOff 是演出用的疊加量
-  const cam = { tx: 12, tz: 12, ty: 0.8, yaw: Math.PI * 0.25, yawT: Math.PI * 0.25, pitch: 0.92, pitchT: 0.92, dist: 30, distT: 30, ftx: 12, ftz: 12, glide: null, punch: 0, dMul: 1, dMulT: 1, yOff: 0, yOffT: 0 };
+  const PITCH0 = 0.86;
+  const cam = { tx: 12, tz: 12, ty: 0.8, yaw: Math.PI * 0.25, yawT: Math.PI * 0.25, pitch: PITCH0, pitchT: PITCH0, dist: 30, distT: 30, ftx: 12, ftz: 12, glide: null, punch: 0, dMul: 1, dMulT: 1, yOff: 0, yOffT: 0 };
   V.cam = cam;
-  V.rotate = (dir) => { cam.yawT += dir * Math.PI / 2; };
-  V.rotateFree = (dx) => { cam.yawT += dx; cam.yaw = cam.yawT; };
-  V.zoom = (k) => { cam.distT = Math.min(V.maxDist(), Math.max(10, cam.distT * k)); };
+
+  // ── 演出鏡頭（action cam）──
+  // 攻擊特寫、擊殺、首領登場、投擲跟拍。shot.w（0..1）把玩家鏡頭與 shot 的參數混合，完全不動玩家的 yawT/distT/ftx。
+  // V.actionCam=false、prefers-reduced-motion、演出速度 ≥3×、或玩家自己動了鏡頭（到下一個回合為止）都不啟動。
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const SHOT_DFOV = -5; // 演出鏡頭的視角比平常窄一點（望遠感）
+  const shot = { w: 0, wT: 0, rate: 7, tx: 12, ty: 1, tz: 12, yaw: 0, pitch: 0.5, dist: 12, roll: 0,
+    c: { tx: 12, ty: 1, tz: 12, yaw: 0, pitch: 0.5, dist: 12 }, follow: null, base: null, orbit: 0, relAt: 0, real0: 0, mute: false, cine: false };
+  V.shot = shot;
+  V.actionCam = true;
+  const shotOK = () => V.actionCam && !reduceMotion && V.speed < 3 && !shot.mute && !introAnim && !!V.s;
+  const portraitView = () => camera.aspect < 1;
+  const curYaw = () => { const y = cam.yaw + cam.yOff; return shot.w > 0.01 ? y + wrapA(shot.c.yaw - y) * shot.w : y; };
+  // 讓左右相距 span 公尺的主體都入鏡所需的距離
+  const fitDist = (span, pad = 2.4, min = 8) => Math.max(min, (span / 2 + pad) / (Math.tan((V.baseFov + SHOT_DFOV) * Math.PI / 360) * Math.min(1.7, camera.aspect)));
+  // 以地塊高度（＋道具）粗略判斷鏡頭到主體之間有沒有被擋住
+  function shotBlocked(tx, ty, tz, yaw, pitch, dist, ig) {
+    const s = V.s, cp = Math.cos(pitch);
+    const cx = tx + Math.sin(yaw) * cp * dist, cy = ty + Math.sin(pitch) * dist, cz = tz + Math.cos(yaw) * cp * dist;
+    for (let i = 2; i <= 14; i++) {
+      const k = i / 14, gx = Math.floor((tx + (cx - tx) * k) / TILE), gz = Math.floor((tz + (cz - tz) * k) / TILE);
+      if (gx < 0 || gz < 0 || gx >= GRID || gz >= GRID) continue;
+      let top = topY(s.grid[gz][gx].h) + 0.25;
+      for (const p of s.props) if (p.alive !== false && gx >= p.x && gx < p.x + (p.w || 1) && gz >= p.z && gz < p.z + (p.d || 1)) { top += 1.7; break; }
+      if (ty + (cy - ty) * k < top) return true;
+    }
+    // 其他單位站在鏡頭與主體之間（ig 是這個鏡頭的主角，不算）
+    const dx = cx - tx, dz = cz - tz, l2 = dx * dx + dz * dz || 1;
+    for (const r of V.units.values()) {
+      if (r.dead || r.hidden || (ig && ig.includes(r))) continue;
+      const p = r.holder.position, k = clamp01(((p.x - tx) * dx + (p.z - tz) * dz) / l2);
+      if (k < 0.12) continue;
+      const ex = tx + dx * k - p.x, ez = tz + dz * k - p.z, rad = r.u.big ? 1.6 : 1.0;
+      if (ex * ex + ez * ez < rad * rad && ty + (cy - ty) * k < p.y + r.H + 0.3) return true;
+    }
+    return false;
+  }
+  // 用實際的場景網格再確認一次（佈景、道具、其他單位）；只在標題與首領登場這種停頓點用，一般攻擊不做
+  const _rc = new THREE.Raycaster(), _rd = new THREE.Vector3(), _ro = new THREE.Vector3();
+  function rayBlocked(tx, ty, tz, yaw, pitch, dist, ig) {
+    const cp = Math.cos(pitch);
+    _rd.set(Math.sin(yaw) * cp, Math.sin(pitch), Math.cos(yaw) * cp);
+    const skip = new Set((ig || []).map(r => r.holder));
+    for (const [off, up] of [[-1.3, 0.3], [0, 0.3], [1.3, 0.3], [-1.6, -0.75], [1.6, -0.75]]) {
+      _ro.set(tx + Math.cos(yaw) * off, ty + up, tz - Math.sin(yaw) * off);
+      _rc.set(_ro, _rd); _rc.near = 1.4; _rc.far = dist + 2;
+      for (const h of _rc.intersectObject(world, true)) {
+        let o = h.object, mine = false;
+        while (o) { if (skip.has(o) || !o.visible) { mine = true; break; } o = o.parent; }
+        if (!mine) return true;
+      }
+    }
+    return false;
+  }
+  function setCine(on) { if (shot.cine !== on) { shot.cine = on; document.body.classList.toggle('cine', on); } }
+  // o = { tx, ty, tz, yaws:[候選角度], pitch, dist, rate, orbit, follow, cine, force }：挑一個不被擋、不出界、轉最少的角度
+  function setShot(o) {
+    if (!o.force && !shotOK()) return false;
+    const y0 = curYaw();
+    let best = null;
+    for (let step = 0; step < 4 && (!best || best.cost >= 50); step++) {
+      const pitch = Math.min(1.0, o.pitch + step * 0.17), cp = Math.cos(pitch);
+      for (const yw of o.yaws) {
+        const cx = o.tx + Math.sin(yw) * cp * o.dist, cz = o.tz + Math.cos(yw) * cp * o.dist;
+        const out = Math.max(0, -4 - cx, cx - 28, -4 - cz, cz - 28);
+        const cost = (shotBlocked(o.tx, o.ty, o.tz, yw, pitch, o.dist, o.ig) || (o.ray && rayBlocked(o.tx, o.ty, o.tz, yw, pitch, o.dist, o.ig)) ? 100 : 0) + out * 6 + Math.abs(wrapA(yw - y0)) * 1.5 + step * 6;
+        if (!best || cost < best.cost) best = { yaw: yw, pitch, cost };
+      }
+    }
+    const fresh = shot.w < 0.05 && !shot.wT;
+    Object.assign(shot, { tx: o.tx, ty: o.ty, tz: o.tz, yaw: y0 + wrapA(best.yaw - y0), pitch: best.pitch, dist: o.dist, wT: 1, rate: o.rate || 7,
+      follow: o.follow || null, base: o.follow ? { x: o.tx, y: o.ty, z: o.tz } : null, orbit: o.orbit || 0, relAt: 0, real0: performance.now(), roll: 0 });
+    if (fresh) Object.assign(shot.c, { tx: shot.tx, ty: shot.ty, tz: shot.tz, yaw: shot.yaw, pitch: shot.pitch, dist: shot.dist });
+    setCine(!!o.cine);
+    return true;
+  }
+  // delay（毫秒，跟著倍速縮短）後放開；0 = 立刻
+  function endShot(delay = 0) {
+    if (!shot.wT) return;
+    if (delay > 0) { shot.relAt = V.time + delay / 1000 / Math.max(1, V.speed); return; }
+    shot.wT = 0; shot.relAt = 0; shot.follow = null; shot.orbit = 0; setCine(false);
+  }
+  function cancelShot() { if (shot.wT || shot.w > 0.01) { shot.mute = true; endShot(); } }
+  V.endShot = endShot;
+  // 攻擊／施法：近戰拍側面，遠程（或直式螢幕）越過出手者肩膀看向目標，對自己施放則拍正面特寫
+  function attackShot(rec, to, tgt, aoe) {
+    const a = rec.holder.position, sep = Math.hypot(to.x - a.x, to.z - a.z);
+    const H = Math.max(rec.H, tgt ? tgt.H : 1.6), ig = tgt ? [rec, tgt] : [rec];
+    if (sep < 0.5) return setShot({ tx: a.x, ty: a.y + rec.H * 0.6, tz: a.z, yaws: [rec.yaw + 0.55, rec.yaw - 0.55, rec.yaw + 1.2, rec.yaw - 1.2], pitch: 0.24, dist: 5 + rec.H * 2.3, ig });
+    const line = Math.atan2(a.x - to.x, a.z - to.z); // 由目標指向出手者
+    const ty = Math.max(a.y, to.y) + H * 0.5;
+    if (sep < 5.5 && !portraitView() && !aoe) return setShot({ tx: (a.x + to.x) / 2, ty, tz: (a.z + to.z) / 2, yaws: [line + 1.05, line - 1.05, line + 1.6, line - 1.6], pitch: 0.34, dist: fitDist(sep, 2.0 + H * 0.55, 8.5), ig });
+    const k = 0.55;
+    return setShot({ tx: a.x + (to.x - a.x) * k, ty, tz: a.z + (to.z - a.z) * k, yaws: [line + 0.5, line - 0.5, line + 0.95, line - 0.95], pitch: aoe ? 0.58 : 0.46, dist: sep * 0.5 + 5.5 + H * 1.3 + (aoe ? 3 : 0), ig: [tgt].filter(Boolean) });
+  }
+  function killShot(rec, big) {
+    const p = rec.holder.position, y0 = curYaw();
+    if (!setShot({ tx: p.x, ty: p.y + rec.H * 0.4, tz: p.z, yaws: [y0 + 0.5, y0 - 0.5, y0 + 1.4, y0 - 1.4], pitch: big ? 0.28 : 0.42, dist: (big ? 6 : 7.5) + rec.H * 1.7, orbit: big ? 0.55 : 0.25, rate: big ? 5 : 7, cine: big, ig: [rec] })) return;
+    if (big) { V.slowT = 1.0; cam.punch = 1; }
+  }
+
+  const shift = { x: 0, y: 0, tx: 0, ty: 0, on: false };
+  let titleYaw = 0;
+  // 標題畫面：四位英雄站成前後兩排，低角度特寫、鏡頭微微擺動，敵人與場景在後面失焦
+  V.titleScene = (on) => {
+    V.titleOn = !!on;
+    document.body.classList.toggle('titled', !!on);
+    if (!on || !V.s) { V.titleOn = false; shift.tx = shift.ty = 0; endShot(); return; }
+    const s = V.s, order = Object.keys(HEROES);
+    const recs = [...V.units.values()].filter(r => r.u.side === 'hero').sort((a, b) => order.indexOf(a.u.key) - order.indexOf(b.u.key));
+    if (!recs.length) return;
+    let hx = 0, hz = 0, ex = 0, ez = 0, en = 0;
+    for (const r of recs) { hx += r.holder.position.x; hz += r.holder.position.z; }
+    hx /= recs.length; hz /= recs.length;
+    const occ = new Set();
+    for (const u of s.units) if (u.side !== 'hero' && R.alive(u)) { occ.add(u.x + ',' + u.z); ex += W(u.x); ez += W(u.z); en++; }
+    for (const p of s.props) for (let i = 0; i < (p.w || 1); i++) for (let j = 0; j < (p.d || 1); j++) occ.add((p.x + i) + ',' + (p.z + j));
+    if (en) { ex /= en; ez /= en; } else { ex = 12; ez = 12; }
+    // 找一塊 2×2 等高、沒東西的地方（離英雄原位最近）
+    let spot = null, bd = 1e9;
+    for (let z = 1; z < GRID - 2; z++) for (let x = 1; x < GRID - 2; x++) {
+      const t = s.grid[z][x]; let ok = true;
+      for (let i = 0; i < 2 && ok; i++) for (let j = 0; j < 2 && ok; j++) { const q = s.grid[z + j][x + i]; if (q.h !== t.h || q.lava || q.surf || occ.has((x + i) + ',' + (z + j))) ok = false; }
+      if (!ok) continue;
+      const cx = (x + 1) * TILE, cz = (z + 1) * TILE, d = Math.hypot(cx - hx, cz - hz);
+      if (d < bd) { bd = d; spot = { x: cx, y: topY(t.h), z: cz }; }
+    }
+    if (!spot) spot = { x: hx, y: recs[0].holder.position.y, z: hz };
+    // 標題是主視覺：棋盤上的道具與地表先收起來（開始遊戲時 loadLevel 會整個重建）
+    for (const g of V.props.values()) g.visible = false;
+    for (const g of V.surf.values()) g.visible = false;
+    // 鏡頭在英雄背對敵人的那一側；先挑一個沒被佈景擋住的角度，再讓英雄面向它排隊
+    const y0 = Math.atan2(spot.x - ex, spot.z - ez), pv = portraitView();
+    for (const r of recs) r.holder.position.set(spot.x, spot.y, spot.z);
+    setShot({ tx: spot.x, ty: spot.y + 1.0, tz: spot.z, yaws: [y0, y0 + 0.4, y0 - 0.4, y0 + 0.85, y0 - 0.85, y0 + 1.4, y0 - 1.4, y0 + 2.2, y0 - 2.2], pitch: 0.1, dist: fitDist(pv ? 3.0 : 3.6, 1.0, 6.2), force: true, rate: 2.5, ig: recs, ray: true });
+    const fx = Math.sin(shot.yaw), fz = Math.cos(shot.yaw);
+    const rx = fz, rz = -fx;
+    const slots = [[-0.62, 0.3], [0.62, 0.3], [-1.5, -0.55], [1.5, -0.55]];
+    recs.forEach((r, i) => {
+      const [a, b] = slots[i % 4];
+      r.holder.position.set(spot.x + rx * a + fx * b, spot.y, spot.z + rz * a + fz * b);
+      r.yaw = Math.atan2(fx, fz) + (a < 0 ? 0.18 : -0.18);
+      r.ring.visible = false; r.arrow.visible = false;
+    });
+    for (const r of V.units.values()) { r.ring.visible = false; r.arrow.visible = false; }
+    titleYaw = shot.yaw;
+    // 橫向：選單卡佔掉右邊一塊，四個人要排進左邊剩下的寬度（卡片寬度是固定 px，視窗越窄佔比越大）
+    const tc = document.querySelector('#title .tcard'), tcr = tc ? tc.getBoundingClientRect() : null;
+    const fr = !pv && tcr && tcr.width > 0 ? Math.min(0.6, Math.max(0.25, (innerWidth - tcr.left) / innerWidth)) : 0.36;
+    // 四個人並排（含左右留白）約佔 1.08 個畫面高；放不下就把鏡頭往後拉
+    const fit = pv ? 1 : Math.min(1.45, Math.max(1, 1.08 * innerHeight / (0.94 * (1 - fr) * innerWidth)));
+    Object.assign(shot.c, { tx: shot.tx, ty: shot.ty, tz: shot.tz, yaw: shot.yaw, pitch: shot.pitch, dist: shot.dist * 1.25 * fit });
+    shot.w = 1;
+    shift.tx = pv ? 0 : Math.min(0.3, Math.max(0.14, fr * 0.5)); shift.ty = pv ? 0.07 : 0.03;   // 把人群置中在卡片左邊的空間
+  };
+  V.camYaw = () => cam.yaw;
+  V.rotate = (dir) => { cancelShot(); cam.yawT += dir * Math.PI / 2; };
+  V.rotateFree = (dx) => { cancelShot(); cam.yawT += dx; cam.yaw = cam.yawT; };
+  V.zoom = (k) => { cancelShot(); cam.distT = Math.min(V.maxDist(), Math.max(10, cam.distT * k)); };
   V.maxDist = () => (innerWidth < 700 ? 46 : 34);
   V.focus = (x, z) => { cam.glide = null; cam.ftx = W(x); cam.ftz = W(z); };
   V.pan = (dx, dz) => {
+    cancelShot();
     cam.glide = null;
     const c = Math.cos(cam.yaw), s = Math.sin(cam.yaw);
     cam.ftx = Math.min(26, Math.max(-2, cam.ftx + dx * c + dz * s));
@@ -129,17 +314,47 @@ export function createView(canvas, overlay) {
     cam.tx += (cam.ftx - cam.tx) * kf;
     cam.tz += (cam.ftz - cam.tz) * kf;
     cam.punch = Math.max(0, cam.punch - dt * 2.4);
-    const dist = cam.dist * cam.dMul * (1 - 0.13 * cam.punch * cam.punch);
-    const yaw = cam.yaw + cam.yOff;
-    const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    const pk = 1 - 0.13 * cam.punch * cam.punch;
+    let dist = cam.dist * cam.dMul * pk, yaw = cam.yaw + cam.yOff, pitch = cam.pitch, tx = cam.tx, ty = cam.ty, tz = cam.tz, roll = 0, fov = V.baseFov;
+    // 演出鏡頭：先把 shot.c 滑向目標參數（連續兩個鏡頭之間不跳），再依權重與玩家鏡頭混合
+    if (shot.wT && ((shot.relAt && V.time >= shot.relAt) || performance.now() - shot.real0 > 9000)) endShot();
+    shot.w += (shot.wT - shot.w) * (1 - Math.exp(-dt * shot.rate * Math.max(1, V.speed)));
+    if (!shot.wT && shot.w < 0.002) shot.w = 0;
+    if (shot.w > 0) {
+      const c = shot.c, ck = 1 - Math.exp(-dt * 6 * Math.max(1, V.speed));
+      if (shot.orbit) shot.yaw += shot.orbit * dt;
+      if (shot.follow && shot.base) {
+        const fp = shot.follow.position, b = shot.base;
+        shot.tx = b.x + (fp.x - b.x) * 0.65; shot.ty = b.y + (fp.y - b.y) * 0.5; shot.tz = b.z + (fp.z - b.z) * 0.65;
+      }
+      c.tx += (shot.tx - c.tx) * ck; c.ty += (shot.ty - c.ty) * ck; c.tz += (shot.tz - c.tz) * ck;
+      c.yaw += (shot.yaw - c.yaw) * ck; c.pitch += (shot.pitch - c.pitch) * ck; c.dist += (shot.dist - c.dist) * ck;
+      shot.roll *= Math.exp(-dt * 2.2);
+      const e = shot.w * shot.w * (3 - 2 * shot.w);
+      tx += (c.tx - tx) * e; ty += (c.ty - ty) * e; tz += (c.tz - tz) * e;
+      yaw += wrapA(c.yaw - yaw) * e; pitch += (c.pitch - pitch) * e; dist += (c.dist * pk - dist) * e;
+      roll = shot.roll * e; fov += SHOT_DFOV * e;
+    }
+    if (V.titleOn && shot.wT) { shot.yaw = titleYaw + Math.sin(V.time * 0.22) * 0.15; shot.real0 = performance.now(); }
+    if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = fov; camera.updateProjectionMatrix(); }
+    // 鏡頭平移（lens shift）：標題畫面把主體推到一側，讓出選單的位置
+    const sk2 = 1 - Math.exp(-dt * 4);
+    shift.x += (shift.tx - shift.x) * sk2; shift.y += (shift.ty - shift.y) * sk2;
+    if (Math.abs(shift.x) > 0.002 || Math.abs(shift.y) > 0.002) {
+      const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
+      camera.setViewOffset(w, h, shift.x * w, shift.y * h, w, h); shift.on = true;
+    } else if (shift.on) { camera.clearViewOffset(); shift.on = false; }
+    V.focusDist = dist;
+    const cp = Math.cos(pitch), sp = Math.sin(pitch);
     let sx = 0, sy = 0;
     if (V.shake > 0) {
       const a = V.shake * 0.5;
       sx = (Math.sin(V.time * 61) + Math.sin(V.time * 37.3) * 0.6) * a * 0.6; sy = (Math.sin(V.time * 53.7 + 1) + Math.sin(V.time * 29.1) * 0.6) * a * 0.6;
       V.shake = Math.max(0, V.shake - dt * 3);
     }
-    camera.position.set(cam.tx + Math.sin(yaw) * cp * dist + sx, cam.ty + sp * dist + sy, cam.tz + Math.cos(yaw) * cp * dist);
-    camera.lookAt(cam.tx + sx * 0.5, cam.ty, cam.tz);
+    camera.position.set(tx + Math.sin(yaw) * cp * dist + sx, ty + sp * dist + sy, tz + Math.cos(yaw) * cp * dist);
+    camera.lookAt(tx + sx * 0.5, ty, tz);
+    if (roll) camera.rotateZ(roll);
   }
 
   // ── 棋盤 ──
@@ -154,14 +369,13 @@ export function createView(canvas, overlay) {
   const lavaGeo = new THREE.PlaneGeometry(TILE, TILE); lavaGeo.rotateX(-Math.PI / 2); lavaGeo.userData.shared = true;
   function tileMat(kind) {
     const m = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: gradientMap() });
-    m.onBeforeCompile = sh => {
+    const extra = sh => {
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp; varying float vUp;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvec4 _wp = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\n_wp = instanceMatrix * _wp;\n#endif\nvWp = (modelMatrix * _wp).xyz; vUp = normal.y;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + TILE_COMMON)
         .replace('#include <color_fragment>', '#include <color_fragment>\n' + (kind === 'top' ? TILE_TOP : TILE_COL));
     };
-    m.customProgramCacheKey = () => 'tile280' + kind;
-    return m;
+    return toonify(m, extra, 'tile' + kind);
   }
   const topMat = tileMat('top'), colMat = tileMat('col');
   // 熔岩：流動噪聲＋發亮脈動（不受光）
@@ -236,7 +450,7 @@ export function createView(canvas, overlay) {
   function decalMat(i) {
     if (decalMats[i]) return decalMats[i];
     const m = new THREE.MeshToonMaterial({ color: 0xffffff, map: decalAtlas(), gradientMap: gradientMap(), transparent: true, depthWrite: false, opacity: [0.8, 0.45, 1, 0.85][i], polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-    return (decalMats[i] = m);
+    return (decalMats[i] = toonify(m));
   }
 
   const hiGeo = new THREE.PlaneGeometry(TILE * 0.9, TILE * 0.9); hiGeo.rotateX(-Math.PI / 2);
@@ -331,6 +545,59 @@ export function createView(canvas, overlay) {
     m.visible = false; m.renderOrder = 6; m.userData = { age: 0, life: 1, max: 1 };
     scene.add(m); ripples.push(m);
   }
+  // 命中的漫畫爆炸星：面向鏡頭的尖刺片，白芯＋彩色外圈，彈出後快速收掉
+  const impacts = [];
+  {
+    const star = (n, r0, r1, jit) => {
+      const sh = new THREE.Shape();
+      for (let i = 0; i < n * 2; i++) {
+        const a = i / (n * 2) * Math.PI * 2, r = (i % 2 ? r0 : r1) * (1 + (i % 2 ? 0 : jit * (((i * 7919) % 13) / 13 - 0.5)));
+        if (i) sh.lineTo(Math.cos(a) * r, Math.sin(a) * r); else sh.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      return new THREE.ShapeGeometry(sh);
+    };
+    const gOut = star(9, 0.46, 1, 0.5), gIn = star(9, 0.3, 0.62, 0.4);
+    for (let i = 0; i < 6; i++) {
+      const g = new THREE.Group();
+      const mk = (geo, z) => { const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, depthTest: false, side: THREE.DoubleSide })); m.position.z = z; m.renderOrder = 9; g.add(m); return m; };
+      g.userData = { age: 0, life: 0.2, size: 1, out: mk(gOut, 0), core: mk(gIn, 0.01) };
+      g.visible = false; scene.add(g); impacts.push(g);
+    }
+  }
+  V.impact = (wx, wy, wz, size = 1, color = 0xffd23f) => {
+    if (reduceMotion) return;
+    let g = impacts.find(m => !m.visible);
+    if (!g) g = impacts.reduce((a, b) => (a.userData.age > b.userData.age ? a : b));
+    const d = g.userData;
+    d.age = 0; d.life = 0.16 + size * 0.06; d.size = size; d.out.material.color.set(color); d.roll = Math.random() * 6.28;
+    g.position.set(wx, wy, wz); g.visible = true; g.scale.setScalar(0.01);
+  };
+  function updateImpacts(dt) {
+    for (const g of impacts) {
+      if (!g.visible) continue;
+      const d = g.userData; d.age += dt;
+      const k = d.age / d.life;
+      if (k >= 1) { g.visible = false; continue; }
+      g.quaternion.copy(camera.quaternion); g.rotateZ(d.roll + k * 0.5);
+      // 朝鏡頭推一點，避免被角色擋住；大小跟距離無關地略放大
+      const s = d.size * (0.35 + 1.15 * (1 - Math.pow(1 - Math.min(1, k * 2.4), 3)));
+      g.scale.setScalar(s);
+      const o = k < 0.45 ? 1 : 1 - (k - 0.45) / 0.55;
+      d.out.material.opacity = o; d.core.material.opacity = o;
+      d.core.scale.setScalar(1 - k * 0.55);
+    }
+  }
+  // 自訂著色器：畫到線性緩衝時顏色不變；熔岩與粒子是發光體，跟著進 bloom
+  rawOut(hiMat); rawOut(aoeRing.material); rawOut(aoeDisc.material); rawOut(pathMat);
+  lavaMat.uniforms.uBoost = LOOK.boost;
+  lavaMat.fragmentShader = GLSL_BOOST + lavaMat.fragmentShader.replace('gl_FragColor = vec4(col, 1.0);', 'gl_FragColor = vec4(mix(col, boost280(col), 0.45), 1.0);');
+  // 單位腳下的接地陰影（柔邊圓斑）
+  const blobGeo = new THREE.CircleGeometry(1, 28); blobGeo.rotateX(-Math.PI / 2);
+  const blobMat = new THREE.ShaderMaterial({
+    uniforms: { uA: { value: 0.42 } }, transparent: true, depthWrite: false,
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform float uA; varying vec2 vUv; void main(){ float d = length(vUv - 0.5) * 2.0; float a = smoothstep(1.0, 0.25, d); gl_FragColor = vec4(0.03, 0.02, 0.07, a * a * uA); }',
+  });
   let lavaTiles = [], emberT = 0;
 
   let loading = false;
@@ -345,12 +612,27 @@ export function createView(canvas, overlay) {
     V.floats = [];
     V.anims = [];
     V.ambient = [];
-    V.hoverId = null; V.hitStop = 0; V.lastAtk = null;
+    V.hoverId = null; V.hitStop = 0; V.slowT = 0; V.lastAtk = null;
     canvas.style.filter = '';
-    Object.assign(cam, { glide: null, punch: 0, dMul: 1, dMulT: 1, yOff: 0, yOffT: 0, pitch: 0.92, pitchT: 0.92 });
+    Object.assign(cam, { glide: null, punch: 0, dMul: 1, dMulT: 1, yOff: 0, yOffT: 0, pitch: PITCH0, pitchT: PITCH0 });
+    Object.assign(shot, { w: 0, wT: 0, relAt: 0, follow: null, orbit: 0, mute: false, roll: 0 }); setCine(false);
+    V.titleOn = false; shift.tx = shift.ty = 0; document.body.classList.remove('titled');
     pathKey = ''; hiKey = '';
     const L = s.L;
     const st = V.style = themeStyle(L.theme);
+    // 主題外觀：暗面偏向天空的冷色、勾邊用天光色；夜景的 bloom 強一點
+    {
+      const skyC = new THREE.Color(st.sky[0]), mx = Math.max(skyC.r, skyC.g, skyC.b, 1e-3);
+      const lum = skyC.r * 0.21 + skyC.g * 0.72 + skyC.b * 0.07;
+      setLook({
+        shade: st.shade || new THREE.Color(0.47, 0.43, 0.6).lerp(skyC.clone().multiplyScalar(0.55 / mx), 0.3),
+        rim: st.rim || new THREE.Color(st.hemiSky).lerp(new THREE.Color(0xffffff), 0.35),
+        rimK: st.rimK ?? 0.6, spec: st.spec ?? 0.6, ink: st.ink || LOOK_DEFAULT.ink,
+      });
+      post.U.uBloom.value = st.bloom ?? (lum < 0.08 ? 1.0 : 0.72);
+      post.U.uVig.value = st.vig ?? (lum < 0.08 ? 0.36 : 0.26);
+      qT = 0; qN = 0;
+    }
     skyMat.uniforms.top.value.set(st.sky[0]); skyMat.uniforms.bot.value.set(st.sky[1]);
     scene.fog = new THREE.Fog(st.fog, st.fogNear || 60, st.fogFar || 150);
     hemi.color.set(st.hemiSky); hemi.groundColor.set(st.hemiGround); hemi.intensity = st.hemiIntensity ?? 1.4;
@@ -365,7 +647,7 @@ export function createView(canvas, overlay) {
     world.add(skirt);
     // 場景裝飾
     try {
-      const scen = buildScenery(L, L.h === 'bbq' ? bbqMap() : L.h);
+      const scen = upgradeTree(buildScenery(L, L.h === 'bbq' ? bbqMap() : L.h));
       world.add(scen);
       V.ambient = collectAnims(scen);
       V.sceneryAnim = scen.userData.anim || null;
@@ -376,7 +658,7 @@ export function createView(canvas, overlay) {
     for (const t of s.grid.flat()) if (t.surf && t.surf.type !== 'lava') setSurfMesh(t.x, t.z, t.surf.type);
     // 第 7 關中央肉錘
     if (L.center) {
-      const hm = buildProp('hammer', 1, 1);
+      const hm = upgradeTree(buildProp('hammer', 1, 1));
       hm.position.set(12, 0, 12);
       hm.userData._al = collectAnims(hm);
       world.add(hm);
@@ -393,7 +675,7 @@ export function createView(canvas, overlay) {
     // 單位
     for (const u of s.units) if (R.alive(u)) addUnitMesh(u);
     cam.ftx = cam.tx = 12; cam.ftz = cam.tz = 12;
-    cam.distT = cam.dist = Math.min(V.maxDist(), innerWidth < 700 ? 44 : 31);
+    cam.distT = cam.dist = Math.min(V.maxDist(), innerWidth < 700 ? 39 : 27);
     V.setHighlights(null);
     loading = false;
   };
@@ -505,6 +787,7 @@ export function createView(canvas, overlay) {
     g.traverse(o => { if (o.isMesh) o.userData.pid = p.id; });
     g.userData._al = collectAnims(g);
     trimShadows(g, 0.12);
+    upgradeTree(g);
     world.add(g);
     V.props.set(p.id, g);
     return g;
@@ -519,6 +802,7 @@ export function createView(canvas, overlay) {
     g.position.set(W(x), topY(V.s.grid[z][x].h), W(z));
     g.rotation.y = ((x * 13 + z * 7) % 4) * Math.PI / 2;
     g.userData._al = collectAnims(g);
+    upgradeTree(g);
     world.add(g);
     V.surf.set(k, g);
     // 新地表冒出時小小地彈一下
@@ -533,7 +817,7 @@ export function createView(canvas, overlay) {
     let c = FLASH.get(m);
     if (!c) FLASH.set(m, (c = {}));
     if (!c[kind]) {
-      const f = m.clone();
+      const f = cloneMat(m);
       if (f.emissive) { f.emissive.copy(FLC[kind]); f.emissiveIntensity = kind === 'w' ? 1.0 : 0.55; }
       else if (f.color) f.color.lerp(FLC[kind], kind === 'w' ? 0.8 : 0.5);
       c[kind] = f;
@@ -566,6 +850,7 @@ export function createView(canvas, overlay) {
     let model;
     try { model = buildUnit(u.transformed ? 'lizard2' : u.key); } catch (e) { console.warn(e); model = box(1, 1.6, 1, 0xff00ff); model.userData = { height: 1.6, parts: {} }; }
     trimShadows(model, 0.075);
+    upgradeTree(model);
     model.rotation.order = 'YXZ';
     holder.add(model);
     const col = u.side === 'hero' ? HEROES[u.key].color : (u.boss ? '#ff2a4a' : '#ff6a5a');
@@ -575,6 +860,9 @@ export function createView(canvas, overlay) {
     arrow.position.y = 0.05; arrow.renderOrder = 4;
     holder.add(ring, arrow);
     const H = model.userData.height || 1.8;
+    const blob = new THREE.Mesh(blobGeo, blobMat);
+    blob.position.y = 0.03; blob.renderOrder = 3; blob.scale.setScalar(Math.max(0.95, Math.min(2.6, H * 0.6)) * (u.big ? 1.3 : 1));
+    holder.add(blob);
     // 點選用的隱形碰撞體
     const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, H, 8), new THREE.MeshBasicMaterial({ visible: false }));
     hit.position.y = H / 2; hit.userData.uid = u.id;
@@ -797,6 +1085,7 @@ export function createView(canvas, overlay) {
         g: o.g ?? -9, life: (o.life || 0.9) * (0.6 + Math.random() * 0.6), age: 0, size: (o.size || 0.35) * (0.6 + Math.random() * 0.8), r: tmpC.r, gg: tmpC.g, b: tmpC.b, drag: o.drag ?? 1.2 });
     }
   };
+  rawOut(pMat, true);
   function updateParticles(dt) {
     let j = 0;
     for (let i = 0; i < parts.length; i++) {
@@ -934,9 +1223,13 @@ export function createView(canvas, overlay) {
     for (const e of events) {
       try { await playOne(e, ui); } catch (err) { console.warn('fx', e.t, err); }
     }
+    endShot(520);
   };
   async function playOne(e, ui) {
     const s = V.s;
+    // 演出鏡頭：同一批事件裡持續停留；換人、移動、換回合就放開
+    if (e.t === 'turn') shot.mute = false;
+    if (shot.wT) { if (e.t === 'turn' || e.t === 'move' || e.t === 'round' || e.t === 'over') endShot(); else shot.relAt = 0; }
     switch (e.t) {
       case 'move': {
         const rec = V.units.get(e.id);
@@ -979,11 +1272,18 @@ export function createView(canvas, overlay) {
         if (V.lastAtk) { rec.lookAt = V.lastAtk.pos.clone(); rec.lookUntil = V.time + 1.2; }
         V.floatText(rec.u.x, rec.u.z, '−' + e.amt, e.crit ? 'dmg crit' : 'dmg');
         V.burst(p.x, p.y + rec.H * 0.55, p.z, e.crit ? 34 : 14, { color: [0xff3b4a, 0xffffff, 0xffd23f], up: 3, speed: e.crit ? 5 : 3, size: 0.25 });
+        {
+          // 爆炸星放在受擊點朝攻擊者那一側
+          const ix = p.x - rec.hitDir.x * 0.3, iz = p.z - rec.hitDir.z * 0.3;
+          V.impact(ix, p.y + rec.H * 0.58, iz, (e.crit ? 1.7 : 1.05) * Math.min(1.5, 0.75 + rec.H * 0.18), e.crit ? 0xff3b4a : 0xffd23f);
+        }
         if (e.crit) {
           V.hitStop = 0.14; cam.punch = 1; V.shake = Math.max(V.shake, 1.3);
+          if (shot.wT) { shot.dist *= 0.86; shot.roll = (Math.random() < 0.5 ? -1 : 1) * 0.085; }
           V.ripple(rec.u.x, rec.u.z, 0xffd23f, { r: 2.2, life: 0.45, quiet: true });
-        } else V.shake = Math.max(V.shake, 0.25);
+        } else { V.shake = Math.max(V.shake, 0.3); V.hitStop = Math.max(V.hitStop, 0.045); cam.punch = Math.max(cam.punch, 0.4); } // 一般命中也頓一下
         SFX.play('hit');
+        if (e.crit) SFX.play(rec.u.side === 'hero' ? 'ooh' : 'cheer', { vol: 0.85, delay: 0.08 });
         updatePlate(rec);
         if (ui) ui.refresh();
         await wait(e.crit ? 420 : 260);
@@ -1014,6 +1314,7 @@ export function createView(canvas, overlay) {
         const rec = V.units.get(e.id); if (!rec) break;
         updatePlate(rec);
         // 膝蓋一軟→倒地→彈一下
+        if (rec.u.side === 'hero') SFX.play('aww', { delay: 0.15 });
         rec.lyingLock = true;
         const l0 = rec.lying;
         await tween(150, k => { rec.sqT = -0.16 * k; });
@@ -1032,6 +1333,7 @@ export function createView(canvas, overlay) {
         if (rec.siren) { rec.holder.remove(rec.siren); rec.siren = null; }
         updatePlate(rec);
         // 跳起來轉一圈＋亮晶晶
+        SFX.play('cheer', { vol: 0.6 });
         rec.lyingLock = true;
         const p = rec.holder.position;
         sparkle(_hv.copy(p).setY(p.y + 0.3), 24, [0xffe36a, 0xffffff, 0x9dff7a], 5);
@@ -1045,6 +1347,13 @@ export function createView(canvas, overlay) {
         const rec = V.units.get(e.id); if (!rec) break;
         rec.dead = true; rec.walk = 0;
         if (rec.plate) rec.plate.style.opacity = '0';
+        if (rec.u.side !== 'hero') {
+          let left = 0;
+          for (const r of V.units.values()) if (r.u.side !== 'hero' && !r.dead) left++;
+          killShot(rec, !!rec.u.boss || left === 0);
+          // 現場觀眾：小兵倒地一陣掌聲，魔王或最後一隻全場起立（配樂先壓下去）
+          if (rec.u.boss || left === 0) { SFX.play('cheerBig'); SFX.duck(1.5); } else SFX.play('applause', { vol: 0.8 });
+        }
         const p = rec.holder.position.clone();
         const dir = rec.lying > 0.5 ? 1 : -1;
         // 踉蹌→倒下（重力）→彈跳→沉下並縮小冒煙
@@ -1103,6 +1412,11 @@ export function createView(canvas, overlay) {
       case 'push': {
         const rec = V.units.get(e.id); if (!rec) break;
         const path = e.path;
+        if (e.fall && path.length > 1) {
+          const a = tilePos(...path[0]), b = tilePos(...path[path.length - 1]);
+          const line = Math.atan2(a.x - b.x, a.z - b.z);
+          setShot({ tx: b.x, ty: b.y + 1.2, tz: b.z, yaws: portraitView() ? [line + 0.5, line - 0.5] : [line + 1.25, line - 1.25], pitch: 0.3, dist: 9.5 + rec.H });
+        }
         rec.pushed = 1;
         for (let i = 1; i < path.length; i++) {
           const a = tilePos(...path[i - 1]), b = tilePos(...path[i]);
@@ -1118,7 +1432,7 @@ export function createView(canvas, overlay) {
         break;
       }
       case 'shake': V.shake = Math.max(V.shake, 0.4 * e.power); break;
-      case 'sfx': SFX.play(e.name); break;
+      case 'sfx': SFX.play(e.name); if (e.name === 'fumble') SFX.play('laugh', { delay: 0.35 }); break;
       case 'phase2': {
         const rec = V.units.get(e.id); if (!rec) break;
         const p = rec.holder.position.clone();
@@ -1150,7 +1464,9 @@ export function createView(canvas, overlay) {
     const to = tgt ? tgt.holder.position.clone() : e.at ? tilePos(e.at[0], e.at[1]) : from.clone();
     if (tgt || e.at) rec.yaw = Math.atan2(to.x - from.x, to.z - from.z);
     V.lastAtk = { id: e.id, pos: from.clone() };
-    if (to.distanceToSquared(from) > 0.01) { _pv.copy(to).project(camera); if (_pv.z > 1 || Math.abs(_pv.x) > 0.7 || Math.abs(_pv.y) > 0.7) keepInView(to.clone().add(from).multiplyScalar(0.5), 0); }
+    if (V.speed < 3 && Math.random() < 0.55) SFX.voice(rec.u.key, 2, { excl: true, vol: 0.55, boss: !!rec.u.boss });   // 出手喊一聲
+    if (!attackShot(rec, to, tgt && tgt !== rec ? tgt : null, e.kind === 'aoe' || (!tgt && !!e.at))
+      && to.distanceToSquared(from) > 0.01) { _pv.copy(to).project(camera); if (_pv.z > 1 || Math.abs(_pv.x) > 0.7 || Math.abs(_pv.y) > 0.7) keepInView(to.clone().add(from).multiplyScalar(0.5), 0); }
     rec.lookAt = to.clone(); rec.lookUntil = V.time + 99;
     if (tgt && tgt !== rec) { tgt.lookAt = from.clone(); tgt.lookUntil = V.time + 1.5; }
     const k0 = e.kind;
@@ -1229,6 +1545,11 @@ export function createView(canvas, overlay) {
     if (!obj) return;
     rec.yaw = Math.atan2(b.x - a.x, b.z - a.z);
     rec.mode = 'throw'; rec.lookAt = b.clone(); rec.lookUntil = V.time + 2;
+    {
+      // 跟拍被丟出去的東西
+      const sep = Math.hypot(b.x - a.x, b.z - a.z), line = Math.atan2(a.x - b.x, a.z - b.z), pv = portraitView();
+      setShot({ tx: (a.x + b.x) / 2, ty: (a.y + b.y) / 2, tz: (a.z + b.z) / 2, yaws: pv ? [line + 0.45, line - 0.45] : [line + 1.15, line - 1.15], pitch: 0.4, dist: pv ? sep * 0.5 + 10 : fitDist(sep, 3.2, 10), follow: obj, rate: 8 });
+    }
     try {
       await tween(150, k => { rec.wind = eOut(k); rec.sqT = -0.08 * k; });
       rec.sqT = 0; rec.sqV += 1.6;
@@ -1302,7 +1623,7 @@ export function createView(canvas, overlay) {
     if (!V.s) return Promise.resolve();
     canvas.style.filter = '';
     const n = typeof level === 'number' ? level : (V.s.L && V.s.L.n) || 1;
-    const end = { yaw: cam.yawT, dist: cam.distT, pitch: 0.92 };
+    const end = { yaw: cam.yawT, dist: cam.distT, pitch: PITCH0 };
     const st = { yaw: end.yaw + (n % 2 ? -1.15 : 1.15), dist: end.dist * 1.85, pitch: 1.3 };
     cam.glide = null; cam.ftx = cam.tx = 12; cam.ftz = cam.tz = 12;
     const recs = [...V.units.values()].sort((a, b) => (a.u.side === 'hero') - (b.u.side === 'hero') || a.u.z - b.u.z);
@@ -1313,6 +1634,7 @@ export function createView(canvas, overlay) {
       cam.dist = cam.distT = st.dist + (end.dist - st.dist) * e;
       cam.pitch = cam.pitchT = st.pitch + (end.pitch - st.pitch) * e;
       cam.ftx = cam.tx = 12; cam.ftz = cam.tz = 12;
+      cam.dMul = cam.dMulT = 1; cam.yOff = cam.yOffT = 0;
       for (const r of recs) {
         if (!r.drop) continue;
         const p = clamp01((k - r.drop.d) / 0.2);
@@ -1339,7 +1661,34 @@ export function createView(canvas, overlay) {
       V.anims.push(a);
     });
   };
-  V.skipIntro = () => { if (introAnim) introAnim.t = introAnim.dur; };
+  V.skipIntro = () => { if (introAnim) introAnim.t = introAnim.dur; if (bossAnim) bossAnim.t = bossAnim.dur; };
+  // 首領登場：低角度繞拍＋嘲諷動作。回傳 Promise<首領單位｜null>；UI 的名字卡由 main 同步顯示
+  let bossAnim = null;
+  V.bossOf = () => {
+    const recs = [...V.units.values()].filter(r => r.u.boss && !r.dead && r.u.side !== 'hero');
+    if (!recs.length) return null;
+    return (recs.find(r => r.u.final) || recs.sort((a, b) => (b.u.maxHp || 0) - (a.u.maxHp || 0))[0]).u;
+  };
+  V.bossIntro = () => {
+    const u = V.bossOf(), rec = u && V.units.get(u.id);
+    if (!rec || !shotOK()) return Promise.resolve(null);
+    const p = rec.holder.position;
+    if (!setShot({ tx: p.x, ty: p.y + rec.H * 0.6, tz: p.z, yaws: [rec.yaw + 0.5, rec.yaw - 0.5, rec.yaw + 1.1, rec.yaw - 1.1], pitch: 0.18, dist: 4.6 + rec.H * 2.4, orbit: 0.2, rate: 4.5, cine: true, ig: [rec], ray: true })) return Promise.resolve(null);
+    rec.cele = { t0: V.time, ph: 0, hero: false };
+    const yaw0 = rec.yaw;   // 登場時讓魔王以 3/4 側面對著鏡頭，結束後轉回原本的朝向
+    return new Promise(res => {
+      const a = {
+        t: 0, dur: 2700 / V.speed,
+        fn: k => {
+          rec.celeW = Math.min(1, k * 5, (1 - k) * 5); shot.real0 = performance.now();
+          rec.yaw = Math.atan2(camera.position.x - p.x, camera.position.z - p.z) + 0.3;
+        },
+        res: () => { rec.cele = null; rec.celeW = 0; rec.yaw = yaw0; if (bossAnim === a) bossAnim = null; endShot(); res(u); },
+      };
+      bossAnim = a;
+      V.anims.push(a);
+    });
+  };
   // 勝利舞／敵方嘲諷
   V.celebrate = (side = 'hero') => {
     if (!V.s) return Promise.resolve();
@@ -1349,6 +1698,7 @@ export function createView(canvas, overlay) {
     let cx = 0, cz = 0;
     for (const r of recs) { cx += r.holder.position.x; cz += r.holder.position.z; }
     cx /= recs.length; cz /= recs.length;
+    endShot();
     cam.glide = { ax: cam.ftx, az: cam.ftz, bx: cx, bz: cz, t: 0, dur: 0.6 / V.speed };
     cam.dMulT = 0.8;
     recs.forEach((r, i) => { r.cele = { t0: V.time, ph: i * 0.55, hero }; r.yaw = Math.atan2(camera.position.x - r.holder.position.x, camera.position.z - r.holder.position.z); });
@@ -1374,6 +1724,7 @@ export function createView(canvas, overlay) {
   };
   // 關卡結束：鏡頭拉遠＋畫面變暗
   V.outro = () => {
+    endShot();
     cam.dMulT = 1.4; cam.pitchT = 1.12; cam.yOffT += 0.45;
     return tween(800, k => {
       const e = eOut(k);
@@ -1383,6 +1734,8 @@ export function createView(canvas, overlay) {
 
   // ── 縮圖（頭像）──
   V.portrait = (key, size = 160) => {
+    const lk = getLook();
+    setLook({ ...LOOK_DEFAULT, lin: 0, boost: 1 }); // 頭像不經後製，用固定的預設外觀（不跟著關卡主題變）
     const rt = new THREE.WebGLRenderTarget(size, size, { samples: 4 });
     const sc = new THREE.Scene();
     sc.add(new THREE.HemisphereLight(0xffffff, 0x886655, 2.0));
@@ -1403,6 +1756,7 @@ export function createView(canvas, overlay) {
     renderer.setRenderTarget(null);
     rt.dispose();
     freeTree(m);
+    setLook(lk);
     const c = document.createElement('canvas'); c.width = c.height = size;
     const ctx = c.getContext('2d');
     const img = ctx.createImageData(size, size);
@@ -1629,16 +1983,18 @@ export function createView(canvas, overlay) {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    camera.fov = w / h < 0.8 ? 48 : 35;
+    camera.fov = V.baseFov = w / h < 0.8 ? 48 : 35;
     camera.updateProjectionMatrix();
+    post.resize();
   };
   addEventListener('resize', V.resize);
   V.resize();
-  const tmpV = new THREE.Vector3();
+  const tmpV = new THREE.Vector3(), placed = [];
   function tick(rdt) {
     // 暴擊頓格：遊戲時間暫時放慢，計時用真實時間
     let dt = rdt;
     if (V.hitStop > 0) { V.hitStop -= rdt; dt = rdt * 0.08; }
+    else if (V.slowT > 0) { V.slowT -= rdt; dt = rdt * (0.3 + 0.7 * clamp01(1 - V.slowT / 0.35)); } // 擊殺慢動作，結尾漸回正常
     V.time += dt;
     // tweens
     for (let i = V.anims.length - 1; i >= 0; i--) {
@@ -1670,17 +2026,27 @@ export function createView(canvas, overlay) {
     for (const g of V.props.values()) if (g.userData._al) runAnims(g.userData._al, dt);
     for (const g of V.surf.values()) if (g.userData._al) runAnims(g.userData._al, dt);
     if (V.hammer && V.hammer.userData._al) runAnims(V.hammer.userData._al, dt);
-    // 浮動文字
+    // 浮動文字：投影到螢幕後，和這一幀已經擺好的文字太近就往上讓開（特寫鏡頭下多行文字不會疊在一起）
+    placed.length = 0;
     for (let i = V.floats.length - 1; i >= 0; i--) {
       const f = V.floats[i];
       f.age += rdt;
-      if (f.age > f.life) { f.el.remove(); V.floats.splice(i, 1); continue; }
+      if (f.age > f.life) { f.el.remove(); V.floats.splice(i, 1); }
+    }
+    for (let i = 0; i < V.floats.length; i++) {
+      const f = V.floats[i];
       tmpV.set(f.wx, f.wy + f.age * 0.7, f.wz).project(camera);
-      f.el.style.transform = `translate(${((tmpV.x * 0.5 + 0.5) * r.width).toFixed(1)}px, ${((-tmpV.y * 0.5 + 0.5) * r.height).toFixed(1)}px) translate(-50%, -50%) scale(${f.age < 0.12 ? 0.6 + f.age * 3.3 : 1})`;
+      const sx = (tmpV.x * 0.5 + 0.5) * r.width;
+      let sy = (-tmpV.y * 0.5 + 0.5) * r.height;
+      for (let n = 0; n < 6; n++) { let hit = false; for (const p of placed) if (Math.abs(p[0] - sx) < 130 && Math.abs(p[1] - sy) < 24) { sy = p[1] - 26; hit = true; } if (!hit) break; }
+      sy = Math.max(64, sy);
+      placed.push([sx, sy]);
+      f.el.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) translate(-50%, -50%) scale(${f.age < 0.12 ? 0.6 + f.age * 3.3 : 1})`;
       f.el.style.opacity = f.age > f.life - 0.35 ? (f.life - f.age) / 0.35 : 1;
     }
     updateParticles(dt);
     updateRipples(rdt);
+    updateImpacts(rdt);
     // 棋盤特效
     const T = V.time;
     hiIn = Math.min(1, hiIn + rdt / 0.2);
@@ -1708,10 +2074,16 @@ export function createView(canvas, overlay) {
       }
     }
   }
+  // 取目前畫面（戰報圖用）：重畫一幀後在同一個工作內讀回，不需要 preserveDrawingBuffer
+  V.snap = (type = 'image/jpeg', q = 0.86) => {
+    try { post.render(scene, camera, { focus: V.focusDist, time: V.time }); return renderer.domElement.toDataURL(type, q); } catch (e) { return null; }
+  };
   function frame(now) {
     const rdt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
+    renderer.info.reset();
     tick(rdt);
-    renderer.render(scene, camera);
+    post.render(scene, camera, { focus: V.focusDist, time: V.time });
+    autoQuality(rdt);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

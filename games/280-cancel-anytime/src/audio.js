@@ -1,5 +1,5 @@
 // 280 絕命免運費 · CANCEL ANYTIME —— 音效與背景音樂，全部用 WebAudio 即時合成（不載入任何音檔）。
-// 匯出 SFX = { init(), play(name, opts), music(theme|null), setMuted(bool), get muted }
+// 匯出 SFX = { init(), play(name, opts), music(theme|null), intensity(0–1), duck(秒), voice(key, 音節數, opts), setMuted(bool), get muted }
 // - init()：必須由使用者手勢（click / keydown）呼叫；可重複呼叫。可選參數 init(externalCtx) 給 OfflineAudioContext 測音量用。
 // - 尚未 init 或瀏覽器不支援時，所有方法都是 no-op，永不 throw。
 // - 模組頂層不建立任何 AudioNode；全部在 init() 之後才建。
@@ -381,6 +381,120 @@ const MIN_GAP = { hover: 0.05, step: 0.06, click: 0.03 };
 const LEVEL = { dice: 2.2, select: 1.8, click: 2.2, hover: 1.6, step: 2, hit: 2.4, miss: 2, splat: 1.8, vape: 2,
   x: 2, heal: 1.6, stealth: 1.8, tackle: 1.6, clang: 1.7, gaslight: 1.4, loot: 1.3, notify: 1.4, eat: 1.3, check: 1.3 };
 
+// ───────────────────────── 現場觀眾與角色碎念（全部即時合成） ─────────────────────────
+// 人聲用鋸齒波過兩個共振峰（母音），一群人就是很多把音高、起音時間都錯開的人聲疊在噪音底上。
+const VOW = { a: [800, 1250], e: [520, 1800], i: [320, 2300], o: [480, 880], u: [350, 720] };
+function vox(t, f, f1, dur, g, vw, dest, a = 0.03, type = 'sawtooth') {
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(Math.max(30, f * PK), t);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(30, f1 * PK), t + dur);
+  const gn = ctx.createGain();
+  envHold(gn.gain, t, g, Math.min(a, dur * 0.4), dur * 0.6, dur * 0.4);
+  const b1 = filt('bandpass', vw[0], 5), b2 = filt('bandpass', vw[1], 7), g2 = ctx.createGain();
+  g2.gain.value = 0.6;
+  osc.connect(b1); osc.connect(b2); b1.connect(gn); b2.connect(g2); g2.connect(gn); gn.connect(dest);
+  osc.start(t); osc.stop(t + dur + 0.1);
+}
+// 一群人的「哇——」底噪
+function crowdBed(t, dur, g, dest, f = 950) {
+  const a = Math.min(0.22, dur * 0.3);
+  noise(t, { type: 'bandpass', f, Q: 0.9, g, a, hold: dur * 0.55, rel: dur * 0.45 }, dest);
+  noise(t, { type: 'bandpass', f: f * 2.4, Q: 1.2, g: g * 0.5, a, hold: dur * 0.5, rel: dur * 0.4 }, dest);
+}
+// 掌聲：一顆一顆的拍手，前段密、後段疏
+function claps(t, dur, n, g, dest) {
+  for (let i = 0; i < n; i++) {
+    const k = Math.pow(Math.random(), 1.5);
+    noise(t + k * dur, { type: 'bandpass', f: rnd(900, 2600), Q: 1.4, g: g * rnd(0.45, 1), a: 0.001, dur: rnd(0.012, 0.03) }, dest);
+  }
+}
+function whoos(t, n, span, g, dest) {
+  for (let i = 0; i < n; i++) {
+    const f = rnd(330, 620), d = rnd(0.35, 0.7);
+    vox(t + rnd(0, span), f, f * rnd(1.35, 1.7), d, g * rnd(0.6, 1), Math.random() < 0.6 ? VOW.u : VOW.o, dest, 0.05);
+  }
+}
+function whistle(t, g, dest) {
+  const f = rnd(1900, 2500);
+  tone(t, { f, f1: f * 1.35, glide: 0.12, g, a: 0.01, hold: 0.28, rel: 0.12, vib: 0.012, vibRate: 9 }, dest);
+}
+Object.assign(FX, {
+  cheer(t, o) { // 觀眾歡呼（爆擊、復活）
+    crowdBed(t, 1.5, 0.26, o);
+    whoos(t + 0.03, 6, 0.35, 0.08, o);
+    claps(t + 0.15, 1.3, 34, 0.13, o);
+    if (Math.random() < 0.6) whistle(t + rnd(0.2, 0.6), 0.035, o);
+  },
+  cheerBig(t, o) { // 全場起立（擊倒魔王、過關）
+    crowdBed(t, 3, 0.32, o);
+    crowdBed(t + 0.5, 2.6, 0.2, o, 700);
+    whoos(t + 0.03, 10, 1.1, 0.085, o);
+    claps(t + 0.2, 2.9, 80, 0.14, o);
+    whistle(t + 0.35, 0.04, o); whistle(t + 1.1, 0.035, o);
+  },
+  applause(t, o) { // 一陣掌聲（擊倒小兵）
+    crowdBed(t, 0.9, 0.08, o, 1500);
+    claps(t, 1.1, 42, 0.15, o);
+  },
+  ooh(t, o) { // 「喔——」好痛（我方吃爆擊）
+    crowdBed(t, 0.8, 0.08, o, 520);
+    for (let i = 0; i < 7; i++) { const f = rnd(140, 330); vox(t + rnd(0, 0.09), f, f * rnd(0.84, 0.93), rnd(0.6, 0.85), 0.085, Math.random() < 0.5 ? VOW.o : VOW.u, o, 0.07); }
+  },
+  aww(t, o) { // 「啊……」惋惜（我方倒地、敗北）
+    for (let i = 0; i < 7; i++) { const f = rnd(170, 360); vox(t + rnd(0, 0.12), f, f * rnd(0.68, 0.78), rnd(0.8, 1.1), 0.08, VOW.a, o, 0.09); }
+    crowdBed(t, 0.9, 0.05, o, 600);
+  },
+  laugh(t, o) { // 罐頭笑聲（大失敗、尬聊破局）
+    crowdBed(t, 1.2, 0.05, o, 1100);
+    for (let v = 0; v < 7; v++) {
+      const f = rnd(150, 400), gap = rnd(0.12, 0.17), n = 4 + (Math.random() * 4 | 0), t0 = t + rnd(0, 0.28);
+      for (let j = 0; j < n; j++) {
+        const ff = f * (1 - j * 0.045);
+        vox(t0 + j * gap, ff * 1.08, ff * 0.86, gap * 0.62, 0.075 * (1 - j * 0.09), j % 3 === 2 ? VOW.e : VOW.a, o, 0.008);
+      }
+    }
+  },
+  gasp(t, o) { // 倒抽一口氣（魔王登場）
+    noise(t, { type: 'highpass', f: 1800, f1: 5200, glide: 0.3, g: 0.16, a: 0.2, dur: 0.34 }, o);
+    for (let i = 0; i < 4; i++) { const f = rnd(260, 420); vox(t + rnd(0, 0.05), f, f * 1.3, 0.26, 0.04, VOW.i, o, 0.12); }
+  },
+  bossSting(t, o) { // 魔王登場：定音鼓滾奏＋低銅管＋鈸
+    for (let i = 0; i < 9; i++) thud(t + 0.62 * (1 - Math.pow(1 - i / 9, 1.8)), 0.16 + i * 0.03, o, 96, 62, 0.16);
+    noise(t, { type: 'highpass', f: 4200, g: 0.1, a: 0.6, dur: 0.66 }, o);
+    brass(t + 0.66, [36, 43, 48, 51], 0.9, 0.085, o, 0.5);
+    thud(t + 0.66, 0.6, o, 120, 38, 0.7);
+    cymbal(t + 0.66, 0.2, 1.6, o);
+    tone(t + 0.66, { type: 'sawtooth', f: mtof(24), g: 0.2, a: 0.01, hold: 0.9, rel: 0.5, lp: 260 }, o);
+  },
+});
+Object.assign(MIN_GAP, { cheer: 0.7, cheerBig: 1.5, applause: 0.5, ooh: 0.6, aww: 0.8, laugh: 0.9, gasp: 0.5 });
+Object.assign(LEVEL, { cheer: 1.5, cheerBig: 1.7, applause: 3.2, ooh: 2.6, aww: 2.6, laugh: 3.6, gasp: 1.6, bossSting: 1.5 });
+
+// 角色碎念：一串音節（音高亂跳的短母音），每個角色有自己的音域、音色和語速。不是真的語音，只給個性。
+const VOICES = {
+  chad: { f: 104, wave: 'sawtooth', rate: 0.088, vows: 'aou', range: 5, g: 1.6 },                  // 低沉健身哥
+  karen: { f: 325, wave: 'sawtooth', rate: 0.066, vows: 'aei', range: 9, g: 1.3 },                 // 尖銳連珠砲
+  dale: { f: 148, wave: 'square', rate: 0.105, vows: 'aeo', range: 4, rasp: 0.6, g: 1.2 },         // 沙啞慢吞吞
+  doge: { f: 212, wave: 'triangle', rate: 0.074, vows: 'iue', range: 6, g: 1.8 },                  // 悶悶的
+  boss: { f: 78, wave: 'sawtooth', rate: 0.115, vows: 'aou', range: 4, rasp: 0.35, g: 1.6 },
+  foe: { f: 190, wave: 'square', rate: 0.07, vows: 'eia', range: 7, g: 0.6 },
+};
+function babble(t, v, n, dest, o = {}) {
+  const pm = o.pitch > 0 ? +o.pitch : 1, g = 0.3 * (v.g || 1);
+  let tt = t;
+  for (let i = 0; i < n; i++) {
+    const last = i === n - 1;
+    const semi = Math.floor(Math.random() * (v.range + 1)) - v.range * 0.4 + (o.excl ? i * 1.3 : last ? -2.5 : 0);
+    const f = v.f * pm * Math.pow(2, semi / 12);
+    const d = v.rate * rnd(0.8, 1.25) * (last ? 1.7 : 1);
+    vox(tt, f, f * (o.excl ? 1.12 : rnd(0.93, 1.05)), d, g, VOW[pick(v.vows)], dest, 0.008, v.wave);
+    if (v.rasp || Math.random() < 0.45) noise(tt, { type: 'highpass', f: 2600, g: 0.035 + (v.rasp || 0) * 0.05, a: 0.001, dur: 0.028 }, dest);
+    tt += d * rnd(0.95, 1.12) + (!last && Math.random() < 0.14 ? v.rate * 0.9 : 0);
+  }
+  return tt - t;
+}
+
 // ───────────────────────── 樂器（背景音樂用） ─────────────────────────
 // (t, midi, 長度秒, 音量, 輸出)
 const INST = {
@@ -605,6 +719,25 @@ const THEMES = {
 
 function patLen(p, s) { let n = 1; while (s + n < p.length && p[s + n] === '.') n++; return n; }
 
+// 配樂分層：mood 0–1。0.5 是曲子原本的樣子；往下鼓組變輕、高頻收起來（佈陣、開場），
+// 往上疊一層「火熱層」（每格 hi-hat、二四拍拍手、反拍八度低音）並把速度推快一點（殘局、魔王半血、隊友倒地）。
+let mood = 0.5;
+function applyMood(tr, fast) {
+  if (!tr || tr.dead) return;
+  const now = ctx.currentTime, tc = fast ? 0.02 : 0.45, k = mood;
+  const lo = Math.min(1, k * 2);
+  tr.drum.gain.setTargetAtTime(0.2 + 0.8 * lo, now, tc);
+  tr.lead.gain.setTargetAtTime(0.5 + 0.5 * lo, now, tc);
+  tr.hot.gain.setTargetAtTime(k > 0.5 ? Math.min(1, (k - 0.5) * 2.2) : 0, now, tc);
+  tr.lp.frequency.setTargetAtTime(k < 0.5 ? Math.max(600, 240 * Math.pow(75, lo)) : 18000, now, tc);   // 0.3 → 約 3.2 kHz
+  tr.mix.gain.setTargetAtTime(0.85 + 0.45 * k, now, tc);
+  tr.rate = 1 + 0.06 * Math.max(0, k - 0.6) / 0.4;
+}
+function clap(t, v, o) {
+  noise(t - 0.012, { type: 'bandpass', f: 1500, Q: 1.3, g: v * 0.5, a: 0.001, dur: 0.012 }, o);
+  noise(t, { type: 'bandpass', f: 1400, Q: 1.1, g: v, a: 0.001, dur: 0.11 }, o);
+}
+
 function startTrack(name) {
   const def = THEMES[name];
   if (!def) return null;
@@ -612,8 +745,11 @@ function startTrack(name) {
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, now);
   g.gain.linearRampToValueAtTime(1, now + 0.9);
-  g.connect(musicBus);
+  const lp = filt('lowpass', 18000, 0.5), mix = ctx.createGain();
+  g.connect(lp); lp.connect(mix); mix.connect(musicBus);
   const lead = ctx.createGain(); lead.connect(g);
+  const drum = ctx.createGain(); drum.connect(g);
+  const hot = ctx.createGain(); hot.gain.value = 0; hot.connect(g);
   if (def.echo) {
     const [dt, fb, wet] = def.echo;
     const dl = ctx.createDelay(1.5), fg = ctx.createGain(), wg = ctx.createGain(), lp = filt('lowpass', 2200);
@@ -622,7 +758,8 @@ function startTrack(name) {
   }
   const mel = new Map();
   def.mel.forEach(([s, m, l]) => mel.set(s, [m, l]));
-  const tr = { name, def, g, lead, mel, step: 0, arp: 0, next: now + 0.1, sd: 60 / def.bpm / def.div, timer: 0, dead: false };
+  const tr = { name, def, g, lead, drum, hot, lp, mix, rate: 1, arp2: 0, mel, step: 0, arp: 0, next: now + 0.1, sd: 60 / def.bpm / def.div, timer: 0, dead: false };
+  applyMood(tr, true);
   tr.timer = setInterval(() => tick(tr), 100);
   tick(tr);
   return tr;
@@ -637,7 +774,7 @@ function stopTrack(tr, fade = 0.9) {
     tr.g.gain.setValueAtTime(tr.g.gain.value, now);
     tr.g.gain.linearRampToValueAtTime(0, now + fade);
   } catch (e) { /* ignore */ }
-  setTimeout(() => { try { tr.g.disconnect(); } catch (e) { /* ignore */ } }, (fade + 1.5) * 1000);
+  setTimeout(() => { try { tr.g.disconnect(); tr.lp.disconnect(); tr.mix.disconnect(); } catch (e) { /* ignore */ } }, (fade + 1.5) * 1000);
 }
 function tick(tr) {
   try {
@@ -646,7 +783,7 @@ function tick(tr) {
     if (tr.next < now - 0.2) tr.next = now + 0.05; // 分頁被節流後重新對齊，不補播
     while (tr.next < now + 0.3) {
       schedStep(tr, tr.next);
-      tr.next += tr.sd; tr.step++;
+      tr.next += tr.sd / tr.rate; tr.step++;
     }
   } catch (e) { /* 音樂出錯也不影響遊戲 */ }
 }
@@ -664,9 +801,17 @@ function schedStep(tr, t) {
     const len = cc === 'X' ? patLen(d.chord, s) * sd : sd * 1.6;
     chord.forEach(m => INST[d.ic](t, m, len, d.vc, tr.g));
   }
-  if (d.k && d.k[s] && d.k[s] !== '.') kick(t, (d.vk || 0.55) * (d.k[s] === 'o' ? 0.5 : 1), tr.g);
-  if (d.s && d.s[s] && d.s[s] !== '.') snare(t, 0.22 * (d.s[s] === 'o' ? 0.45 : 1), tr.g);
-  if (d.h && d.h[s] && d.h[s] !== '.') hat(t, 0.07 * (d.h[s] === 'o' ? 0.6 : 1), tr.g);
+  if (d.k && d.k[s] && d.k[s] !== '.') kick(t, (d.vk || 0.55) * (d.k[s] === 'o' ? 0.5 : 1), tr.drum);
+  if (d.s && d.s[s] && d.s[s] !== '.') snare(t, 0.22 * (d.s[s] === 'o' ? 0.45 : 1), tr.drum);
+  if (d.h && d.h[s] && d.h[s] !== '.') hat(t, 0.07 * (d.h[s] === 'o' ? 0.6 : 1), tr.drum);
+  if (mood > 0.5) { // 火熱層（音量由 tr.hot 控制，淡入淡出）
+    const beat = s % d.div === 0, bi = (s / d.div) | 0;
+    hat(t, beat ? 0.12 : 0.075, tr.hot);
+    if (beat && bi % 2 === 1) clap(t, 0.36, tr.hot);
+    if (s % d.div === (d.div >> 1)) INST[d.ib](t, root + 12, sd * 0.9, d.vb * 0.8, tr.hot);
+    if (!beat) INST.pluck(t, chord[tr.arp2++ % chord.length] + 12, sd, 0.075, tr.hot);   // 反拍的和弦音琶音，把節奏推起來
+    if (beat && bi === 0 && bar % 2 === 0) cymbal(t, 0.07, 0.6, tr.hot);
+  }
   const n = tr.mel.get(st);
   if (n) INST[d.il](t, n[0], n[1] * sd, d.vl, tr.lead);
   if (d.fx) d.fx(tr, t, st);
@@ -747,6 +892,43 @@ export const SFX = {
       if (track) { stopTrack(track); track = null; }
       if (name) track = startTrack(name);
     } catch (e) { /* ignore */ }
+  },
+
+  // 配樂強度 0–1（見 applyMood）
+  intensity(k) {
+    try {
+      const v = Math.max(0, Math.min(1, +k || 0));
+      if (Math.abs(v - mood) < 0.02) return;
+      mood = v;
+      if (ctx && !offline && track && !track.dead) applyMood(track, false);
+    } catch (e) { /* ignore */ }
+  },
+  // 慢動作、魔王登場時把配樂壓下去 sec 秒
+  duck(sec = 1.2, depth = 0.3) {
+    try {
+      if (!ctx || offline || !musicBus) return;
+      const now = ctx.currentTime, g = musicBus.gain;
+      g.cancelScheduledValues(now);
+      g.setTargetAtTime(MUSIC_GAIN * depth, now, 0.05);
+      g.setTargetAtTime(MUSIC_GAIN, now + sec, 0.35);
+    } catch (e) { /* ignore */ }
+  },
+  // 角色碎念 n 個音節。key：英雄 key、'boss' 或任意敵人 key（依 key 換音高）。回傳長度（秒）
+  voice(key, n = 5, opts = {}) {
+    try {
+      if (!alive()) return 0;
+      const o = opts || {};
+      let v = VOICES[key], pm = o.pitch > 0 ? +o.pitch : 1;
+      if (!v) {
+        v = o.boss ? VOICES.boss : VOICES.foe;
+        let h = 0; for (const ch of String(key || '')) h = (h * 31 + ch.charCodeAt(0)) & 0xffff;
+        pm *= 0.72 + (h % 9) / 12;
+      }
+      const node = ctx.createGain();
+      node.gain.value = 1.5 * (o.vol == null ? 1 : Math.max(0, Math.min(2, +o.vol || 0)));
+      node.connect(sfxBus);
+      return babble(ctx.currentTime + 0.01 + Math.max(0, +o.delay || 0), v, Math.max(1, Math.min(16, n | 0)), node, { pitch: pm, excl: !!o.excl });
+    } catch (e) { return 0; }
   },
 
   setMuted(b) {

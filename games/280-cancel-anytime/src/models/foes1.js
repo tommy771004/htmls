@@ -6,7 +6,7 @@
 // userData.anim(t, dt)：每幀呼叫的待機小動畫（只動非契約子物件，不改共用材質）。
 // 幾何依參數快取，同種敵人多隻共用幾何與材質。THREE 是全域變數，只能在函式內使用。
 /* global THREE */
-import { part, roundedBoxGeo, toon, flat, textTexture } from '../kit.js';
+import { part, roundedBoxGeo, toon, flat, textTexture, seg } from '../kit.js';
 
 const PI = Math.PI;
 const SKIN = 0xf2c29b;
@@ -34,33 +34,33 @@ function box(w, h, d, c, x = 0, y = 0, z = 0, o = {}) {
   const m = mk(memo(`b${r3(w)},${r3(h)},${r3(d)},${r3(r)}`, () => roundedBoxGeo(r3(w), r3(h), r3(d), r3(r))), c, o); m.position.set(x, y, z); return m;
 }
 function sphere(r, c, x = 0, y = 0, z = 0, o = {}) {
-  const s = o.seg || 16;
+  const s = seg(o.seg || 16);
   const m = mk(memo(`s${r3(r)},${s}`, () => new THREE.SphereGeometry(r3(r), s, Math.max(4, Math.floor(s * 0.75)))), c, o); m.position.set(x, y, z); return m;
 }
 function cyl(rt, rb, h, c, x = 0, y = 0, z = 0, o = {}) {
-  const s = o.seg || 14;
+  const s = seg(o.seg || 14);
   const m = mk(memo(`c${r3(rt)},${r3(rb)},${r3(h)},${s}`, () => new THREE.CylinderGeometry(r3(rt), r3(rb), r3(h), s)), c, o); m.position.set(x, y, z); return m;
 }
 function cone(r, h, c, x = 0, y = 0, z = 0, o = {}) {
-  const s = o.seg || 14;
+  const s = seg(o.seg || 14);
   const m = mk(memo(`k${r3(r)},${r3(h)},${s}`, () => new THREE.ConeGeometry(r3(r), r3(h), s)), c, o); m.position.set(x, y, z); return m;
 }
 function capsule(r, len, c, x = 0, y = 0, z = 0, o = {}) {
-  const s = o.seg || 12;
-  const m = mk(memo(`p${r3(r)},${r3(len)},${s}`, () => new THREE.CapsuleGeometry(r3(r), r3(len), 4, s)), c, o); m.position.set(x, y, z); return m;
+  const s = seg(o.seg || 12);
+  const m = mk(memo(`p${r3(r)},${r3(len)},${s}`, () => new THREE.CapsuleGeometry(r3(r), r3(len), seg(4), s)), c, o); m.position.set(x, y, z); return m;
 }
 function torus(r, t, c, x = 0, y = 0, z = 0, o = {}) {
-  const s = o.seg || 20;
-  const m = mk(memo(`t${r3(r)},${r3(t)},${s}`, () => new THREE.TorusGeometry(r3(r), r3(t), 8, s)), c, o); m.position.set(x, y, z); return m;
+  const s = seg(o.seg || 20);
+  const m = mk(memo(`t${r3(r)},${r3(t)},${s}`, () => new THREE.TorusGeometry(r3(r), r3(t), seg(8), s)), c, o); m.position.set(x, y, z); return m;
 }
 // 半球（開口朝下），r 半徑、sy 垂直壓扁
 function dome(r, c, x = 0, y = 0, z = 0, sy = 1, o = {}) {
-  const s = o.seg || 18;
-  const m = mk(memo(`d${r3(r)},${s}`, () => new THREE.SphereGeometry(r3(r), s, 8, 0, PI * 2, 0, PI / 2)), c, o);
+  const s = seg(o.seg || 18);
+  const m = mk(memo(`d${r3(r)},${s}`, () => new THREE.SphereGeometry(r3(r), s, seg(8), 0, PI * 2, 0, PI / 2)), c, o);
   m.position.set(x, y, z); m.scale.set(1, sy, 1); return m;
 }
 // 弧形圓環（弓、把手、漩渦）
-function arc(r, t, ang, c, o = {}) { const s = o.seg || 14; return mk(memo(`a${r3(r)},${r3(t)},${r3(ang)},${s}`, () => new THREE.TorusGeometry(r3(r), r3(t), 6, s, r3(ang))), c, o); }
+function arc(r, t, ang, c, o = {}) { const s = seg(o.seg || 14); return mk(memo(`a${r3(r)},${r3(t)},${r3(ang)},${s}`, () => new THREE.TorusGeometry(r3(r), r3(t), 6, s, r3(ang))), c, o); }
 // 兩點之間的圓柱（繩、管線、骨架）
 function rod(a, b, r, c, o = {}) {
   const va = new THREE.Vector3(...a), vb = new THREE.Vector3(...b);

@@ -4,7 +4,7 @@
 // 幾何體依參數快取共用（geometry.userData.shared = true，換關時不會被 dispose）。
 // THREE 是全域變數，本檔頂層不可呼叫 THREE。
 /* global THREE */
-import { toon, flat, part, roundedBoxGeo, textTexture, gradientMap, outlineMat } from '../kit.js';
+import { toon, flat, part, roundedBoxGeo, textTexture, gradientMap, outlineMat, seg, toonify } from '../kit.js';
 
 const PI = Math.PI;
 
@@ -29,7 +29,7 @@ function M(geo, color, o = {}) {
 // 每個骨架群組內「不會單獨動」的網格：純色 toon 合成一個頂點色網格，其他同材質者各自合併；描邊另合成一個子網格。
 // keep 內的物件（契約部位、動畫會動到的網格）與有貼圖的網格不合併。網址加 ?nomerge=1 可關閉以除錯。
 let _vc = null;
-function vcMat() { return _vc || (_vc = new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: gradientMap() })); }
+function vcMat() { return _vc || (_vc = toonify(new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: gradientMap() }))); }
 function mergeGeos(list, withColor) {
   let nv = 0, ni = 0;
   for (const m of list) { const g = m.geometry; nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; }
@@ -88,13 +88,13 @@ function bake(root, keep) {
 }
 function P(m, x, y, z) { m.position.set(x, y, z); return m; }
 function box(w, h, d, c, x = 0, y = 0, z = 0, o = {}) { w = q(w); h = q(h); d = q(d); const r = q(o.r ?? Math.min(w, h, d) * 0.12); return P(M(cg(`b${w},${h},${d},${r}`, () => roundedBoxGeo(w, h, d, r)), c, o), x, y, z); }
-function sphere(r, c, x = 0, y = 0, z = 0, o = {}) { r = q(r); const s = o.seg || (r < 0.05 ? 10 : 16), hs = Math.max(6, Math.round(s * 0.75)); return P(M(cg(`s${r},${s}`, () => new THREE.SphereGeometry(r, s, hs)), c, o), x, y, z); }
-function cyl(rt, rb, h, c, x = 0, y = 0, z = 0, o = {}) { rt = q(rt); rb = q(rb); h = q(h); const s = o.seg || 14; return P(M(cg(`c${rt},${rb},${h},${s},${!!o.open}`, () => new THREE.CylinderGeometry(rt, rb, h, s, 1, !!o.open)), c, o), x, y, z); }
-function cone(r, h, c, x = 0, y = 0, z = 0, o = {}) { r = q(r); h = q(h); const s = o.seg || 12; return P(M(cg(`k${r},${h},${s}`, () => new THREE.ConeGeometry(r, h, s)), c, o), x, y, z); }
-function capsule(r, len, c, x = 0, y = 0, z = 0, o = {}) { r = q(r); len = q(len); const s = o.seg || 12; return P(M(cg(`p${r},${len},${s}`, () => new THREE.CapsuleGeometry(r, len, 4, s)), c, o), x, y, z); }
-function torus(r, t, c, x = 0, y = 0, z = 0, o = {}) { r = q(r); t = q(t); const s = o.seg || 20, a = q(o.arc ?? PI * 2); return P(M(cg(`t${r},${t},${s},${a}`, () => new THREE.TorusGeometry(r, t, 8, s, a)), c, o), x, y, z); }
+function sphere(r, c, x = 0, y = 0, z = 0, o = {}) { r = q(r); const s = seg(o.seg || (r < 0.05 ? 10 : 16)), hs = Math.max(6, Math.round(s * 0.75)); return P(M(cg(`s${r},${s}`, () => new THREE.SphereGeometry(r, s, hs)), c, o), x, y, z); }
+function cyl(rt, rb, h, c, x = 0, y = 0, z = 0, o = {}) { rt = q(rt); rb = q(rb); h = q(h); const s = seg(o.seg || 14); return P(M(cg(`c${rt},${rb},${h},${s},${!!o.open}`, () => new THREE.CylinderGeometry(rt, rb, h, s, 1, !!o.open)), c, o), x, y, z); }
+function cone(r, h, c, x = 0, y = 0, z = 0, o = {}) { r = q(r); h = q(h); const s = seg(o.seg || 12); return P(M(cg(`k${r},${h},${s}`, () => new THREE.ConeGeometry(r, h, s)), c, o), x, y, z); }
+function capsule(r, len, c, x = 0, y = 0, z = 0, o = {}) { r = q(r); len = q(len); const s = seg(o.seg || 12); return P(M(cg(`p${r},${len},${s}`, () => new THREE.CapsuleGeometry(r, len, seg(4), s)), c, o), x, y, z); }
+function torus(r, t, c, x = 0, y = 0, z = 0, o = {}) { r = q(r); t = q(t); const s = seg(o.seg || 20), a = q(o.arc ?? PI * 2); return P(M(cg(`t${r},${t},${s},${a}`, () => new THREE.TorusGeometry(r, t, seg(8), s, a)), c, o), x, y, z); }
 // 半球（帽子、頭罩、駕駛艙、眼皮）
-function dome(r, c, o = {}) { r = q(r); const cut = q(o.cut ?? 0.5); return M(cg(`d${r},${cut}`, () => new THREE.SphereGeometry(r, 16, 8, 0, PI * 2, 0, cut * PI)), c, o); }
+function dome(r, c, o = {}) { r = q(r); const cut = q(o.cut ?? 0.5); return M(cg(`d${r},${cut},${seg(16)}`, () => new THREE.SphereGeometry(r, seg(16), seg(8), 0, PI * 2, 0, cut * PI)), c, o); }
 function V(p) { return new THREE.Vector3(p[0], p[1], p[2]); }
 // 沿曲線的管子（觸手、尾巴、電纜、起司絲）；taper 由頭到尾變細
 function tube(pts, r, c, o = {}) {
@@ -284,7 +284,7 @@ function checkerMat() {
   x.fillStyle = '#d32f2f'; for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2 === 0) x.fillRect(i * 16, j * 16, 16, 16);
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 2);
   t.magFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
-  _check = new THREE.MeshToonMaterial({ map: t, gradientMap: gradientMap(), side: THREE.DoubleSide });
+  _check = toonify(new THREE.MeshToonMaterial({ map: t, gradientMap: gradientMap(), side: THREE.DoubleSide }));
   return _check;
 }
 

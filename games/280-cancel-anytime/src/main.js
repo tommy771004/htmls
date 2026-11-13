@@ -6,6 +6,7 @@ import { createView } from './view.js';
 import { createUI, $, esc } from './ui.js';
 import { SFX } from './audio.js';
 import { botTurn } from './bot.js';
+import { createMeta } from './meta.js';
 
 const SAVE = 'cancel-anytime-v1';
 const load = () => { try { return JSON.parse(localStorage.getItem(SAVE) || 'null'); } catch (e) { return null; } };
@@ -14,8 +15,10 @@ const save = (o) => { try { localStorage.setItem(SAVE, JSON.stringify(o)); } cat
 export function start() {
   const V = createView($('#gl'), $('#ov'));
   const game = { s: null, sel: 'move', playerTurn: false, busy: false, diff: 'standard', party: null, lv: 0, pending: null };
-  window.__game = game; // 測試用
+  window.__game = game; game.R = R; // 測試用（tools/play.mjs 會用到規則查詢）
   const UI = createUI(V, game);
+  const M = createMeta({ game, V, UI, $, esc });
+  window.__meta = M; // 測試用
   const q0 = new URLSearchParams(location.search);
   game.auto = q0.get('auto') === '1';
   if (game.auto) { V.speed = +(q0.get('speed') || 3); UI.choose0 = UI.choose; UI.choose = (html, cls, after) => { const c = UI.modal(html, cls); if (after) after(c); return Promise.resolve(cls === 'lose' ? 'retry' : 'next'); }; }
@@ -43,6 +46,7 @@ export function start() {
     const s = game.s;
     while (s.fx.length) {
       const evs = s.fx.splice(0, s.fx.length);
+      M.observe(evs, s);
       await V.play(evs, UI);
     }
     UI.refresh();
@@ -77,7 +81,38 @@ export function start() {
   $('#endBtn').onclick = () => endTurn();
   $('#trayBtn').onclick = () => $('#tray').classList.toggle('open');
   $('#helpBtn').onclick = () => showHelp();
-  $('#menuBtn').onclick = () => showTitle();
+  $('#menuBtn').onclick = () => { setGear(false); showTitle(); };
+
+  // ── 設定面板（存在 localStorage，和進度分開）──
+  const OPTS = 'cancel-anytime-opts';
+  const opts = Object.assign({ cine: true, q: 'auto', log: false }, (() => { try { return JSON.parse(localStorage.getItem(OPTS) || '{}'); } catch (e) { return {}; } })());
+  const saveOpts = () => { try { localStorage.setItem(OPTS, JSON.stringify(opts)); } catch (e) { /* 無痕模式 */ } };
+  const gear = $('#gear'), gearBtn = $('#gearBtn');
+  function setGear(on) { gear.hidden = !on; gearBtn.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+  gearBtn.onclick = () => { setGear(gear.hidden); SFX.play('select'); };
+  addEventListener('pointerdown', (e) => { if (!gear.hidden && !(e.target.closest && e.target.closest('#gear, #gearBtn'))) setGear(false); });
+  // 手機：紀錄面板開著時點面板以外的地方就收起來（它會蓋住棋盤）
+  addEventListener('pointerdown', (e) => {
+    const tray = $('#tray');
+    if (innerWidth <= 700 && tray.classList.contains('open') && !tray.classList.contains('asking') && !(e.target.closest && e.target.closest('#tray, #trayBtn'))) tray.classList.remove('open');
+  });
+  const syncCine = () => { V.actionCam = !!opts.cine; $('#cineBtn').textContent = opts.cine ? '開' : '關'; $('#cineBtn').classList.toggle('on', !!opts.cine); };
+  $('#cineBtn').onclick = () => { opts.cine = !opts.cine; syncCine(); saveOpts(); SFX.play('select'); if (!opts.cine && V.endShot) V.endShot(); };
+  syncCine();
+  const qSel = $('#qSel');
+  const urlQ = /[?&]q=(high|med|low)\b/.exec(location.search);
+  if (urlQ) qSel.value = urlQ[1];
+  else { qSel.value = opts.q; if (opts.q !== 'auto') V.setQuality(opts.q); }
+  qSel.addEventListener('change', () => { opts.q = qSel.value; saveOpts(); if (opts.q === 'auto') V.setAutoQuality(); else V.setQuality(opts.q); });
+  const setLog = (on) => {
+    $('#tray').classList.toggle('logopen', on);
+    $('#logTgl').textContent = on ? '🧾 收合 ▴' : '🧾 紀錄 ▾';
+    $('#logTgl').setAttribute('aria-expanded', on ? 'true' : 'false');
+    const l = $('#log'); l.scrollTop = on ? l.scrollHeight : 0;
+  };
+  $('#logTgl').onclick = () => { opts.log = !opts.log; setLog(opts.log); saveOpts(); };
+  $('#log').addEventListener('click', () => { if (!opts.log && innerWidth > 700) { opts.log = true; setLog(true); saveOpts(); } });
+  setLog(!!opts.log);
 
   // ── 技能選擇 ──
   game.selectSkill = (sk) => {
@@ -114,7 +149,7 @@ export function start() {
     emoteT = performance.now();
     const lines = TAUNT[u.key] || TAUNT.chad;
     V.floatText(u.x, u.z, '💬 ' + lines[Math.floor(Math.random() * lines.length)], 'quote');
-    SFX.play('pluck'); SFX.play('select');
+    SFX.voice(u.key, 4 + Math.floor(Math.random() * 4));
     const b = $('#emoteBtn');
     UI.bump(b);
     b.classList.add('cool');
@@ -298,6 +333,90 @@ export function start() {
     }
   });
 
+  // ── 手把 ──（輪詢在 meta.js；這裡把按鍵接到和滑鼠、鍵盤同一套流程）
+  const visible = (el) => !!(el && el.getClientRects().length && !el.disabled);
+  // 目前該由「選單焦點」接手的容器：對話框、小費提示、標題選單、設定面板
+  const padMenu = () => {
+    if ($('#modal').classList.contains('show')) return $('#modal');
+    if (!$('#tipAsk').hidden && visible($('#tipAsk'))) return $('#tipAsk');
+    if (!$('#title').hidden) return $('#title');
+    if (!gear.hidden) return gear;
+    return null;
+  };
+  const padBtns = (box) => [...box.querySelectorAll('button, select')].filter(visible);
+  M.padStart({
+    hello: () => UI.banner('🎮 手把已連線', 'good'),
+    dir: (dx, dz) => {
+      SFX.init();
+      const box = padMenu();
+      if (box) {   // 選單：在按鈕之間移動焦點
+        const bs = padBtns(box);
+        if (!bs.length) return;
+        const i = bs.indexOf(document.activeElement);
+        const j = i < 0 ? 0 : (i + (dx + dz > 0 ? 1 : -1) + bs.length) % bs.length;
+        bs[j].focus({ preventScroll: false });
+        SFX.play('hover');
+        return;
+      }
+      const s = game.s;
+      if (!s || s.over || $('#hud').hidden) return;
+      const u = R.current(s);
+      if (!hover) hover = { x: u.x, z: u.z };
+      // 畫面方向 → 棋盤方向（跟鏡頭平移用同一組軸）
+      const y = V.camYaw(), c = Math.cos(y), sn = Math.sin(y);
+      const wx = dx * c + dz * sn, wz = -dx * sn + dz * c;
+      let nx = hover.x, nz = hover.z;
+      if (Math.abs(wx) >= Math.abs(wz)) nx += Math.sign(wx); else nz += Math.sign(wz);
+      const t = s.grid[nz] && s.grid[nz][nx];
+      if (!t || t.void) return;
+      const pk = { x: nx, z: nz };
+      const prop = R.propAt(s, nx, nz);
+      if (prop && prop.alive && prop.maxHp > 0 && game.sel !== 'move' && !R.unitAt(s, nx, nz)) pk.pid = prop.id;
+      hover = pk;
+      setHoverUnit(pk);
+      refreshHi([nx, nz]);
+      V.focus(nx, nz);
+      UI.inspect(inspectHtml(pk), innerWidth / 2 + 36, innerHeight / 2 - 60);
+    },
+    confirm: () => {
+      SFX.init();
+      if (trySkip()) return;
+      const box = padMenu();
+      if (box) {
+        const bs = padBtns(box), a = document.activeElement;
+        const b = bs.includes(a) ? a : box.querySelector('.row .b:not(.ghost):not(:disabled), .tip, #startBtn') || bs[0];
+        if (b && b.tagName !== 'SELECT') b.click();
+        return;
+      }
+      if (hover && game.playerTurn && !game.busy) click(hover);
+    },
+    cancel: () => {
+      if (!$('#tipAsk').hidden && visible($('#tipAsk'))) { const b = $('#tipAsk .ghost'); if (b) b.click(); return; }
+      if (!gear.hidden) { setGear(false); return; }
+      if ($('#modal').classList.contains('show')) { const b = $('#modal .b.ghost[data-v]'); if (b) b.click(); return; }
+      game.sel = 'move'; game.pending = null; refreshHi(hover ? [hover.x, hover.z] : null); UI.hotbar();
+    },
+    cycle: (d) => {
+      if (padMenu() || !game.playerTurn || game.busy) return;
+      const list = [...document.querySelectorAll('#hotbar .sk:not(.off)')].map(b => b.dataset.sk);
+      if (!list.length) return;
+      const i = list.indexOf(game.sel);
+      game.selectSkill(list[(i + d + list.length) % list.length]);
+      if (hover) refreshHi([hover.x, hover.z]);
+    },
+    endTurn: () => { if (!padMenu()) endTurn(); },
+    rotate: (d) => { if (!padMenu() || padMenu() === gear) V.rotate(d); },
+    zoom: (k) => { if (!padMenu()) V.zoom(k); },
+    pan: (dx, dz) => { if (!padMenu()) V.pan(dx, dz); },
+    menu: () => {
+      SFX.init();
+      if (!$('#title').hidden) { $('#startBtn').click(); return; }
+      if ($('#hud').hidden || $('#modal').classList.contains('show')) return;
+      setGear(gear.hidden);
+      if (!gear.hidden) { const b = padBtns(gear)[0]; if (b) b.focus(); }
+    },
+  });
+
   // ── 點擊行動 ──
   async function click(pk) {
     const s = game.s;
@@ -356,6 +475,20 @@ export function start() {
     afterAction();
   }
 
+  // 配樂強度：隊伍血量、有人倒地、魔王半血、殘局都會把配樂往上推
+  function syncMood() {
+    const s = game.s;
+    if (!s || s.over) return;
+    let hp = 0, max = 0, down = 0, foes = 0, bossLow = false;
+    for (const u of s.units) {
+      if (u.side === 'hero') { hp += Math.max(0, u.hp); max += u.maxHp; if (u.downed) down++; }
+      else if (R.alive(u)) { foes++; if (u.boss && u.hp < u.maxHp * 0.5) bossLow = true; }
+    }
+    const k = max ? hp / max : 1;
+    // 第 1 回合是平靜的編制（0.35），第 2 回合起回到曲子原本的樣子（0.5），之後由戰況往上推
+    let m = (s.round >= 2 ? 0.5 : 0.35) + (k < 0.6 ? 0.12 : 0) + (k < 0.35 ? 0.12 : 0) + (down ? 0.12 : 0) + (bossLow ? 0.2 : 0) + (foes <= 2 ? 0.15 : 0);
+    SFX.intensity(Math.min(1, m));
+  }
   function afterAction() {
     const s = game.s;
     if (!s || s.over) { if (endTurnResolve) endTurnResolve(); return; }
@@ -363,6 +496,8 @@ export function start() {
     if (!R.standing(u)) { if (endTurnResolve) endTurnResolve(); return; }
     refreshHi(hover ? [hover.x, hover.z] : null);
     UI.hotbar();
+    syncMood();
+    M.coachSync('act');
     const nothing = !u.action && !u.bonus && u.moveLeft <= 0;
     $('#endBtn').classList.toggle('pulse', nothing);
   }
@@ -371,6 +506,7 @@ export function start() {
     if (!game.playerTurn || game.busy) return;
     SFX.play('click');
     UI.bump('#endBtn');
+    M.coachSync('end');
     if (endTurnResolve) endTurnResolve();
   }
 
@@ -381,8 +517,13 @@ export function start() {
     game.lv = idx;
     lvSel.value = idx;
     game.party = party;
-    save({ lv: idx, party, diff: game.diff });
-    const seed = (Math.random() * 2 ** 31) >>> 0;
+    // 每日挑戰：固定種子，不動戰役存檔
+    game.daily = game.dailyNext || null;
+    game.dailyNext = null;
+    if (!game.daily) save({ lv: idx, party, diff: game.diff });
+    const seed = game.daily ? M.daily(game.daily).seed : (Math.random() * 2 ** 31) >>> 0;
+    M.begin();
+    M.coachStart(idx);
     const s = R.createState(idx, party, seed, game.diff);
     game.s = s;
     game.playerTurn = false;
@@ -396,9 +537,10 @@ export function start() {
     $('#hud').hidden = false;
     $('#title').hidden = true;
     V.loadLevel(s);
-    $('#lvName').textContent = `第 ${s.L.n} 關・${s.L.name}`;
+    $('#lvName').textContent = `${game.daily ? '📅 每日挑戰・' : ''}第 ${s.L.n} 關・${s.L.name}`;
     $('#roundN').textContent = 0;
     UI.refresh();
+    SFX.intensity(0.3);   // 每關從平靜的編制開始，戰況再把它推上去
     SFX.music(s.L.theme);
     UI.log(`📍 第 ${s.L.n} 關・${s.L.name}`, 'head');
     UI.log(s.L.intro, '');
@@ -415,6 +557,7 @@ export function start() {
       const u = R.current(s);
       const b = R.beginTurn(s);
       UI.refresh();
+      syncMood();
       // 換邊時打出大橫幅：YOUR TURN · 名字／ENEMY TURN
       if (!b.skip && R.standing(u)) {
         if (u.side === 'hero') UI.turnBanner('hero', game.auto ? 'AUTO TURN' : 'YOUR TURN', HEROES[u.key].name, HEROES[u.key].color);
@@ -433,11 +576,14 @@ export function start() {
           game.playerTurn = true;
           game.sel = 'move';
           SFX.play('turn');
+          if (V.speed < 3) SFX.voice(u.key, 2, { vol: 0.6, delay: 0.12 });
           UI.refresh();
           refreshHi();
+          M.coachSync('turn');
           await new Promise(res => { endTurnResolve = res; });
           endTurnResolve = null;
           game.playerTurn = false;
+          M.coachHide();
           $('#endBtn').classList.remove('pulse');
           V.setHighlights(null);
           UI.inspect('');
@@ -473,6 +619,21 @@ export function start() {
     clearTimeout(autoSkip);
     game.skipFn = null;
     if (game.s === s) await UI.levelCardOut();
+    // 首領登場：低角度繞拍＋名字卡（自動模式、3× 以上、reduced-motion、關掉演出鏡頭時不播）
+    const boss = !game.auto && game.s === s && typeof V.bossIntro === 'function' && V.bossOf ? V.bossOf() : null;
+    if (boss) {
+      UI.resetSkip();
+      game.skipFn = skipIntro;
+      const p = vcall('bossIntro', 5000);
+      if (V.shot && V.shot.wT) {
+        UI.bossCard(boss);
+        SFX.duck(2.4, 0.3); SFX.play('bossSting'); SFX.play('gasp', { delay: 0.5 });
+        SFX.voice(boss.key, 7, { boss: true, delay: 1.0 });
+      }
+      await p;
+      UI.bossCardOut();
+      game.skipFn = null;
+    }
   }
 
   async function precombat(s) {
@@ -494,11 +655,12 @@ export function start() {
       }).join('');
     const v = await UI.choose(`<p class="lvtag">第 ${s.L.n} 關 · ${esc(s.L.en)}</p><h2>${esc(s.L.name)}</h2>
       <p class="intro">${esc(s.L.intro)}</p>
-      <div class="scene"><b>🗣️ 戰前嘴砲・${esc(C.label)} DC ${C.dc}</b><p>${esc(C.scene)}</p><blockquote>${esc(C.line)}</blockquote><p class="win">成功：${esc(C.win)}</p></div>
+      <div class="scene"><b>🗣️ 戰前嘴砲・${esc(C.label)} DC ${C.dc}</b><blockquote>${esc(C.line)}</blockquote><p class="win">成功：${esc(C.win)}</p></div>
       <p class="pick">指派一名隊員擲 D20：</p><div class="heroes">${heroBtns}</div>
       <div class="row"><button class="b ghost" data-v="skip">不嘴砲，直接開打</button></div>`, 'check');
     if (v === 'skip') { UI.closeModal(); return; }
     const hk = v === 'all' ? 'chad' : v;
+    SFX.voice(hk, 8);   // 嘴砲開講
     let r = R.rollCheck(s, hk);
     await diceModal(s, C, r, v);
     if (!r.success && s.party.tips > 0) {
@@ -506,7 +668,9 @@ export function start() {
       if (t === 'y') { s.party.tips--; r = R.rollCheck(s, hk); await diceModal(s, C, r, v); }
     }
     R.applyCheck(s, r.success, hk);
+    M.talk(r.success);
     SFX.play(r.success ? 'checkWin' : 'checkFail');
+    SFX.play(r.success ? 'cheer' : 'laugh', { delay: 0.25 });
     UI.closeModal();
     await flush();
     if (r.success) UI.banner('嘴砲成功！', 'good'); else UI.banner('🤡 CRINGE', 'warn');
@@ -548,17 +712,35 @@ export function start() {
     if (newLoot.includes('sunscreen')) P.droneCharges = (P.droneCharges || 0) + 1;
     if (s.party.droneCharges < P.droneCharges) { /* 同一物件 */ }
     SFX.play('win');
+    SFX.play('cheerBig', { delay: 0.5 });
     SFX.music(null);
+    M.coachEnd(true);
+    const res = M.result(s);
     await vcall('celebrate', Math.max(700, 2400 / V.speed), 'hero');
     if (game.s !== s) return;
-    if (game.lv === LEVELS.length - 1) return ending(s);
+    const snap = !game.auto && typeof V.snap === 'function' ? V.snap() : null;   // 戰報圖的背景：慶祝中的畫面
+    const cardBtn = '<button class="b ghost" id="cardBtn" type="button">📸 存戰報圖</button>';
+    const bindCard = (card) => {
+      const b = card.querySelector('#cardBtn');
+      if (b) b.onclick = async () => { b.disabled = true; SFX.play('select'); const how = await M.shareCard(s, res, snap); b.disabled = false; b.textContent = how === 'save' ? '✅ 已存成圖片' : how === 'share' ? '✅ 已分享' : '📸 存戰報圖'; };
+    };
+    if (game.daily) {
+      await UI.choose(`<p class="lvtag">每日挑戰 · ${esc(game.daily)}</p><h2>📅 今日份的免運費已領取</h2>
+        <p class="intro">第 ${L.n} 關・${esc(L.name)}。每天的關卡與擲骰都固定，明天會換一場。</p>
+        <div class="receipt"><p class="rh">*** DAILY SPECIAL ***</p>${M.resultHtml(res)}<p class="rh">SEE YOU TOMORROW</p></div>
+        <div class="row"><button class="b" data-v="title">回標題</button>${cardBtn}</div>`, 'loot', (card) => { UI.stamp(card, 'PAID', true, 0.9); bindCard(card); });
+      UI.closeModal();
+      if (game.auto) { window.__autoDone = true; return; }
+      return showTitle();
+    }
+    if (game.lv === LEVELS.length - 1) return ending(s, res, bindCard, cardBtn);
     const lootHtml = newLoot.map(k => `<li><span class="li">${LOOT[k].icon}</span><b>${esc(LOOT[k].name)}</b><small>${esc(LOOT[k].text)}</small></li>`).join('') || '<li><small>這關沒有掉落裝備。</small></li>';
     await UI.choose(`<p class="lvtag">第 ${L.n} 關 · 清場</p><h2>🍖 停車場車尾派對烤肉・長休</h2>
       <div class="receipt"><p class="rh">*** TAILGATE BBQ ***<br>RECEIPT #${String(L.n).padStart(4, '0')}</p>
       <ul>${lootHtml}<li><span class="li">💵</span><b>小費點數 +1</b><small>目前 ${P.tips}/${TIP_MAX}</small></li>
       <li><span class="li">❤️</span><b>全隊 HP 與法術位全滿</b><small>皮卡車後車廂烤肉架旁聊天吐嘈</small></li></ul>
-      ${P.bills ? `<p class="bill">累積救護車帳單：$${P.bills.toLocaleString()} USD</p>` : ''}<p class="rh">THANK YOU · COME AGAIN</p></div>
-      <div class="row"><button class="b" data-v="next">${L.chip ? '拆開 5G 試用包晶片 →' : '前往下一關 →'}</button></div>`, 'loot', (card) => UI.stamp(card, 'PAID', true, 0.45 + (newLoot.length + 2) * 0.16));
+      ${P.bills ? `<p class="bill">累積救護車帳單：$${P.bills.toLocaleString()} USD</p>` : ''}${M.resultHtml(res)}<p class="rh">THANK YOU · COME AGAIN</p></div>
+      <div class="row"><button class="b" data-v="next">${L.chip ? '拆開 5G 試用包晶片 →' : '前往下一關 →'}</button>${cardBtn}</div>`, 'loot', (card) => { UI.stamp(card, 'PAID', true, 0.45 + (newLoot.length + 2) * 0.16); bindCard(card); });
     SFX.play('loot');
     if (L.chip && game.auto) { const [h, pw] = [['dale', 'drone'], ['doge', 'gaslight'], ['chad', 'refund'], ['karen', 'drone']][Object.keys(P.chips).length % 4]; P.chips[h] = pw; }
     else if (L.chip) await chipModal(P);
@@ -594,6 +776,7 @@ export function start() {
 
   async function defeat(s) {
     SFX.play('lose');
+    SFX.play('aww', { delay: 0.3 });
     SFX.music(null);
     await vcall('celebrate', Math.max(700, 2000 / V.speed), 'enemy');
     if (game.s !== s) return;
@@ -601,16 +784,17 @@ export function start() {
     const v = await UI.choose(`<h2>🚑 全隊倒地，而且都沒買醫保</h2>
       <p class="intro">救護車一台接一台開進來。試用期還在倒數，晶片開始在你們腦中播放企業黑話。</p>
       <div class="receipt"><p class="rh">MEDICAL BILL</p><ul><li><span class="li">🚑</span><b>本關救護車</b><small>$${(bills || 200000).toLocaleString()} USD</small></li><li><span class="li">🧠</span><b>實習生喪屍化進度</b><small>${Math.min(99, 60 + s.L.n * 4)}%</small></li></ul></div>
-      <div class="row"><button class="b" data-v="retry">再試一次（重打這關）</button><button class="b ghost" data-v="easy">改成「企劃原始數值」難度再試</button><button class="b ghost" data-v="title">回標題</button></div>`, 'lose', (card) => UI.stamp(card, 'DENIED', false, 0.9));
+      <div class="row"><button class="b" data-v="retry">再試一次（重打這關）</button>${game.daily ? '' : '<button class="b ghost" data-v="easy">改成「企劃原始數值」難度再試</button>'}<button class="b ghost" data-v="title">回標題</button></div>`, 'lose', (card) => UI.stamp(card, 'DENIED', false, 0.9));
     UI.closeModal();
     if (game.auto) { window.__autoLost = (window.__autoLost || 0) + 1; }
     if (v === 'title') return showTitle();
     if (v === 'easy') game.diff = 'story';
+    if (game.daily) game.dailyNext = game.daily;
     await vcall('outro', Math.max(400, 1000 / V.speed));
     runLevel(game.lv, game.party, game.lv);
   }
 
-  async function ending(s) {
+  async function ending(s, res, bindCard, cardBtn = '') {
     const P = game.party;
     $('#hud').hidden = true;
     const fw = setInterval(() => V.burst(4 + Math.random() * 16, 6 + Math.random() * 6, 4 + Math.random() * 16, 60, { color: [0xff2a4a, 0xffffff, 0x2a6aff, 0xffd23f], up: 3, speed: 7, g: -3, life: 1.6, size: 0.45 }), 500);
@@ -620,8 +804,8 @@ export function start() {
       <div class="receipt"><p class="rh">FINAL STATEMENT</p><ul>
       <li><span class="li">🎖️</span><b>難度</b><small>${esc(R.DIFFS[game.diff].name)}</small></li>
       <li><span class="li">🧾</span><b>救護車帳單總額</b><small>$${P.bills.toLocaleString()} USD</small></li>
-      <li><span class="li">🎒</span><b>收集裝備</b><small>${P.loot.map(k => LOOT[k].icon).join(' ')}</small></li></ul><p class="rh">NO REFUNDS · NO RENEWALS</p></div>
-      <div class="row"><button class="b" data-v="again">從第 1 關重新試用</button></div>`, 'ending', (card) => UI.stamp(card, 'CANCELLED', true, 1.1));
+      <li><span class="li">🎒</span><b>收集裝備</b><small>${P.loot.map(k => LOOT[k].icon).join(' ')}</small></li></ul>${res ? M.resultHtml(res) : ''}<p class="rh">NO REFUNDS · NO RENEWALS</p></div>
+      <div class="row"><button class="b" data-v="again">從第 1 關重新試用</button>${cardBtn}</div>`, 'ending', (card) => { UI.stamp(card, 'CANCELLED', true, 1.1); if (bindCard) bindCard(card); });
     if (game.auto) { window.__autoDone = true; return; }
     clearInterval(fw);
     save(null);
@@ -641,6 +825,7 @@ export function start() {
       <li><b>倒地</b>：英雄 0 HP 不會馬上死，每回合擲死亡豁免；隊友相鄰按 H 扶起，凱倫的精油也能拉人。三次失敗會被救護車載走。</li>
       <li><b>小費</b>：💵 單體攻擊或嘴砲檢定擲失手時，可以付小費給 DM 重擲。</li>
       <li><b>鏡頭</b>：Q / E 旋轉、滾輪縮放、右鍵拖曳自由旋轉、左鍵拖曳或 WASD 平移、空白鍵回到目前角色。手機：單指拖曳旋轉、雙指縮放，點一下預覽、再點一下確認。</li>
+      <li><b>手把</b>：十字鍵或左類比移動格子游標、A 確認、B 取消、X 換技能、Y 結束回合；LB / RB 轉鏡頭、LT / RT 縮放、右類比平移、Start 開設定。</li>
       </ul><div class="row"><button class="b" data-v="ok">了解</button></div>`, 'help').then(() => UI.closeModal());
   }
 
@@ -653,9 +838,16 @@ export function start() {
     tt.hidden = false;
     tt.classList.remove('enter'); void tt.offsetWidth; tt.classList.add('enter');
     $('#hud').hidden = true;
+    // 標題背景：第 1 關的場景＋四位英雄的低角度特寫
+    try { const ts = R.createState(0, R.newParty(), 7, 'standard'); game.s = null; V.loadLevel(ts); V.titleScene(true); } catch (e) { console.warn('title', e); }
+    M.coachEnd(false);
+    if (game.diffBack) { game.diff = game.diffBack; game.diffBack = null; }
+    game.daily = null;
+    $('#dailyNote').textContent = M.dailyNote();
     const sv = load();
     $('#contBtn').hidden = !(sv && sv.party && sv.lv > 0);
     if (sv && sv.lv > 0) $('#contBtn').textContent = `繼續試用（第 ${sv.lv + 1} 關）`;
+    SFX.intensity(0.5);
     SFX.music('menu');
   }
 
@@ -663,25 +855,34 @@ export function start() {
   document.querySelectorAll('#diffs button').forEach(b => b.addEventListener('click', () => {
     game.diff = b.dataset.d;
     document.querySelectorAll('#diffs button').forEach(x => x.classList.toggle('sel', x === b));
-    $('#diffNote').textContent = R.DIFFS[game.diff].text;
+    $('#diffNote').textContent = R.DIFFS[game.diff].text.split('。')[0] + '。';   // 標題只留第一句（數值），完整說明在操作說明
     SFX.init(); SFX.play('select');
   }));
-  $('#diffNote').textContent = R.DIFFS[game.diff].text;
+  $('#diffNote').textContent = R.DIFFS[game.diff].text.split('。')[0] + '。';   // 標題只留第一句（數值），完整說明在操作說明
   $('#startBtn').onclick = () => { SFX.init(); SFX.play('click'); runLevel(0, R.newParty(), -1); };
   $('#contBtn').onclick = () => { SFX.init(); SFX.play('click'); const sv = load(); if (sv) { game.diff = sv.diff || game.diff; runLevel(sv.lv, sv.party); } };
   document.querySelectorAll('#title .b, #diffs button').forEach(b => b.addEventListener('pointerenter', () => SFX.play('hover')));
   $('#titleHelp').onclick = () => { SFX.init(); showHelp(); };
+  // 每日挑戰：日期決定關卡與擲骰種子，標準難度，不影響戰役存檔
+  const startDaily = () => {
+    const d = M.daily();
+    if (!game.diffBack) game.diffBack = game.diff;
+    game.diff = d.diff;
+    game.dailyNext = d.date;
+    runLevel(d.lv, R.partyForLevel(d.lv), -1);
+  };
+  $('#dailyBtn').onclick = () => { SFX.init(); SFX.play('click'); startDaily(); };
+  $('#recBtn').onclick = async () => { SFX.init(); SFX.play('select'); await UI.choose(M.recordsHtml(), 'records'); UI.closeModal(); };
   const tl = $('#titleLv');
-  tl.innerHTML = '<option value="">選關（測試用）</option>' + LEVELS.map((L, i) => `<option value="${i}">第 ${L.n} 關・${esc(L.name)}</option>`).join('');
+  tl.innerHTML = '<option value="">章節選擇</option>' + LEVELS.map((L, i) => `<option value="${i}">第 ${L.n} 關・${esc(L.name)}</option>`).join('');
   tl.addEventListener('change', () => { if (tl.value === '') return; SFX.init(); const i = +tl.value; runLevel(i, R.partyForLevel(i)); });
 
   // 網址參數：?lv=3&diff=hard&auto=1（測試用）
   const q = new URLSearchParams(location.search);
   if (q.get('diff') && R.DIFFS[q.get('diff')]) game.diff = q.get('diff');
-  if (q.get('lv')) { const i = Math.max(0, Math.min(LEVELS.length - 1, +q.get('lv') - 1)); runLevel(i, R.partyForLevel(i)); }
+  if (q.get('daily') === '1') { game.noCoach = true; startDaily(); }
+  else if (q.get('lv')) { game.noCoach = true; const i = Math.max(0, Math.min(LEVELS.length - 1, +q.get('lv') - 1)); runLevel(i, R.partyForLevel(i)); }   // 直達連結不跑新手引導
   else showTitle();
-  // 讓背景先渲染第 1 關當標題背景
-  if (!q.get('lv')) { const s = R.createState(0, R.newParty(), 7, 'standard'); game.s = null; V.loadLevel(s); V.cam.distT = 40; }
-  setInterval(() => { if (!$('#title').hidden) V.rotateFree(0.0025); }, 16);
+  addEventListener('resize', () => { if (!$('#title').hidden && V.titleOn) V.titleScene(true); });
   return game;
 }

@@ -3,7 +3,7 @@
 // 規則：可走地塊頂面上方不放任何東西（只允許 ≤0.05 m 的平面貼花）；側板距地塊側面 ≤0.06 m；
 // 棋盤 [-1,25] 範圍內不放高物，棋盤外 4 m 內不超過 6 m。
 /* global THREE */
-import { toon, flat, roundedBoxGeo, outlineMat, textPlane, textTexture, gradientMap } from './kit.js';
+import { toon, flat, roundedBoxGeoLo as roundedBoxGeo, outlineMat, textPlane, textTexture, gradientMap } from './kit.js';
 
 const TH = 0.85;           // 每層高度
 const GY = -0.04;          // 棋盤外地面高度

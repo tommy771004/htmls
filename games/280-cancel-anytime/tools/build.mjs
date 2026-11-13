@@ -17,7 +17,7 @@ const STUBS = {
   'models/foes2.js': 'export const FOE2 = {};',
   'props.js': `import { box } from './kit.js'; export function buildProp(t,w=1,d=1){ return box(w*1.6,1.2,d*1.6,0x888888,0,0.6,0); } export function buildSurface(t){ const g = new THREE.Group(); return g; }`,
   'scenery.js': `export function buildScenery(){ return new THREE.Group(); } export function themeStyle(){ return { sky:['#8fc3ff','#ffe9c8'], fog:'#ffe9c8', fogNear:60, fogFar:160, hemiSky:'#ffffff', hemiGround:'#776655', hemiIntensity:1.4, sun:'#ffffff', sunIntensity:2.4, sunDir:[0.5,1,0.3], tileTop:['#d9b07a','#c99a62','#b8864e','#a8743e'], tileSide:'#6a4a30', tileEdge:'#3a2a1a', lava:'#8a1a0a', gridLine:'#000', accent:'#ffc531' }; }`,
-  'audio.js': `export const SFX = { init(){}, play(){}, music(){}, setMuted(){}, get muted(){ return true; } };`,
+  'audio.js': `export const SFX = { init(){}, play(){}, music(){}, intensity(){}, duck(){}, voice(){ return 0; }, setMuted(){}, get muted(){ return true; } };`,
 };
 const stubbed = [];
 const stubPlugin = {

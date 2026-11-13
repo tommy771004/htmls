@@ -1,0 +1,13 @@
+{
+  "name": "late-checkout",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "午夜退房 · LATE CHECKOUT：全程序生成的夜間廢棄飯店 5v5 回合制第一人稱射擊（作品 283）",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --dev",
+    "test": "node --test test/",
+    "accept": "node tools/accept.mjs"
+  }
+}
