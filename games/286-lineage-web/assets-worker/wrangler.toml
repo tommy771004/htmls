@@ -1,0 +1,17 @@
+# Cloudflare Worker（只有靜態素材，沒有程式）：把 assets/286/ 整個資料夾（約 3,121 檔、最大單檔約 9.8 MiB）放上 Cloudflare，
+# 正式站的分包（packs/*.bin）、登入動畫、地圖與音效改從這裡讀，不再算進 Vercel 的 CDN Requests 與流量。
+# 靜態素材請求在 Cloudflare Workers Assets 是免費、不限量的（Free 方案上限：每版 20,000 個檔、單檔 25 MiB）。
+# 跨網域（CORS）與長效快取標頭寫在 assets/286/_headers。
+# 部署要用你自己的 Cloudflare 帳號，在這個資料夾執行：
+#   npx wrangler deploy
+# 網址會是 https://lineage-assets.<帳號>.workers.dev/。部署好、用瀏覽器確認 https://lineage-assets.<帳號>.workers.dev/art-assets.json 讀得到之後，
+# 把網址填進 ../tools/build.mjs 的 ASSET_CDN_DEFAULT（或以 LINEAGE_ASSET_CDN=https://lineage-assets.<帳號>.workers.dev/ npm run build），
+# 再建置 web/286-lineage-web.html 推上 Vercel（部署前不要先填，避免正式站讀不到素材）。
+# 素材有增減或換檔後要再 deploy 一次（只會上傳有變的檔）。
+name = "lineage-assets"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[assets]
+directory = "../../../assets/286"
+not_found_handling = "none"

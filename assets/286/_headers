@@ -1,0 +1,14 @@
+# Cloudflare 靜態素材（games/286-lineage-web/assets-worker/）的回應標頭；Vercel 不讀這個檔。
+# 允許正式站跨域讀取分包與 Worker 腳本，並啟用長效快取減少重複請求。
+/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Expose-Headers: Content-Length, ETag
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+/packs/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+/art-assets.json
+  ! Cache-Control
+  Cache-Control: public, max-age=300, stale-while-revalidate=3600

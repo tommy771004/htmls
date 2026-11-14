@@ -888,6 +888,7 @@ export class LineageWorld {
     if (now - p.lastAttackAt < cd) return false;
 
     p.heading = headingBetween(npc.x - p.tx, npc.y - p.ty);
+    p.isHittingDummy = true;
     p.lastAttackAt = now;
     p.animState = 'attack';
     p.animStartedAt = now;
@@ -2162,6 +2163,7 @@ export class LineageWorld {
 
   #performPlayerAttack(mob, now) {
     const p = this.player;
+    p.isHittingDummy = false;
     p.heading = headingBetween(mob.tx - p.tx, mob.ty - p.ty);
     p.lastAttackAt = now;
     p.animState = 'attack';

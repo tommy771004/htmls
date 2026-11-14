@@ -1,5 +1,10 @@
-// 286 天堂實境客戶端：資源載入、.json.gz 地圖區塊解壓與音效控制
+// 286 天堂實境客戶端：資源載入、.bin 整包 CacheStorage 快取、.json.gz 地圖區塊解壓與音效控制
 import { assetUrl } from '../app.js';
+
+const ASSET_CACHE_NAME = 'lineage-286-assets-v1';
+const MANIFEST_TTL_MS = 5 * 60 * 1000;
+const MAX_PACK_RAM_BYTES = 96 * 1024 * 1024;
+const PACK_ONLY_SPELL_IDS = new Set([11, 20, 23, 24, 25, 27, 30, 31, 32, 33, 36, 37, 38, 39, 40, 42, 43, 44, 46, 47, 48]);
 
 /**
  * 將數值清單轉為 Set 以便快速驗證資產是否存在，避免發出 404 請求。
@@ -13,53 +18,362 @@ export function buildAssetSets(worldData) {
 }
 
 let packIndexPromise = null;
+let packRamBytes = 0;
 const packFileCache = new Map();
+const packPending = new Map();
+const chunkPending = new Map();
 
-async function loadPackIndex() {
+function isHttpOrigin() {
+  const origin = globalThis.location?.origin;
+  return typeof origin === 'string' && /^https?:\/\//i.test(origin);
+}
+
+function isCrossOriginUrl(url) {
+  if (!/^https?:\/\//i.test(url) || !isHttpOrigin()) return false;
+  return !url.startsWith(`${globalThis.location.origin}/`) && url !== globalThis.location.origin;
+}
+
+function cacheKeyFor(kind, id) {
+  if (!isHttpOrigin()) return null;
+  const cleanKind = String(kind).replace(/^\/+|\/+$/g, '');
+  const cleanId = encodeURIComponent(String(id));
+  return `${globalThis.location.origin}/__l286_cache/${cleanKind}/${cleanId}`;
+}
+
+async function openAssetCache() {
+  if (typeof globalThis.caches?.open !== 'function' || !isHttpOrigin()) return null;
+  try {
+    return await globalThis.caches.open(ASSET_CACHE_NAME);
+  } catch {
+    return null;
+  }
+}
+
+async function readCacheEntry(kind, id, { expectedBytes = 0, maxAgeMs = 0 } = {}) {
+  const key = cacheKeyFor(kind, id);
+  if (!key) return null;
+  const cache = await openAssetCache();
+  if (!cache) return null;
+  try {
+    const res = await cache.match(key);
+    if (!res) return null;
+    const cachedAt = Number(res.headers.get('x-cached-at') || 0);
+    const expired = Boolean(maxAgeMs > 0 && cachedAt > 0 && Date.now() - cachedAt > maxAgeMs);
+    const buf = await res.arrayBuffer();
+    if (!buf.byteLength || (expectedBytes > 0 && buf.byteLength !== expectedBytes)) {
+      return null;
+    }
+    return { buf, expired };
+  } catch {
+    return null;
+  }
+}
+
+async function writeCacheBytes(kind, id, buf, contentType = 'application/octet-stream', cacheControl = 'public, max-age=31536000, immutable') {
+  const key = cacheKeyFor(kind, id);
+  if (!key || !buf?.byteLength) return;
+  const cache = await openAssetCache();
+  if (!cache) return;
+  try {
+    await cache.put(
+      key,
+      new Response(buf, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': cacheControl,
+          'x-cached-at': String(Date.now()),
+        },
+      }),
+    );
+  } catch {
+    // 忽略儲存配額不足或隱私模式限制
+  }
+}
+
+function getPackFromRam(file) {
+  const buf = packFileCache.get(file);
+  if (!buf) return null;
+  packFileCache.delete(file);
+  packFileCache.set(file, buf);
+  return buf;
+}
+
+function setPackInRam(file, buf) {
+  if (!buf?.byteLength) return;
+  const prev = packFileCache.get(file);
+  if (prev) {
+    packRamBytes -= prev.byteLength;
+    packFileCache.delete(file);
+  }
+  packFileCache.set(file, buf);
+  packRamBytes += buf.byteLength;
+  while (packRamBytes > MAX_PACK_RAM_BYTES && packFileCache.size > 1) {
+    const oldest = packFileCache.keys().next().value;
+    const oldBuf = packFileCache.get(oldest);
+    packFileCache.delete(oldest);
+    packRamBytes -= oldBuf?.byteLength || 0;
+  }
+}
+
+function buildManifestIndex(manifest) {
+  if (!manifest?.assets || !manifest?.packs) return null;
+  const map = new Map();
+  for (const row of manifest.assets) {
+    map.set(row[0], { size: row[2], packIdx: row[3], offset: row[4] });
+  }
+  return {
+    version: manifest.version ?? 'modern',
+    packOrigin: manifest.packOrigin ?? '/packs',
+    packs: manifest.packs,
+    assetsCount: Array.isArray(manifest.assets) ? manifest.assets.length : map.size,
+    map,
+  };
+}
+
+/**
+ * 載入並共享 art-assets.json 索引（於 CacheStorage 快取 5 分鐘，離線時可降級使用舊快取）。
+ */
+export async function loadPackIndex() {
   if (!packIndexPromise) {
-    packIndexPromise = fetch(assetUrl('/art-assets.json'))
-      .then((res) => (res.ok ? res.json() : null))
-      .then((manifest) => {
-        if (!manifest?.assets || !manifest?.packs) return null;
-        const map = new Map();
-        for (const row of manifest.assets) {
-          map.set(row[0], { size: row[2], packIdx: row[3], offset: row[4] });
+    packIndexPromise = (async () => {
+      const cached = await readCacheEntry('manifest', 'art-assets.json', { maxAgeMs: MANIFEST_TTL_MS });
+      if (cached && !cached.expired) {
+        try {
+          const parsed = JSON.parse(new TextDecoder().decode(cached.buf));
+          const built = buildManifestIndex(parsed);
+          if (built) return built;
+        } catch {
+          // 繼續從網路重抓
         }
-        return { packs: manifest.packs, map };
-      })
-      .catch(() => null);
+      }
+      try {
+        const res = await fetch(assetUrl('/art-assets.json'));
+        if (res.ok) {
+          const buf = await res.arrayBuffer();
+          const parsed = JSON.parse(new TextDecoder().decode(buf));
+          const built = buildManifestIndex(parsed);
+          if (built) {
+            void writeCacheBytes('manifest', 'art-assets.json', buf, 'application/json', 'public, max-age=300');
+            return built;
+          }
+        }
+      } catch {
+        // 網路失敗時嘗試使用既有舊快取
+      }
+      if (cached?.buf) {
+        try {
+          return buildManifestIndex(JSON.parse(new TextDecoder().decode(cached.buf)));
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    })();
   }
   return packIndexPromise;
 }
 
-async function fetchPackedBytes(relPath) {
+async function loadPackBuffer(pack) {
+  if (!pack?.file) return null;
+  const ramHit = getPackFromRam(pack.file);
+  if (ramHit) return ramHit;
+
+  const inflight = packPending.get(pack.file);
+  if (inflight) return inflight;
+
+  const cacheId = pack.hash || pack.file;
+  const task = (async () => {
+    const cached = await readCacheEntry('packs', cacheId, { expectedBytes: pack.bytes || 0 });
+    if (cached?.buf) {
+      setPackInRam(pack.file, cached.buf);
+      return cached.buf;
+    }
+    try {
+      // 整包一次 GET（不送 Range），寫入 CacheStorage 後由本地記憶體直接切片給同包數十個資源
+      const res = await fetch(assetUrl(`/packs/${pack.file}`));
+      if (!res.ok) return null;
+      const buf = await res.arrayBuffer();
+      if (!buf.byteLength || (pack.bytes && buf.byteLength !== pack.bytes)) {
+        return null;
+      }
+      await writeCacheBytes('packs', cacheId, buf);
+      setPackInRam(pack.file, buf);
+      return buf;
+    } catch {
+      return null;
+    } finally {
+      packPending.delete(pack.file);
+    }
+  })();
+
+  packPending.set(pack.file, task);
+  return task;
+}
+
+/**
+ * 從對應 .bin 分包（優先 RAM LRU → CacheStorage → 整包 GET）切片取得資源位元組。
+ */
+export async function fetchPackedBytes(relPath) {
   const index = await loadPackIndex();
   const entry = index?.map.get(relPath);
   if (!entry) return null;
   const pack = index.packs[entry.packIdx];
-  if (!pack?.file) return null;
+  const buf = await loadPackBuffer(pack);
+  if (!buf) return null;
+  if (entry.offset < 0 || entry.offset + entry.size > buf.byteLength) return null;
+  return buf.slice(entry.offset, entry.offset + entry.size);
+}
 
-  const cachedBuf = packFileCache.get(pack.file);
-  if (cachedBuf) {
-    return cachedBuf.slice(entry.offset, entry.offset + entry.size);
+async function decompressGzipBytes(bytes) {
+  if (typeof DecompressionStream !== 'function') return null;
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Response(stream).text();
+}
+
+/**
+ * 載入並解壓 .json.gz 地圖區塊（優先走 .bin 分包與 CacheStorage，避免逐塊重複請求 CDN）。
+ */
+export async function loadChunkJson(relPath) {
+  if (!relPath) return null;
+  const inflight = chunkPending.get(relPath);
+  if (inflight) return inflight;
+
+  const task = (async () => {
+    try {
+      let bytes = await fetchPackedBytes(relPath);
+      if (!bytes) {
+        const cached = await readCacheEntry('chunks', relPath);
+        if (cached?.buf) {
+          bytes = cached.buf;
+        } else {
+          const res = await fetch(assetUrl(relPath));
+          if (!res.ok) return null;
+          bytes = await res.arrayBuffer();
+          if (bytes.byteLength) {
+            void writeCacheBytes('chunks', relPath, bytes);
+          }
+        }
+      }
+      const text = await decompressGzipBytes(bytes);
+      return text ? JSON.parse(text) : null;
+    } catch {
+      return null;
+    } finally {
+      chunkPending.delete(relPath);
+    }
+  })();
+
+  chunkPending.set(relPath, task);
+  return task;
+}
+
+/**
+ * 統計目前瀏覽器 CacheStorage 已快取的分包數量與大小（不發出任何網路請求）。
+ */
+export async function getPackCacheStats() {
+  const index = await loadPackIndex();
+  const packs = index?.packs || [];
+  const totalBytes = packs.reduce((sum, p) => sum + (p.bytes || 0), 0);
+  const cache = await openAssetCache();
+  if (!cache || !packs.length) {
+    return { totalPacks: packs.length, cachedPacks: 0, cachedBytes: 0, totalBytes };
   }
-
-  const url = assetUrl(`/packs/${pack.file}`);
-  const end = entry.offset + entry.size - 1;
   try {
-    const res = await fetch(url, { headers: { Range: `bytes=${entry.offset}-${end}` } });
-    if (res.status === 206) {
-      return await res.arrayBuffer();
+    const keys = new Set((await cache.keys()).map((req) => req.url));
+    let cachedPacks = 0;
+    let cachedBytes = 0;
+    for (const p of packs) {
+      const k = cacheKeyFor('packs', p.hash || p.file);
+      if (k && keys.has(k)) {
+        cachedPacks += 1;
+        cachedBytes += p.bytes || 0;
+      }
     }
-    if (res.ok) {
-      const full = await res.arrayBuffer();
-      packFileCache.set(pack.file, full);
-      return full.slice(entry.offset, entry.offset + entry.size);
-    }
+    return { totalPacks: packs.length, cachedPacks, cachedBytes, totalBytes };
   } catch {
-    return null;
+    return { totalPacks: packs.length, cachedPacks: 0, cachedBytes: 0, totalBytes };
   }
-  return null;
+}
+
+let preloadPromise = null;
+
+/**
+ * 將尚未快取的分包依優先順序（core 優先，其後 background）寫入瀏覽器 CacheStorage。
+ */
+export async function preloadAllPacks({ onProgress, concurrency = 3 } = {}) {
+  if (preloadPromise) return preloadPromise;
+  preloadPromise = (async () => {
+    const index = await loadPackIndex();
+    const packs = index?.packs || [];
+    if (!packs.length) return { totalPacks: 0, cachedPacks: 0, cachedBytes: 0, totalBytes: 0 };
+
+    const totalBytes = packs.reduce((sum, p) => sum + (p.bytes || 0), 0);
+    const cache = await openAssetCache();
+    const existing = cache ? new Set((await cache.keys()).map((r) => r.url)) : new Set();
+
+    const ordered = [
+      ...packs.filter((p) => p.phase === 'core'),
+      ...packs.filter((p) => p.phase !== 'core'),
+    ];
+    let donePacks = 0;
+    let doneBytes = 0;
+    const pending = [];
+    for (const p of ordered) {
+      const k = cacheKeyFor('packs', p.hash || p.file);
+      if (k && existing.has(k)) {
+        donePacks += 1;
+        doneBytes += p.bytes || 0;
+      } else {
+        pending.push(p);
+      }
+    }
+    onProgress?.({ donePacks, totalPacks: packs.length, doneBytes, totalBytes });
+
+    let cursor = 0;
+    const workers = Array.from({ length: Math.min(concurrency, Math.max(1, pending.length)) }, async () => {
+      while (cursor < pending.length) {
+        const pack = pending[cursor];
+        cursor += 1;
+        const buf = await loadPackBuffer(pack);
+        if (buf) {
+          donePacks += 1;
+          doneBytes += pack.bytes || buf.byteLength;
+          onProgress?.({ donePacks, totalPacks: packs.length, doneBytes, totalBytes });
+        }
+      }
+    });
+    await Promise.all(workers);
+    return { totalPacks: packs.length, cachedPacks: donePacks, cachedBytes: doneBytes, totalBytes };
+  })().finally(() => {
+    preloadPromise = null;
+  });
+  return preloadPromise;
+}
+
+/**
+ * 建立背景 Worker：同源時直接載入；若素材指到 Cloudflare 跨域 CDN，則經 CacheStorage 快取後以 Blob Worker 啟動。
+ */
+export async function createCachedWorker(relPath) {
+  const url = assetUrl(relPath);
+  if (!isCrossOriginUrl(url)) {
+    return { worker: new Worker(url), revoke: null };
+  }
+  const cached = await readCacheEntry('workers', relPath);
+  let buf = cached?.buf || null;
+  if (!buf) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Worker load failed: ${res.status}`);
+    buf = await res.arrayBuffer();
+    if (buf.byteLength) {
+      void writeCacheBytes('workers', relPath, buf, 'text/javascript; charset=utf-8');
+    }
+  }
+  const blobUrl = URL.createObjectURL(new Blob([buf], { type: 'text/javascript' }));
+  return {
+    worker: new Worker(blobUrl),
+    revoke: () => URL.revokeObjectURL(blobUrl),
+  };
 }
 
 function guessMime(relPath) {
@@ -77,6 +391,7 @@ export class GameAssetLoader {
     this.sets = buildAssetSets(worldData);
     this.imageCache = new Map();
     this.loadedImages = new Map();
+    this.blobUrlByPath = new Map();
     this.chunkCache = new Map();
     this.objectUrls = [];
     this.disposed = false;
@@ -113,8 +428,27 @@ export class GameAssetLoader {
   }
 
   spellIconUrl(spell) {
-    if (spell?.hasIcon) return assetUrl(`/lineage163/all-magic-v2/${spell.id}.png`);
-    return assetUrl('/lineage163/all-magic-v2/1.png');
+    if (!spell?.hasIcon) return assetUrl('/lineage163/all-magic-v2/1.png');
+    const rel = `/lineage163/all-magic-v2/${spell.id}.png`;
+    const cachedBlob = this.blobUrlByPath.get(rel);
+    if (cachedBlob) return cachedBlob;
+    if (PACK_ONLY_SPELL_IDS.has(Number(spell.id))) {
+      void this.loadImage(rel);
+      return assetUrl('/lineage163/all-magic-v2/1.png');
+    }
+    return assetUrl(rel);
+  }
+
+  /**
+   * 預先從單一圖示分包解開只存在分包內的法術圖示，避免魔法書與快捷列發出 404 請求。
+   */
+  async hydrateSpellIcons(worldData, onReady) {
+    if (this.disposed) return;
+    const spells = Array.isArray(worldData?.spells) ? worldData.spells : Object.values(worldData?.spells || {});
+    const targets = spells.filter((sp) => sp?.hasIcon && PACK_ONLY_SPELL_IDS.has(Number(sp.id)));
+    if (!targets.length) return;
+    await Promise.all(targets.map((sp) => this.loadImage(`/lineage163/all-magic-v2/${sp.id}.png`)));
+    if (!this.disposed) onReady?.();
   }
 
   loadImage(relPath) {
@@ -122,24 +456,32 @@ export class GameAssetLoader {
     if (this.imageCache.has(relPath)) return this.imageCache.get(relPath);
 
     const p = (async () => {
-      const url = assetUrl(relPath);
-      const tryUrl = (src) =>
+      const tryUrl = (src, allowCors = false) =>
         new Promise((resolve) => {
           const img = new Image();
           img.decoding = 'async';
+          if (allowCors && isCrossOriginUrl(src)) {
+            img.crossOrigin = 'anonymous';
+          }
           img.onload = () => resolve(img);
           img.onerror = () => resolve(null);
           img.src = src;
         });
 
-      let img = await tryUrl(url);
-      if (!img && !this.disposed) {
+      const index = await loadPackIndex();
+      let img = null;
+      // 先看 art-assets.json 索引：收在 .bin 分包裡的資源直接本地切片解碼，完全不送 404 散檔請求
+      if (index?.map.has(relPath)) {
         const bytes = await fetchPackedBytes(relPath);
         if (bytes && !this.disposed) {
           const blobUrl = URL.createObjectURL(new Blob([bytes], { type: guessMime(relPath) }));
           this.objectUrls.push(blobUrl);
+          this.blobUrlByPath.set(relPath, blobUrl);
           img = await tryUrl(blobUrl);
         }
+      }
+      if (!img && !this.disposed) {
+        img = await tryUrl(assetUrl(relPath), true);
       }
       if (img) {
         this.loadedImages.set(relPath, img);
@@ -158,23 +500,12 @@ export class GameAssetLoader {
 
     const p = (async () => {
       const rel = `/lineage163/maps/${mapId}/${chunkHex}.json.gz`;
-      try {
-        const res = await fetch(assetUrl(rel));
-        if (!res.ok || !res.body) return null;
-        let json;
-        if (typeof DecompressionStream === 'function') {
-          const stream = res.body.pipeThrough(new DecompressionStream('gzip'));
-          const text = await new Response(stream).text();
-          json = JSON.parse(text);
-        } else {
-          return null;
-        }
+      const json = await loadChunkJson(rel);
+      if (json && !this.disposed) {
         this.stats.chunksLoaded += 1;
         this.stats.lastChunkKey = key;
-        return json;
-      } catch {
-        return null;
       }
+      return json;
     })();
 
     this.chunkCache.set(key, p);
@@ -191,6 +522,7 @@ export class GameAssetLoader {
       }
     }
     this.objectUrls = [];
+    this.blobUrlByPath.clear();
     this.imageCache.clear();
     this.loadedImages.clear();
     this.chunkCache.clear();
@@ -226,6 +558,9 @@ export const ZONE_BGM = {
 /** 只要在打怪就放戰鬥音樂；最後一次交戰後過了脫戰時間才淡出，回到區域音樂 */
 export const BATTLE_BGM = '/assets/286/assets/284/bgm/battle.mp3';
 export const BATTLE_COOLDOWN_MS = 8000;
+const TRACK_BGM_VOLUME = {
+  [BATTLE_BGM]: 0.14,
+};
 
 /** 進遊戲就先載入的常用音效（拾取、喝水、裝備、揮擊、升級） */
 const PRELOAD_SFX = [103, 104, 105, 246, 247, 248, 249, '/level-up-v1/517.wav'];
@@ -254,9 +589,16 @@ function loadAnimationSounds() {
 async function fetchAudioBytes(relPath) {
   const packed = await fetchPackedBytes(relPath);
   if (packed) return packed;
+  const cached = await readCacheEntry('audio', relPath);
+  if (cached?.buf) return cached.buf;
   try {
     const res = await fetch(assetUrl(relPath));
-    return res.ok ? await res.arrayBuffer() : null;
+    if (!res.ok) return null;
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength) {
+      void writeCacheBytes('audio', relPath, buf, guessMime(relPath));
+    }
+    return buf;
   } catch {
     return null;
   }
@@ -269,6 +611,9 @@ export class GameAudioManager {
     this.bgmAudio = null;
     this.currentBgm = '';
     this.bgmVolume = 0.24;
+    this.duckGain = 1;
+    this.duckTimer = null;
+    this.bgmSeq = 0;
     this.fadeTimers = new Set();
     this.bgmEls = new Map(); // 曲目 → <audio>，區域音樂被戰鬥打斷後從原處接著放
     this.inCombat = false;
@@ -324,11 +669,18 @@ export class GameAudioManager {
   setMuted(muted) {
     this.muted = Boolean(muted);
     if (this.sfxBus) this.sfxBus.gain.value = this.muted ? 0 : 1;
-    if (this.bgmAudio) {
-      this.bgmAudio.muted = this.muted;
-      if (!this.muted && this.bgmAudio.paused && this.currentBgm) {
-        this.bgmAudio.play().catch(() => {});
+    for (const audio of this.bgmEls.values()) {
+      audio.muted = this.muted;
+      if (this.muted && audio._fadeTimer) {
+        clearInterval(audio._fadeTimer);
+        this.fadeTimers.delete(audio._fadeTimer);
+        audio._fadeTimer = null;
+        audio._fadingOut = false;
+        audio.pause();
       }
+    }
+    if (!this.muted && this.bgmAudio && this.bgmAudio.paused && this.currentBgm) {
+      this.#playAudioExclusive(this.bgmAudio, this.currentBgm, this.bgmSeq);
     }
   }
 
@@ -337,16 +689,68 @@ export class GameAudioManager {
     return ZONE_BGM[zoneOf(world?.player)] || ZONE_BGM.field;
   }
 
-  #fade(audio, from, to, ms, done) {
+  #targetBgmVolume(relPath = this.currentBgm) {
+    const base = TRACK_BGM_VOLUME[relPath] ?? this.bgmVolume;
+    return Math.max(0, Math.min(1, base * this.duckGain));
+  }
+
+  #stopAllBgmExcept(keepPath = null) {
+    for (const [key, audio] of this.bgmEls.entries()) {
+      if (key === keepPath) continue;
+      if (audio._fadeTimer) {
+        clearInterval(audio._fadeTimer);
+        this.fadeTimers.delete(audio._fadeTimer);
+        audio._fadeTimer = null;
+      }
+      audio._fadingOut = false;
+      try {
+        if (!audio.paused) audio.pause();
+      } catch {
+        // 忽略
+      }
+    }
+  }
+
+  #playAudioExclusive(audio, relPath, seq) {
+    if (this.muted || this.currentBgm !== relPath || this.bgmSeq !== seq) return;
+    this.#stopAllBgmExcept(relPath);
+    const pr = audio.play();
+    if (pr && typeof pr.then === 'function') {
+      pr.then(() => {
+        if (this.muted || this.currentBgm !== relPath || this.bgmSeq !== seq) {
+          audio.pause();
+        }
+      }).catch(() => {});
+    }
+  }
+
+  #duckBgm() {
+    if (this.muted || !this.bgmAudio) return;
+    this.duckGain = 0.65;
+    if (!this.bgmAudio._fadeTimer) {
+      this.bgmAudio.volume = this.#targetBgmVolume(this.currentBgm);
+    }
+    if (this.duckTimer) clearTimeout(this.duckTimer);
+    this.duckTimer = setTimeout(() => {
+      this.duckTimer = null;
+      this.duckGain = 1;
+      if (this.bgmAudio && !this.bgmAudio._fadeTimer && !this.bgmAudio.paused) {
+        this.bgmAudio.volume = this.#targetBgmVolume(this.currentBgm);
+      }
+    }, 350);
+  }
+
+  #fade(audio, from, toOrFn, ms, done) {
     if (audio._fadeTimer) {
       clearInterval(audio._fadeTimer);
       this.fadeTimers.delete(audio._fadeTimer);
     }
     const steps = Math.max(1, Math.round(ms / 40));
     let n = 0;
-    audio.volume = from;
+    audio.volume = Math.max(0, Math.min(1, from));
     const timer = setInterval(() => {
       n += 1;
+      const to = typeof toOrFn === 'function' ? toOrFn() : toOrFn;
       audio.volume = Math.max(0, Math.min(1, from + ((to - from) * n) / steps));
       if (n >= steps) {
         clearInterval(timer);
@@ -364,50 +768,100 @@ export class GameAudioManager {
     return this.inCombat ? BATTLE_BGM : this.bgmFor(world);
   }
 
+  unlock(world) {
+    this.ensureContext();
+    if (this.muted) return;
+    const want = this.desiredBgm(world);
+    if (!this.currentBgm || this.currentBgm !== want) {
+      this.playBgm(want);
+    } else if (this.bgmAudio?.paused && !this.bgmAudio._fadingOut) {
+      this.#playAudioExclusive(this.bgmAudio, this.currentBgm, this.bgmSeq);
+    }
+  }
+
   playBgm(relPath = ZONE_BGM.field, { fadeMs = 0, restart = false } = {}) {
     this.ensureContext();
-    if (this.currentBgm === relPath && this.bgmAudio) {
-      if (!this.muted && this.bgmAudio.paused) this.bgmAudio.play().catch(() => {});
+    if (this.currentBgm === relPath && this.bgmAudio && !this.bgmAudio._fadingOut) {
+      this.#stopAllBgmExcept(relPath);
+      if (!this.muted && this.bgmAudio.paused) {
+        this.#playAudioExclusive(this.bgmAudio, relPath, this.bgmSeq);
+      }
       return;
     }
+
+    this.bgmSeq += 1;
+    const seq = this.bgmSeq;
     const old = this.bgmAudio;
-    if (old && fadeMs > 0) {
-      this.#fade(old, old.volume, 0, fadeMs, () => old.pause());
-    } else if (old) {
-      old.pause();
-    }
-    this.bgmAudio = null;
+    const oldKey = old ? [...this.bgmEls.entries()].find(([, el]) => el === old)?.[0] || null : null;
+    this.#stopAllBgmExcept(old && fadeMs > 0 && !old.paused && !this.muted ? oldKey : null);
     this.currentBgm = relPath;
-    try {
-      let audio = this.bgmEls.get(relPath);
-      if (!audio) {
-        audio = new Audio(assetUrl(relPath));
-        audio.loop = true;
-        this.bgmEls.set(relPath, audio);
-      }
-      if (restart) {
-        try {
-          audio.currentTime = 0;
-        } catch {
-          // 尚未載入時無法設定，略過
+
+    const startNext = () => {
+      if (this.bgmSeq !== seq || this.currentBgm !== relPath) return;
+      this.#stopAllBgmExcept(relPath);
+      try {
+        let audio = this.bgmEls.get(relPath);
+        if (!audio) {
+          audio = new Audio(assetUrl(relPath));
+          audio.loop = true;
+          this.bgmEls.set(relPath, audio);
         }
+        if (audio._fadeTimer) {
+          clearInterval(audio._fadeTimer);
+          this.fadeTimers.delete(audio._fadeTimer);
+          audio._fadeTimer = null;
+        }
+        audio._fadingOut = false;
+        if (restart) {
+          try {
+            audio.currentTime = 0;
+          } catch {
+            // 尚未載入時無法設定，略過
+          }
+        }
+        audio.muted = this.muted;
+        const targetFn = () => this.#targetBgmVolume(relPath);
+        audio.volume = fadeMs > 0 ? 0 : targetFn();
+        this.bgmAudio = audio;
+        this.#playAudioExclusive(audio, relPath, seq);
+        if (fadeMs > 0 && !this.muted) {
+          this.#fade(audio, 0, targetFn, fadeMs);
+        }
+      } catch {
+        // 無音效環境略過
       }
-      audio.muted = this.muted;
-      audio.volume = fadeMs > 0 ? 0 : this.bgmVolume;
-      this.bgmAudio = audio;
-      if (!this.muted) audio.play().catch(() => {});
-      if (fadeMs > 0) this.#fade(audio, 0, this.bgmVolume, fadeMs);
-    } catch {
-      // 無音效環境略過
+    };
+
+    if (old && old !== this.bgmEls.get(relPath) && fadeMs > 0 && !old.paused && !this.muted) {
+      old._fadingOut = true;
+      const outMs = Math.min(280, Math.max(120, Math.round(fadeMs * 0.35)));
+      this.#fade(old, old.volume, 0, outMs, () => {
+        old._fadingOut = false;
+        old.pause();
+        startNext();
+      });
+    } else {
+      if (old) {
+        old._fadingOut = false;
+        old.pause();
+      }
+      startNext();
     }
   }
 
   stopBgm() {
+    this.bgmSeq += 1;
+    if (this.duckTimer) {
+      clearTimeout(this.duckTimer);
+      this.duckTimer = null;
+    }
+    this.duckGain = 1;
     for (const t of this.fadeTimers) clearInterval(t);
     this.fadeTimers.clear();
     for (const audio of this.bgmEls.values()) {
       try {
         audio._fadeTimer = null;
+        audio._fadingOut = false;
         audio.pause();
         audio.currentTime = 0;
       } catch {
@@ -474,6 +928,7 @@ export class GameAudioManager {
           this.activeVoices -= 1;
         };
         src.start();
+        this.#duckBgm();
         this.stats.played += 1;
         this.stats.last = relPath;
       } catch {
@@ -553,9 +1008,11 @@ export class GameAudioManager {
       this.zone = zone;
     }
 
-    // 交戰判定：主角出手、主角掉血、鎖定中或仇恨主角的怪物進入攻擊／受擊／死亡
+    // 交戰判定：主角攻擊真正怪物（非村內木人練習）、主角掉血、鎖定中或仇恨主角的怪物進入攻擊／受擊／死亡
     let combatNow = false;
-    if (this.lastPlayerAttackAt !== null && p.lastAttackAt !== this.lastPlayerAttackAt) combatNow = true;
+    if (this.lastPlayerAttackAt !== null && p.lastAttackAt !== this.lastPlayerAttackAt && !p.isHittingDummy) {
+      combatNow = true;
+    }
     this.lastPlayerAttackAt = p.lastAttackAt ?? null;
     if (this.lastPlayerHp !== null && p.hp < this.lastPlayerHp) combatNow = true;
     this.lastPlayerHp = p.hp;

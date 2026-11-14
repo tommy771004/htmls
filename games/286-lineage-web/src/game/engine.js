@@ -44,6 +44,7 @@ export class LineageGameEngine {
       onReturnToSelect,
       onActionNearest: (kind) => this.actionNearest(kind),
     });
+    this.assets.hydrateSpellIcons(this.worldData, () => this.hud?.sync(true));
 
     this.world.player.onNpcReady = (npc) => this.hud.openNpc(npc);
 
@@ -73,11 +74,7 @@ export class LineageGameEngine {
     this._onPointerUp = (ev) => this.#handlePointerUp(ev);
     this._onPointerDown = (ev) => {
       this._downPos = { x: ev.clientX, y: ev.clientY };
-      if (this.audio && !this.audio.muted && !this.audio.currentBgm) {
-        this.audio.playBgm(this.audio.bgmFor(this.world));
-      } else if (this.audio?.bgmAudio?.paused && !this.audio.muted) {
-        this.audio.bgmAudio.play().catch(() => {});
-      }
+      this.audio?.unlock(this.world);
     };
     this._onKeyDown = (ev) => this.#handleKeyDown(ev);
 

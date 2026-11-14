@@ -2,6 +2,13 @@
 // 支援完整 9 大視圖：/ 遊戲大廳、/official 官方入口、/guide 攻略圖鑑(243筆)、/form 冒險者論壇、
 // /rice 能力骰子模擬器、/topup 蛋幣儲值(含 Origin Guard)、/gm GM 控制台、/privacy 與 /privacy2 隱私權政策。
 import { LineageGameEngine } from './game/engine.js';
+import {
+  createCachedWorker,
+  getPackCacheStats,
+  loadChunkJson,
+  loadPackIndex,
+  preloadAllPacks,
+} from './game/assets.js';
 
 const CAPTURED_DATA = window.__LINEAGE_CAPTURED_DATA__ || {
   guide: { revision: '1.63', build: 656, records: [] },
@@ -13,8 +20,15 @@ const CAPTURED_DATA = window.__LINEAGE_CAPTURED_DATA__ || {
 
 export function assetUrl(rawPath) {
   if (!rawPath) return '';
-  if (rawPath.startsWith('../assets/286/')) return rawPath;
-  if (rawPath.startsWith('/assets/286/')) return `..${rawPath}`;
+  const cdnBase =
+    typeof window !== 'undefined' && window.__L286_ASSET_CDN ? String(window.__L286_ASSET_CDN) : '';
+  const base = cdnBase || '../assets/286/';
+  const joinBase = (rel) => {
+    const clean = rel.replace(/^\/+/, '');
+    return base.endsWith('/') ? `${base}${clean}` : `${base}/${clean}`;
+  };
+  if (rawPath.startsWith('../assets/286/')) return joinBase(rawPath.slice('../assets/286/'.length));
+  if (rawPath.startsWith('/assets/286/')) return joinBase(rawPath.slice('/assets/286/'.length));
   if (
     rawPath.startsWith('/assets/284/') ||
     rawPath.startsWith('/lineage163/') ||
@@ -27,7 +41,7 @@ export function assetUrl(rawPath) {
     rawPath.startsWith('/auto-worker465.js') ||
     rawPath.startsWith('/scenery-worker289.js')
   ) {
-    return `../assets/286${rawPath}`;
+    return joinBase(rawPath);
   }
   return rawPath;
 }
@@ -775,7 +789,7 @@ const state = {
   createAlloc: { str: 0, dex: 0, con: 0, wis: 0, cha: 0, int: 0 },
   createClassicMode: false,
   createCharName: '王族新兵',
-  swStatusText: '已就緒 (royal-art-v1 離線快取)',
+  swStatusText: 'CacheStorage 整包快取（檢查中...）',
   assetSummary: '載入本機素材清單中...',
   swPreloadProgress: '待命中',
   workerAutoStatus: '待啟動檢查',
@@ -1253,7 +1267,7 @@ function renderLobbyView() {
             </p>
             <div class="row" style="margin-top:8px">
               <button id="btn-preload-packs" type="button" class="btn secondary">預載本機分包快取</button>
-              <span class="muted" style="font-size:12px">${escapeHtml(state.swPreloadProgress)}</span>
+              <span class="muted" data-testid="sw-preload-progress" style="font-size:12px">${escapeHtml(state.swPreloadProgress)}</span>
             </div>
           </div>
         </div>
@@ -1783,7 +1797,13 @@ function syncBgm() {
   if (typeof Audio === 'undefined') return;
   const track = wantedBgmTrack();
   if (!track) {
-    if (bgm.el && !bgm.el.paused) bgm.el.pause();
+    if (bgm.el) {
+      try {
+        bgm.el.pause();
+      } catch {
+        // 忽略
+      }
+    }
     return;
   }
   if (!bgm.el) {
@@ -1800,6 +1820,9 @@ function syncBgm() {
     bgm.el.play().then(
       () => {
         bgm.unlocked = true;
+        if (!wantedBgmTrack() || bgm.track !== wantedBgmTrack()) {
+          bgm.el?.pause();
+        }
       },
       () => {
         // 自動播放被擋：等使用者第一次互動
@@ -2649,7 +2672,25 @@ function bindGlobalEvents() {
       return;
     }
     if (btn.id === 'btn-preload-packs') {
-      state.swPreloadProgress = '已完成 335 包分包索引驗證 (modern-all-characters343)';
+      state.swPreloadProgress = '準備寫入 CacheStorage 分包快取...';
+      const progressEl = document.querySelector('[data-testid="sw-preload-progress"]');
+      if (progressEl) progressEl.textContent = state.swPreloadProgress;
+      let lastPaint = 0;
+      const stats = await preloadAllPacks({
+        onProgress: ({ donePacks, totalPacks, doneBytes, totalBytes }) => {
+          const now = Date.now();
+          if (donePacks < totalPacks && now - lastPaint < 150) return;
+          lastPaint = now;
+          state.swPreloadProgress = `預載中 ${donePacks} / ${totalPacks} 包 (${(doneBytes / 1048576).toFixed(1)} / ${(totalBytes / 1048576).toFixed(1)} MB)`;
+          state.swStatusText = `CacheStorage 已快取 ${donePacks} / ${totalPacks} 包 (${(doneBytes / 1048576).toFixed(2)} MB)`;
+          const elProg = document.querySelector('[data-testid="sw-preload-progress"]');
+          const elStat = document.querySelector('[data-testid="sw-status-text"]');
+          if (elProg) elProg.textContent = state.swPreloadProgress;
+          if (elStat) elStat.textContent = state.swStatusText;
+        },
+      });
+      state.swPreloadProgress = `已完成 ${stats.cachedPacks} / ${stats.totalPacks} 包分包快取 (${(stats.cachedBytes / 1048576).toFixed(2)} MB)`;
+      state.swStatusText = `CacheStorage 已快取 ${stats.cachedPacks} / ${stats.totalPacks} 包 (${(stats.cachedBytes / 1048576).toFixed(2)} MB)`;
       renderApp();
       return;
     }
@@ -2906,33 +2947,37 @@ function rollDiceForClass(cid) {
 }
 
 async function initBackgroundProbes() {
-  // 1. Load art-assets.json manifest
+  // 1. Load & share art-assets.json manifest (with CacheStorage TTL)
   try {
-    const res = await fetch(assetUrl('/art-assets.json'));
-    if (res.ok) {
-      const data = await res.json();
-      const packCount = data.packs?.length ?? 0;
-      const totalBytes = (data.packs ?? []).reduce((sum, p) => sum + (p.bytes || 0), 0);
-      state.assetSummary = `版本 ${data.version ?? 'modern'} · ${packCount} 包分包 (${(totalBytes / 1048576).toFixed(2)} MB) · ${data.assets?.length ?? 0} 筆資源 (來源: ${data.packOrigin ?? '/packs'})`;
+    const index = await loadPackIndex();
+    if (index) {
+      const packCount = index.packs.length;
+      const totalBytes = index.packs.reduce((sum, p) => sum + (p.bytes || 0), 0);
+      const sourceLabel = window.__L286_ASSET_CDN ? 'Cloudflare CDN' : index.packOrigin;
+      state.assetSummary = `版本 ${index.version} · ${packCount} 包分包 (${(totalBytes / 1048576).toFixed(2)} MB) · ${index.assetsCount} 筆資源 (來源: ${sourceLabel})`;
+      const cacheStats = await getPackCacheStats();
+      state.swStatusText = `CacheStorage 已快取 ${cacheStats.cachedPacks} / ${cacheStats.totalPacks} 包 (${(cacheStats.cachedBytes / 1048576).toFixed(2)} MB)`;
       renderApp();
     }
   } catch {
     state.assetSummary = '版本 modern-all-characters343 · 335 包分包 (316.50 MB) · 14305 筆資源';
   }
 
-  // 2. Probe Web Workers
+  // 2. Probe Web Workers (cached via CacheStorage + Blob when served cross-origin from CDN)
   try {
-    const autoW = new Worker(assetUrl('/auto-worker465.js'));
+    const { worker: autoW, revoke } = await createCachedWorker('/auto-worker465.js');
     autoW.onerror = (ev) => {
       ev.preventDefault?.();
       state.workerAutoStatus = '已就緒 (/auto-worker465.js 內建後援)';
       autoW.terminate();
+      revoke?.();
     };
     autoW.onmessage = (ev) => {
       if (ev.data?.type === 'tick' || ev.data?.type === 'result') {
         state.workerAutoStatus = '已就緒 (/auto-worker465.js)';
         renderApp();
         autoW.terminate();
+        revoke?.();
       }
     };
     autoW.postMessage({ id: 'probe-1', input: {} });
@@ -2941,24 +2986,24 @@ async function initBackgroundProbes() {
   }
 
   try {
-    const scenW = new Worker(assetUrl('/scenery-worker289.js'));
+    const { worker: scenW, revoke } = await createCachedWorker('/scenery-worker289.js');
     scenW.onerror = (ev) => {
       ev.preventDefault?.();
       state.workerSceneryStatus = '已載入 (/scenery-worker289.js 內建後援)';
       scenW.terminate();
+      revoke?.();
     };
     state.workerSceneryStatus = '已載入 (/scenery-worker289.js)';
     scenW.terminate();
+    revoke?.();
   } catch {
     state.workerSceneryStatus = '已載入 (內建後援)';
   }
 
-  // 3. Load and decompress real gzipped map chunk
+  // 3. Load and decompress real gzipped map chunk (from packed .bin + CacheStorage)
   try {
-    const res = await fetch(assetUrl('/lineage163/maps/0/7ff88000.json.gz'));
-    if (res.ok && res.body && typeof DecompressionStream !== 'undefined') {
-      const jsonText = await new Response(res.body.pipeThrough(new DecompressionStream('gzip'))).text();
-      const chunk = JSON.parse(jsonText);
+    const chunk = await loadChunkJson('/lineage163/maps/0/7ff88000.json.gz');
+    if (chunk) {
       window.__lastMapChunkData = chunk;
       state.mapChunkStatus = `已解壓縮說語島區塊 /lineage163/maps/0/7ff88000.json.gz (${(chunk.floor || []).length} 筆地磚)`;
       renderApp();

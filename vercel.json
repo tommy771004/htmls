@@ -12,6 +12,22 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=300, stale-while-revalidate=3600" }]
     },
     {
+      "source": "/assets/286/packs/:path*",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/assets/286/art-assets.json",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=300, stale-while-revalidate=3600" }]
+    },
+    {
+      "source": "/assets/286/art-cache-sw.js",
+      "headers": [{ "key": "Service-Worker-Allowed", "value": "/" }, { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }]
+    },
+    {
+      "source": "/assets/286/:path((?!art-assets\\.json$|art-cache-sw\\.js$|packs/).*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800, stale-while-revalidate=86400" }]
+    },
+    {
       "source": "/web/282-ro-life.html",
       "headers": [{ "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ro-assets.tommy771004.workers.dev; media-src 'self' data: blob: https://ro-assets.tommy771004.workers.dev; font-src 'self' data:; connect-src 'self' data: blob: https://ro-assets.tommy771004.workers.dev https://*.workers.dev wss://*.workers.dev; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'" }, { "key": "X-Frame-Options", "value": "SAMEORIGIN" }, { "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }]
     },

@@ -216,6 +216,7 @@ const consoleErrors = [];
 const pageErrors = [];
 const externalRequests = [];
 const badResponses = [];
+const recordedAssetRequests = [];
 
 try {
   const context = await browser.newContext({
@@ -244,6 +245,10 @@ try {
       !u.startsWith('blob:')
     ) {
       externalRequests.push(u);
+    }
+    if (u.startsWith(`${baseOrigin}/assets/286/`)) {
+      const headers = req.headers();
+      recordedAssetRequests.push({ url: u, range: headers.range || '' });
     }
   });
   page.on('response', (res) => {
@@ -965,10 +970,99 @@ try {
   await page.waitForTimeout(220);
   await page.screenshot({ path: path.join(scratchDir, 'lineage-game-pet-clan.png') });
 
+  // 驗證打木人不切換戰鬥音樂、打真怪時 battle 取代原本背景音樂不重疊、同時最多只有 1 軌 <audio> 播放
+  const bgmCheck = await page.evaluate(async () => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const audio = eng.audio;
+    w.teleportTo(0, 32578, 32943, 4);
+    audio.inCombat = false;
+    audio.lastCombatAt = -Infinity;
+    audio.update(w, performance.now());
+
+    const dummy = w.npcs.find((n) => n.type === 'TrainingDummy');
+    if (dummy) {
+      w.player.lastAttackAt = 0;
+      w.hitTrainingDummy(dummy, performance.now());
+      audio.update(w, performance.now());
+    }
+    const afterDummyCombat = audio.inCombat;
+
+    // 模擬切換至 battle 背景音樂後檢查所有 <audio> 軌數與未靜音音量
+    audio.setMuted(false);
+    audio.playBgm('/assets/286/assets/284/bgm/town_talking.mp3');
+    audio.lastCombatAt = performance.now();
+    audio.update(w, performance.now());
+    await new Promise((r) => setTimeout(r, 450));
+    const playingDuringBattle = [...audio.bgmEls.values()].filter((el) => !el.paused).length;
+    const currentBgmBattle = audio.currentBgm;
+    const battleVol = audio.bgmAudio?.volume ?? 0;
+
+    // 脫戰切回區域音樂：同樣不得兩首同時播放
+    audio.lastCombatAt = performance.now() - 10000;
+    audio.update(w, performance.now());
+    await new Promise((r) => setTimeout(r, 450));
+    const playingAfterExit = [...audio.bgmEls.values()].filter((el) => !el.paused).length;
+    const currentBgmAfter = audio.currentBgm;
+
+    return {
+      afterDummyCombat,
+      playingDuringBattle,
+      currentBgmBattle,
+      battleVol,
+      playingAfterExit,
+      currentBgmAfter,
+    };
+  });
+  assert(bgmCheck.afterDummyCombat === false, `Hitting TrainingDummy should not trigger battle BGM: ${JSON.stringify(bgmCheck)}`);
+  assert(
+    bgmCheck.playingDuringBattle <= 1 && bgmCheck.playingAfterExit <= 1,
+    `Expected at most 1 active BGM <audio> track (no overlap): ${JSON.stringify(bgmCheck)}`
+  );
+  assert(
+    bgmCheck.currentBgmBattle.includes('battle.mp3') && bgmCheck.battleVol <= 0.16 && !bgmCheck.currentBgmAfter.includes('battle.mp3'),
+    `Battle BGM switch/volume normalization failed: ${JSON.stringify(bgmCheck)}`
+  );
+
   await page.evaluate(() => window.__lineage.pingWorld());
   await page.waitForTimeout(200);
   st = await page.evaluate(() => window.__lineage.getState());
   assert(st.realtimeLog && st.realtimeLog.includes('pong'), `Expected pong frame in realtimeLog, got: ${st.realtimeLog}`);
+
+  // 驗證魔法書內僅存在分包的法術圖示（例如 11/20）透過分包 Blob 載入，不觸發散檔 404 與 Range 請求
+  await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    if (eng?.world?.player && !eng.world.player.spells.includes(20)) {
+      eng.world.player.spells.push(20);
+    }
+  });
+  await page.click('[data-win="spells"]');
+  await page.waitForTimeout(250);
+  const spellModalCheck = await page.evaluate(() => {
+    const imgs = [...document.querySelectorAll('.ll-win-body img')].map((img) => img.getAttribute('src') || '');
+    return { imgs, hasModal: Boolean(document.querySelector('.ll-win-title')) };
+  });
+  assert(spellModalCheck.hasModal && spellModalCheck.imgs.length > 0, `Spells modal check failed: ${JSON.stringify(spellModalCheck)}`);
+  await page.click('[data-close-modal="1"]');
+  await page.waitForTimeout(100);
+
+  // 驗證 .bin 分包無 Range 碎請求、無不存在於靜態磁碟的散檔請求（確保 Vercel / Cloudflare 零 404），且 CacheStorage 已寫入分包
+  const rangeReqs = recordedAssetRequests.filter((r) => r.url.includes('/packs/') && Boolean(r.range));
+  assert(rangeReqs.length === 0, `Unexpected HTTP Range pack requests: ${JSON.stringify(rangeReqs.slice(0, 5))}`);
+  const missingStaticPaths = recordedAssetRequests
+    .map((r) => new URL(r.url).pathname)
+    .filter((pathname) => !fs.existsSync(path.join(repoRoot, pathname)));
+  assert(
+    missingStaticPaths.length === 0,
+    `Requests to packed-only paths missing on static CDN: ${JSON.stringify([...new Set(missingStaticPaths)].slice(0, 10))}`
+  );
+  const manifestFetches = recordedAssetRequests.filter((r) => r.url.endsWith('/art-assets.json')).length;
+  assert(manifestFetches === 1, `Expected art-assets.json to be fetched once, got ${manifestFetches}`);
+  const cachedPackKeys = await page.evaluate(async () => {
+    const c = await caches.open('lineage-286-assets-v1');
+    return (await c.keys()).map((req) => req.url).filter((u) => u.includes('/packs/'));
+  });
+  assert(cachedPackKeys.length > 0, 'Expected CacheStorage lineage-286-assets-v1 to persist .bin packs');
 
   // 遊戲畫面沒有導覽列：以 navigate 離開，實境舞台容器要卸載
   await page.evaluate(() => window.__lineage.navigate('/official'));
@@ -977,6 +1071,36 @@ try {
     await page.evaluate(() => !document.getElementById('ll-game-host') && !document.getElementById('ll-game-root')),
     'Game host should unmount after leaving the lobby route'
   );
+
+  // 驗證同一瀏覽器環境重開頁面時，已快取的 art-assets.json 與 .bin 分包不會重抓（0 CDN pack requests）
+  const revisitReqs = [];
+  const revisitPage = await context.newPage();
+  revisitPage.on('request', (req) => {
+    if (req.url().startsWith(`${baseOrigin}/assets/286/`)) revisitReqs.push(req.url());
+  });
+  await revisitPage.goto(pageUrl, { waitUntil: 'load' });
+  await revisitPage.waitForFunction(() => window.__lineage && window.__lineage.ready === true, null, { timeout: 15000 });
+  await revisitPage.evaluate(() => window.__lineage.navigate('/lobby'));
+  await revisitPage.waitForFunction(
+    () => {
+      const el = document.querySelector('[data-testid="sw-status-text"]');
+      return Boolean(el && el.textContent && el.textContent.includes('已快取') && !el.textContent.includes('0 /'));
+    },
+    null,
+    { timeout: 10000 }
+  );
+  await revisitPage.waitForFunction(() => Boolean(window.__lastMapChunkData), null, { timeout: 10000 });
+  const revisitSwText = await revisitPage.textContent('[data-testid="sw-status-text"]');
+  const revisitDuplicatePacks = revisitReqs.filter((u) => u.endsWith('/art-assets.json') || u.includes('/packs/'));
+  assert(
+    revisitDuplicatePacks.length === 0,
+    `Expected cached manifest & packs on revisit (0 requests), got: ${JSON.stringify(revisitDuplicatePacks)}`
+  );
+  assert(
+    revisitSwText && revisitSwText.includes('已快取'),
+    `Expected sw-status-text to show cached pack count, got: ${revisitSwText}`
+  );
+  await revisitPage.close();
 
   // 2. 巡覽其餘 8 個視圖並驗證互動與手機版 390x844 零水平溢出
   // (a) /official 官方入口
