@@ -102,6 +102,20 @@ export class LineageGameEngine {
 
     window.addEventListener('resize', this._onResize);
     window.addEventListener('keydown', this._onKeyDown);
+    this._onUnloadSave = () => {
+      if (this.disposed) return;
+      this.world.dirtySave = true;
+      this.world.saveWorld(true, { immediate: true, keepalive: true });
+    };
+    this._onVisibilitySave = () => {
+      if (!this.disposed && document.visibilityState === 'hidden') {
+        this.world.dirtySave = true;
+        this.world.saveWorld(true, { immediate: true, keepalive: true });
+      }
+    };
+    window.addEventListener('pagehide', this._onUnloadSave);
+    window.addEventListener('beforeunload', this._onUnloadSave);
+    document.addEventListener('visibilitychange', this._onVisibilitySave);
     this.canvas.addEventListener('pointerdown', this._onPointerDown);
     this.canvas.addEventListener('pointermove', this._onPointerMove);
     this.canvas.addEventListener('pointerup', this._onPointerUp);
@@ -747,13 +761,20 @@ export class LineageGameEngine {
     cancelAnimationFrame(this.rafId);
     window.removeEventListener('resize', this._onResize);
     window.removeEventListener('keydown', this._onKeyDown);
+    if (this._onUnloadSave) {
+      window.removeEventListener('pagehide', this._onUnloadSave);
+      window.removeEventListener('beforeunload', this._onUnloadSave);
+    }
+    if (this._onVisibilitySave) {
+      document.removeEventListener('visibilitychange', this._onVisibilitySave);
+    }
     this.canvas.removeEventListener('pointerdown', this._onPointerDown);
     this.canvas.removeEventListener('pointermove', this._onPointerMove);
     this.canvas.removeEventListener('pointerup', this._onPointerUp);
     this.canvas.removeEventListener('wheel', this._onWheel);
 
     this.world.dirtySave = true;
-    this.world.saveWorld(true);
+    this.world.saveWorld(true, { immediate: true });
     this.audio.dispose();
     this.hud.destroy();
     this.assets.dispose();

@@ -661,28 +661,64 @@ export class GameHud {
     } else if (def?.kind === 'weapon') {
       const plusSuffix = plus ? `+${plus}` : '';
       const wType = WEAPON_TYPE_LABELS[def.type] || '武器';
+      const fmtSigned = (n) => (n >= 0 ? `+${n}` : String(n));
       lines.push({ text: `攻擊力 ${def.small}${plusSuffix}/${def.large}${plusSuffix} (${wType})`, cls: 'bright' });
       if (def.twoHand) lines.push({ text: '雙手武器.', cls: '' });
-      if (def.hit) lines.push({ text: `${def.type === 'bow' ? '遠距離命中' : '近距離命中'} +${def.hit}.`, cls: '' });
-      if (def.damage) lines.push({ text: `${def.type === 'bow' ? '遠距離傷害' : '額外傷害'} +${def.damage}.`, cls: '' });
+      if (def.hit) lines.push({ text: `${def.type === 'bow' ? '遠距離命中' : '近距離命中'} ${fmtSigned(def.hit)}.`, cls: '' });
+      if (def.damage) lines.push({ text: `${def.type === 'bow' ? '遠距離傷害' : '額外傷害'} ${fmtSigned(def.damage)}.`, cls: '' });
+      const wBonuses = [
+        def.hp && `體力 ${fmtSigned(def.hp)}`,
+        def.mp && `魔力 ${fmtSigned(def.mp)}`,
+        def.sp && `魔攻 ${fmtSigned(def.sp)}`,
+        def.mr && `魔防 ${fmtSigned(def.mr)}%`,
+        def.str && `力量 ${fmtSigned(def.str)}`,
+        def.con && `體質 ${fmtSigned(def.con)}`,
+        def.dex && `敏捷 ${fmtSigned(def.dex)}`,
+        def.int && `智力 ${fmtSigned(def.int)}`,
+        def.wis && `精神 ${fmtSigned(def.wis)}`,
+        def.cha && `魅力 ${fmtSigned(def.cha)}`,
+        def.special === 'mana_drain' && '攻擊命中可吸取 MP',
+        def.special === 'dk_fire' && '攻擊 3% 機率發動烈炎術（固定傷害）',
+      ].filter(Boolean);
+      for (const b of wBonuses) lines.push({ text: `${b}.`, cls: '' });
       if (it.brokenCount > 0) {
         lines.push({ text: `武器受損 -${it.brokenCount}（請前往武器店找多瑪修理）.`, cls: 'warn' });
       }
       lines.push({ text: `安定值 +${def.safe ?? 6}.`, cls: '' });
     } else if (def?.kind === 'armor') {
       const slotName = PAPERDOLL_GRID_SLOTS.find((s) => s.key === def.type)?.label || '防具';
-      lines.push({ text: `防禦 -${(def.ac || 0) + plus}（部位：${slotName}）`, cls: 'bright' });
+      const fmtSigned = (n) => (n >= 0 ? `+${n}` : String(n));
+      const totalAc = (def.ac || 0) + plus;
+      lines.push({ text: `防禦 ${totalAc >= 0 ? `-${totalAc}` : `+${Math.abs(totalAc)}`}（部位：${slotName}）`, cls: 'bright' });
       const bonuses = [
-        def.hp && `體力 +${def.hp}`,
-        def.mp && `魔力 +${def.mp}`,
-        def.sp && `魔攻 +${def.sp}`,
-        def.mr && `魔防 +${def.mr}%`,
-        def.str && `力量 +${def.str}`,
-        def.dex && `敏捷 +${def.dex}`,
-        def.regenHp && `體力回復 +${def.regenHp}`,
-        def.regenMp && `魔力回復 +${def.regenMp}`,
+        def.hp && `體力 ${fmtSigned(def.hp)}`,
+        def.mp && `魔力 ${fmtSigned(def.mp)}`,
+        def.sp && `魔攻 ${fmtSigned(def.sp)}`,
+        def.mr && `魔防 ${fmtSigned(def.mr)}%`,
+        def.str && `力量 ${fmtSigned(def.str)}`,
+        def.con && `體質 ${fmtSigned(def.con)}`,
+        def.dex && `敏捷 ${fmtSigned(def.dex)}`,
+        def.int && `智力 ${fmtSigned(def.int)}`,
+        def.wis && `精神 ${fmtSigned(def.wis)}`,
+        def.cha && `魅力 ${fmtSigned(def.cha)}`,
+        def.hitMelee && `近距離命中 ${fmtSigned(def.hitMelee)}`,
+        def.hitBow && `遠距離命中 ${fmtSigned(def.hitBow)}`,
+        def.dmgMelee && `近距離傷害 ${fmtSigned(def.dmgMelee)}`,
+        def.dmgBow && `遠距離傷害 ${fmtSigned(def.dmgBow)}`,
+        def.dr && `傷害減免 ${fmtSigned(def.dr)}`,
+        def.maxWeightBonus && `負重上限 +${def.maxWeightBonus}%`,
+        def.regenHp && `體力回復 ${fmtSigned(def.regenHp)}`,
+        def.regenMp && `魔力回復 ${fmtSigned(def.regenMp)}`,
+        def.elem?.water && `水屬性防禦 +${def.elem.water}%`,
+        def.elem?.wind && `風屬性防禦 +${def.elem.wind}%`,
+        def.elem?.fire && `火屬性防禦 +${def.elem.fire}%`,
+        def.elem?.earth && `地屬性防禦 +${def.elem.earth}%`,
+        def.special === 'haste' && '裝備時加速效果',
       ].filter(Boolean);
       for (const b of bonuses) lines.push({ text: `${b}.`, cls: '' });
+      if (it.brokenCount > 0) {
+        lines.push({ text: `防具受損 -${it.brokenCount}（可使用磨刀石或找多瑪／內掛修復）.`, cls: 'warn' });
+      }
       lines.push({ text: `安定值 +${def.safe ?? 4}.`, cls: '' });
     } else {
       const catText = def?.kind === 'book'
@@ -1089,7 +1125,7 @@ export class GameHud {
     const paperdollHtml = this.#renderPaperdollSlotsHtml(eqMap);
     const buffRows = buffs.length
       ? buffs
-          .map((bf) => `<span class="ll-chip buff">${esc(bf.label)} ${bf.remainSec}s</span>`)
+          .map((bf) => `<span class="ll-chip buff">${esc(bf.label)}${bf.remainSec > 0 ? ` ${bf.remainSec}s` : ''}</span>`)
           .join('')
       : '<span style="font-size:11px;color:#8c8372;">無作用中的增益狀態</span>';
 
@@ -1100,16 +1136,30 @@ export class GameHud {
     const fmtStat = (base, eff) => {
       const v = eff ?? base;
       const diff = v - base;
-      return diff > 0 ? `${v} <em class="buff-plus">(+${diff})</em>` : String(v);
+      return diff > 0 ? `${v} <em class="buff-plus">(+${diff})</em>` : diff < 0 ? `${v} <em class="buff-plus">(${diff})</em>` : String(v);
     };
     const fmtSigned = (n) => (n >= 0 ? `+${n}` : String(n));
     const der = p.abilities || computeDerivedAbilities({
       classId: p.classId,
       level: p.level,
       stats: p.stats,
-      effStats: { str: p.effStr ?? p.stats.str, dex: p.effDex ?? p.stats.dex, con: p.stats.con, wis: p.stats.wis, int: p.stats.int, cha: p.stats.cha },
+      effStats: {
+        str: p.effStr ?? p.stats.str,
+        dex: p.effDex ?? p.stats.dex,
+        con: p.effCon ?? p.stats.con,
+        wis: p.effWis ?? p.stats.wis,
+        int: p.effInt ?? p.stats.int,
+        cha: p.effCha ?? p.stats.cha,
+      },
       birthStats: p.birthStats || p.stats,
     });
+    const totalMeleeDmg = (der.meleeDmg || 0) + (p.equipDmgMelee || 0);
+    const totalMeleeHit = (der.meleeHit || 0) + (p.equipHitMelee || 0);
+    const totalBowDmg = (der.bowDmg || 0) + (p.equipDmgBow || 0);
+    const totalBowHit = (der.bowHit || 0) + (p.equipHitBow || 0);
+    const totalHpRegen = (der.hpRegen || 1) + (p._equipHpRegen || 0);
+    const totalMpRegen = (der.mpRegen || 1) + (p._equipMpRegen || 0);
+    const elem = p.elemRes || { earth: 0, water: 0, fire: 0, wind: 0 };
 
     return `
       <div class="ll-win ll-classic-win wide status-win">
@@ -1136,10 +1186,10 @@ export class GameHud {
               <div class="ll-st-attrs">
                 <div class="ll-st-row"><span class="ll-st-lbl">力量</span><span class="ll-st-box">${fmtStat(p.stats.str, p.effStr)}</span></div>
                 <div class="ll-st-row"><span class="ll-st-lbl">敏捷</span><span class="ll-st-box">${fmtStat(p.stats.dex, p.effDex)}</span></div>
-                <div class="ll-st-row"><span class="ll-st-lbl">體質</span><span class="ll-st-box">${p.stats.con}</span></div>
-                <div class="ll-st-row"><span class="ll-st-lbl">智力</span><span class="ll-st-box">${p.stats.int}</span></div>
-                <div class="ll-st-row"><span class="ll-st-lbl">精神</span><span class="ll-st-box">${p.stats.wis}</span></div>
-                <div class="ll-st-row"><span class="ll-st-lbl">魅力</span><span class="ll-st-box">${p.stats.cha}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">體質</span><span class="ll-st-box">${fmtStat(p.stats.con, p.effCon)}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">智力</span><span class="ll-st-box">${fmtStat(p.stats.int, p.effInt)}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">精神</span><span class="ll-st-box">${fmtStat(p.stats.wis, p.effWis)}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">魅力</span><span class="ll-st-box">${fmtStat(p.stats.cha, p.effCha)}</span></div>
               </div>
 
               <div class="ll-st-divider"></div>
@@ -1153,9 +1203,9 @@ export class GameHud {
               <div class="ll-st-divider"></div>
               <div class="ll-subhead" style="margin-bottom:4px;">能力表衍生加成</div>
               <div class="ll-st-rows">
-                <div class="ll-st-row"><span class="ll-st-lbl">近戰傷／命</span><span class="ll-st-box">${fmtSigned(der.meleeDmg)} / ${fmtSigned(der.meleeHit)}</span></div>
-                <div class="ll-st-row"><span class="ll-st-lbl">遠弓傷／命</span><span class="ll-st-box">${fmtSigned(der.bowDmg)} / ${fmtSigned(der.bowHit)}</span></div>
-                <div class="ll-st-row"><span class="ll-st-lbl">HP／MP回復</span><span class="ll-st-box">+${der.hpRegen} / +${der.mpRegen}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">近戰傷／命</span><span class="ll-st-box">${fmtSigned(totalMeleeDmg)} / ${fmtSigned(totalMeleeHit)}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">遠弓傷／命</span><span class="ll-st-box">${fmtSigned(totalBowDmg)} / ${fmtSigned(totalBowHit)}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">HP／MP回復</span><span class="ll-st-box">+${totalHpRegen} / +${totalMpRegen}</span></div>
                 <div class="ll-st-row"><span class="ll-st-lbl">藥水／負重</span><span class="ll-st-box">+${der.potionBonusPct}% · ${p.maxWeight || der.maxWeightBase}</span></div>
                 <div class="ll-st-row"><span class="ll-st-lbl">${der.clanCap != null ? '血盟／控制' : '魔攻／控制'}</span><span class="ll-st-box">${der.clanCap != null ? `${der.clanCap}人 / ${der.npcControlCap}名` : `${fmtSigned(der.magicDmg)} / ${der.npcControlCap}名`}</span></div>
               </div>
@@ -1163,10 +1213,10 @@ export class GameHud {
               <div class="ll-st-divider"></div>
               <div class="ll-subhead" style="margin-bottom:4px;">屬性抗性</div>
               <div class="ll-st-elems">
-                <div class="ll-st-elem"><span>地性</span><b>0%</b></div>
-                <div class="ll-st-elem"><span>水性</span><b>0%</b></div>
-                <div class="ll-st-elem"><span>火性</span><b>0%</b></div>
-                <div class="ll-st-elem"><span>風性</span><b>0%</b></div>
+                <div class="ll-st-elem"><span>地性</span><b>${elem.earth || 0}%</b></div>
+                <div class="ll-st-elem"><span>水性</span><b>${elem.water || 0}%</b></div>
+                <div class="ll-st-elem"><span>火性</span><b>${elem.fire || 0}%</b></div>
+                <div class="ll-st-elem"><span>風性</span><b>${elem.wind || 0}%</b></div>
               </div>
             </div>
 
@@ -2454,9 +2504,9 @@ export class GameHud {
             </div>
           </div>
 
-          <!-- 卡片 7：戰利品篩選、撿取優先序與負重保護 -->
+          <!-- 卡片 7：戰利品篩選、撿取優先序、負重保護與裝備自動修復 -->
           <div class="ll-set-card">
-            <div class="ll-set-card-title">戰利品拾取篩選與負重管控</div>
+            <div class="ll-set-card-title">戰利品拾取、負重與裝備自動修復</div>
             <div class="ll-set-row">
               <label class="ll-set-check">
                 <input type="checkbox" data-auto-check="pickupDrops" ${cfg.pickupDrops ? 'checked' : ''} />
@@ -2484,6 +2534,23 @@ export class GameHud {
                   <span>負重&lt;</span>
                   <input type="number" class="ll-set-num" min="50" max="100" step="5" value="${cfg.maxWeightPct ?? 85}" data-auto-num="maxWeightPct" aria-label="停止拾取物品之負重上限百分比" />
                   <span>%</span>
+                </label>
+              </div>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoRepairGear" ${cfg.autoRepairGear !== false ? 'checked' : ''} />
+                <span class="ll-set-amber">武器／防具損壞自動修復</span>
+              </label>
+              <div class="ll-set-pot-right">
+                <select class="ll-set-select ll-set-sel-light" data-auto-select="autoRepairMode" aria-label="裝備自動修復方式">
+                  <option value="auto" ${(cfg.autoRepairMode || 'auto') === 'auto' ? 'selected' : ''}>磨刀石優先 (無則扣金幣)</option>
+                  <option value="whetstone" ${cfg.autoRepairMode === 'whetstone' ? 'selected' : ''}>僅使用磨刀石修復</option>
+                  <option value="gold" ${cfg.autoRepairMode === 'gold' ? 'selected' : ''}>直接金幣遠端修復</option>
+                </select>
+                <label class="ll-set-hp-wrap">
+                  <span>損&ge;</span>
+                  <input type="number" class="ll-set-num" min="1" max="10" step="1" value="${cfg.autoRepairThreshold ?? 1}" data-auto-num="autoRepairThreshold" aria-label="自動修復損壞度門檻" />
                 </label>
               </div>
             </div>

@@ -686,9 +686,21 @@ for (const [name, it] of Object.entries(E.t)) {
     sp: Number(it.sp || 0),
     mr: Number(it.mr || 0),
     str: Number(it.str || 0),
+    con: Number(it.con || 0),
     dex: Number(it.dex || 0),
+    int: Number(it.int || 0),
+    wis: Number(it.wis || 0),
+    cha: Number(it.cha || 0),
     regenHp: Number(it.regenHp || 0),
     regenMp: Number(it.regenMp || 0),
+    hitMelee: Number(it.hitMelee || 0),
+    hitBow: Number(it.hitBow || 0),
+    dmgMelee: Number(it.dmgMelee || 0),
+    dmgBow: Number(it.dmgBow || 0),
+    dr: Number(it.dr || 0),
+    maxWeightBonus: Number(it.maxWeightBonus || 0),
+    elem: null,
+    special: it.special || '',
   };
 }
 
@@ -717,9 +729,21 @@ function synthesizeMissingItem(name) {
     sp: 0,
     mr: 0,
     str: 0,
+    con: 0,
     dex: 0,
+    int: 0,
+    wis: 0,
+    cha: 0,
     regenHp: 0,
     regenMp: 0,
+    hitMelee: 0,
+    hitBow: 0,
+    dmgMelee: 0,
+    dmgBow: 0,
+    dr: 0,
+    maxWeightBonus: 0,
+    elem: null,
+    special: '',
   };
   if (name.startsWith('魔法書') || name.startsWith('精靈水晶') || name.includes('魔法書')) {
     return { ...base, kind: 'book', icon: 248, groundGfx: 776, weight: 7, price: 3000 };
@@ -728,25 +752,25 @@ function synthesizeMissingItem(name) {
     return { ...base, icon: 468, groundGfx: 22, weight: 1, stack: true, price: 1200 };
   }
   if (name.includes('腰帶')) {
-    return { ...base, kind: 'armor', type: 'belt', icon: 264, groundGfx: 1165, ac: 0, hp: name.includes('身體') ? 20 : 0, mp: name.includes('精神') ? 20 : 0, weight: 12, price: 12000 };
+    return { ...base, kind: 'armor', type: 'belt', icon: 264, groundGfx: 1165, ac: 0, hp: name.includes('身體') ? 20 : 0, mp: name.includes('精神') ? 20 : 0, weight: 50, price: 12000 };
   }
   if (name.includes('戒指')) {
     return { ...base, kind: 'armor', type: 'ring', icon: 87, groundGfx: 21, weight: 3, price: 15000 };
   }
   if (name.includes('盔甲')) {
-    return { ...base, kind: 'armor', type: 'armor', icon: 73, groundGfx: 9, ac: -5, safe: 4, enchant: true, weight: 280, price: 25000 };
+    return { ...base, kind: 'armor', type: 'armor', icon: 73, groundGfx: 9, ac: 5, safe: 4, enchant: true, weight: 280, price: 25000 };
   }
   if (name.includes('頭盔')) {
-    return { ...base, kind: 'armor', type: 'helm', icon: 55, groundGfx: 18, ac: -2, safe: 4, enchant: true, weight: 35, price: 12000 };
+    return { ...base, kind: 'armor', type: 'helm', icon: 55, groundGfx: 18, ac: 2, safe: 4, enchant: true, weight: 35, price: 12000 };
   }
   if (name.includes('長靴')) {
-    return { ...base, kind: 'armor', type: 'boot', icon: 435, groundGfx: 25, ac: -2, safe: 4, enchant: true, weight: 20, price: 9000 };
+    return { ...base, kind: 'armor', type: 'boot', icon: 435, groundGfx: 25, ac: 2, safe: 4, enchant: true, weight: 20, price: 9000 };
   }
   if (name.includes('手套')) {
-    return { ...base, kind: 'armor', type: 'glove', icon: 141, groundGfx: 182, ac: -1, safe: 4, enchant: true, weight: 12, price: 8000 };
+    return { ...base, kind: 'armor', type: 'glove', icon: 141, groundGfx: 182, ac: 1, safe: 4, enchant: true, weight: 12, price: 8000 };
   }
   if (name.includes('盾')) {
-    return { ...base, kind: 'armor', type: 'shield', icon: 55, groundGfx: 18, ac: -2, safe: 4, enchant: true, weight: 40, price: 8000 };
+    return { ...base, kind: 'armor', type: 'shield', icon: 55, groundGfx: 18, ac: 2, safe: 4, enchant: true, weight: 40, price: 8000 };
   }
   if (name.includes('寶石')) {
     return { ...base, icon: 242, groundGfx: 774, weight: 1, stack: true, price: 3500 };
@@ -765,6 +789,28 @@ for (const rows of Object.values(drops)) {
 for (const rows of Object.values(shops)) {
   for (const r of rows) {
     if (!items[r.item]) items[r.item] = synthesizeMissingItem(r.item);
+  }
+}
+
+// 依 LineageReal 資料庫校正武器與防具素質（保留未開放項原值）
+const lrOverridesPath = path.join(gameRoot, 'tools/lineagereal-overrides.json');
+if (fs.existsSync(lrOverridesPath)) {
+  const lrOverrides = JSON.parse(fs.readFileSync(lrOverridesPath, 'utf8'));
+  for (const [name, patch] of Object.entries(lrOverrides)) {
+    const target = items[name];
+    if (!target) continue;
+    const { elem, ...rest } = patch;
+    Object.assign(target, rest);
+    if (elem && Object.values(elem).some((v) => Number(v) !== 0)) {
+      target.elem = {
+        water: Number(elem.water || 0),
+        wind: Number(elem.wind || 0),
+        fire: Number(elem.fire || 0),
+        earth: Number(elem.earth || 0),
+      };
+    } else {
+      target.elem = null;
+    }
   }
 }
 

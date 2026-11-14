@@ -883,6 +883,7 @@ export async function apiRequest(endpoint, options = {}) {
           ...headers,
         },
         body: body ? JSON.stringify(body) : undefined,
+        ...(options.keepalive ? { keepalive: true } : {}),
       });
       const data = await res.json();
       return { status: res.status, data };
@@ -2115,7 +2116,7 @@ function mergeCharacterWithLocalSave(char, username = state.username) {
 let lastBackendCharSyncAt = 0;
 let pendingBackendCharPatch = null;
 
-function pushCharacterSyncToBackend(patch, immediate = false) {
+function pushCharacterSyncToBackend(patch, immediate = false, { keepalive = false } = {}) {
   if (!patch || !patch.slot) return;
   pendingBackendCharPatch = patch;
   const now = Date.now();
@@ -2127,21 +2128,26 @@ function pushCharacterSyncToBackend(patch, immediate = false) {
     method: 'POST',
     headers: { 'x-game-session': state.sessionId || 'local' },
     body: { action: 'sync', slot: toSend.slot, patch: toSend },
+    keepalive,
   }).catch(() => {
     // 忽略背景同步失敗
   });
 }
 
-function leaveGameToSelect() {
+function flushPendingCharacterSync(opts = {}) {
   if (pendingBackendCharPatch) {
-    pushCharacterSyncToBackend(pendingBackendCharPatch, true);
+    pushCharacterSyncToBackend(pendingBackendCharPatch, true, opts);
   }
+}
+
+function leaveGameToSelect() {
+  flushPendingCharacterSync();
   state.stage = 'select';
   state.activeCharacter = null;
   renderApp();
 }
 
-function syncCharacterSlotFromGame(patch, immediate = false) {
+function syncCharacterSlotFromGame(patch, syncOpts = false) {
   if (!patch) return;
   const applyPatch = (target) => {
     if (!target) return;
@@ -2181,7 +2187,9 @@ function syncCharacterSlotFromGame(patch, immediate = false) {
     applyPatch(localSlots[slotIdx]);
     saveLocalStoreToStorage();
   }
-  pushCharacterSyncToBackend(patch, immediate);
+  const isImmediate = typeof syncOpts === 'object' ? Boolean(syncOpts?.immediate) : Boolean(syncOpts);
+  const useKeepalive = typeof syncOpts === 'object' ? Boolean(syncOpts?.keepalive) : false;
+  pushCharacterSyncToBackend(patch, isImmediate, { keepalive: useKeepalive });
 }
 
 async function inflateWorldDataFields(data) {
@@ -2261,7 +2269,7 @@ async function mountGameFrame(ch) {
       worldData,
       character: normalizedChar,
       username: String(state.username || 'guest').trim().toLowerCase(),
-      onLobbySync: (patch) => syncCharacterSlotFromGame(patch),
+      onLobbySync: (patch, syncOpts) => syncCharacterSlotFromGame(patch, syncOpts),
       onReturnToSelect: () => leaveGameToSelect(),
     });
 
@@ -2353,6 +2361,7 @@ function unmountGameFrame() {
   } catch {
     // 忽略卸載例外
   }
+  flushPendingCharacterSync();
   gameFrame.el?.remove();
   gameFrame = null;
 }
@@ -3002,6 +3011,12 @@ function bindGlobalEvents() {
       return;
     }
     if (btn.id === 'load-btn-back' || btn.id === 'game-logout-btn') {
+      try {
+        gameFrame?.engine?.world?.saveWorld(true, { immediate: true });
+      } catch {
+        // 忽略登出存檔例外
+      }
+      flushPendingCharacterSync();
       state.stage = 'login';
       state.activeCharacter = null;
       state.stageNotice = '';

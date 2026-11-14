@@ -565,7 +565,25 @@ export class AutoHuntController {
       }
     }
 
-    if (cfg.autoHaste && (p.buffs.haste || 0) <= now + 3000) {
+    if (cfg.autoRepairGear !== false && now - (this.lastRepairCheckAt || 0) >= 1200) {
+      this.lastRepairCheckAt = now;
+      const threshold = Math.max(1, Math.min(10, Number(cfg.autoRepairThreshold) || 1));
+      const damaged = this.world.getDamagedGear?.({ minBroken: threshold }) || [];
+      if (damaged.length > 0) {
+        const res = this.world.autoRepairGear(cfg);
+        if (res?.ok) return false;
+        if (res?.reason && res.reason !== 'none' && now - (this.lastRepairWarnAt || 0) >= 20000) {
+          this.lastRepairWarnAt = now;
+          const warnMsg =
+            res.reason === 'no_whetstone'
+              ? '【內掛】裝備已受損，但背包內沒有磨刀石，無法自動修復。'
+              : `【內掛】裝備已受損，需要 ${res.fee || 20} 金幣或磨刀石才能自動修復。`;
+          this.world.addLog(warnMsg, 'warn');
+        }
+      }
+    }
+
+    if (cfg.autoHaste && !p._equipHaste && (p.buffs.haste || 0) <= now + 3000) {
       const pot = this.#findItemByNames(['自我加速藥水', '強化綠色藥水', '綠色藥水']);
       if (pot) {
         this.world.useItem(pot);
@@ -582,7 +600,7 @@ export class AutoHuntController {
       }
     }
 
-    if (cfg.autoBlue && (p.buffs.blue || 0) <= now + 3000) {
+    if (cfg.autoBlue && (p.buffs.bluePotion || p.buffs.blue || 0) <= now + 3000) {
       const pot = this.#findItemByNames(['藍色藥水']);
       if (pot) {
         this.world.useItem(pot);

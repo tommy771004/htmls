@@ -736,6 +736,27 @@ try {
   const goldAfterReload = lv12ExpState.gold;
   assert(goldAfterReload === 424242, `Game progress lost after reload: gold=${goldAfterReload}`);
 
+  // 驗證金錢（金幣）不計入負重度
+  const goldWeightCheck = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const savedGold = w.player.gold;
+    w.player.gold = 0;
+    w.recomputePlayerStats();
+    const weightAtZeroGold = w.player.weightPercent;
+    w.player.gold = 5000000;
+    w.recomputePlayerStats();
+    const weightAtRichGold = w.player.weightPercent;
+    w.player.gold = savedGold;
+    w.recomputePlayerStats();
+    eng.hud.sync(true);
+    return { weightAtZeroGold, weightAtRichGold };
+  });
+  assert(
+    goldWeightCheck.weightAtZeroGold === goldWeightCheck.weightAtRichGold,
+    `Gold must not affect weightPercent: ${JSON.stringify(goldWeightCheck)}`
+  );
+
   // 驗證工坊製作、導師學法、中毒與翡翠藥水／旅店休息、遠程怪物設定及死亡復活懲罰
   const craftReady = await page.evaluate(() => {
     const eng = window.__lineage.engine();
@@ -855,8 +876,8 @@ try {
     const str0 = w.player.effStr;
     const dex0 = w.player.effDex;
     const mr0 = w.player.mr;
-    w.player.mp = Math.max(w.player.mp, 200);
     for (const sid of [14, 26, 31, 32, 42, 43, 48]) {
+      w.player.mp = Math.max(w.player.mp, 200);
       w.player.lastSpellAt = 0;
       w.castSpell(sid);
     }
@@ -1862,7 +1883,7 @@ try {
       targetSword.equipped = false;
       tmpIds.push(targetSword.id);
     }
-    const targetJacket = addFreshItem('皮夾克');
+    const targetJacket = addFreshItem('銀釘皮甲');
     if (targetJacket?.id) {
       targetJacket.plus = 0;
       targetJacket.equipped = false;
@@ -2036,7 +2057,7 @@ try {
     `Escape should cancel enchant mode while keeping inventory open: ${JSON.stringify(escCancelCheck)}`
   );
 
-  // 防卷強化背包內未裝備皮夾克 -> +1
+  // 防卷強化背包內未裝備銀釘皮甲（安定 4）-> +1
   await page.click(`[data-select-item="${enchantSetup.armorScrollId}"]`);
   await page.waitForTimeout(100);
   await page.click(`[data-use-selected="${enchantSetup.armorScrollId}"]`);
@@ -2131,6 +2152,149 @@ try {
     `Giran Plaza return teleport failed: ${JSON.stringify(backPlazaPos)}`
   );
 
+  // 驗證內掛設定介面新增「裝備損壞自動修復」控制項、磨刀石自動修復與金幣遠程修復
+  await page.click('[data-win="auto"]');
+  await page.waitForTimeout(160);
+  const autoRepairUi = await page.evaluate(() => ({
+    chk: Boolean(document.querySelector('[data-auto-check="autoRepairGear"]')),
+    mode: document.querySelector('[data-auto-select="autoRepairMode"]')?.value || null,
+    thr: document.querySelector('[data-auto-num="autoRepairThreshold"]')?.value || null,
+  }));
+  assert(
+    autoRepairUi.chk && autoRepairUi.mode === 'auto' && autoRepairUi.thr === '1',
+    `Auto-repair UI controls missing or unexpected: ${JSON.stringify(autoRepairUi)}`
+  );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-autorepair-settings.png') });
+  await page.click('[data-close-modal="1"]');
+  await page.waitForTimeout(100);
+
+  const autoRepairResult = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const p = w.player;
+    const clsIdx = w.worldData.classes[p.classId]?.clsIdx ?? 0;
+    let eqWeapon = p.inventory.find((i) => i.equipped && w.worldData.items[i.name]?.kind === 'weapon');
+    if (!eqWeapon) {
+      const anyWeapon = p.inventory.find((i) => w.worldData.items[i.name]?.kind === 'weapon');
+      if (anyWeapon) {
+        w.useItem(anyWeapon);
+        eqWeapon = anyWeapon;
+      }
+    }
+    let eqArmor = p.inventory.find(
+      (i) => i.equipped && w.worldData.items[i.name]?.kind === 'armor' && (w.worldData.items[i.name]?.ac || 0) >= 2
+    );
+    if (!eqArmor) {
+      const armorEntry = Object.entries(w.worldData.items).find(
+        ([, d]) => d.kind === 'armor' && (d.ac || 0) >= 2 && (d.classes?.[clsIdx] ?? 1)
+      );
+      if (armorEntry) {
+        w.addItemToInventory(armorEntry[0], 1, 0, { identified: true });
+        const added = p.inventory.find((i) => i.name === armorEntry[0] && !i.equipped);
+        if (added) {
+          w.useItem(added);
+          eqArmor = added;
+        }
+      }
+    }
+    if (!eqWeapon || !eqArmor) {
+      return { skippedReason: 'missing equipped weapon or armor', hasW: Boolean(eqWeapon), hasA: Boolean(eqArmor) };
+    }
+    for (let i = p.inventory.length - 1; i >= 0; i -= 1) {
+      if (p.inventory[i].name === '磨刀石') p.inventory.splice(i, 1);
+    }
+    w.recomputePlayerStats();
+    const acClean = p.ac;
+    p.hp = p.maxHp;
+    p.food = 80;
+    delete p.buffs.poison;
+
+    // 先測手動使用磨刀石修復單件受損防具
+    w.addItemToInventory('磨刀石', 1);
+    eqArmor.brokenCount = 1;
+    w.recomputePlayerStats();
+    const acManualDamaged = p.ac;
+    const manualStone = p.inventory.find((i) => i.name === '磨刀石');
+    const manualRes = manualStone ? w.useItem(manualStone) : { ok: false };
+    const afterManual = {
+      ok: Boolean(manualRes?.ok),
+      aBroken: eqArmor.brokenCount || 0,
+      acRestored: p.ac,
+      acManualDamaged,
+    };
+
+    // 再測內掛自動修復：給予 2 個磨刀石同時修復受損武器與防具
+    w.addItemToInventory('磨刀石', 2);
+    eqWeapon.brokenCount = 3;
+    eqArmor.brokenCount = 2;
+    w.recomputePlayerStats();
+    const acDamaged = p.ac;
+
+    p.autoConfig.enabled = true;
+    p.autoConfig.autoRepairGear = true;
+    p.autoConfig.autoRepairMode = 'auto';
+    p.autoConfig.autoRepairThreshold = 1;
+    eng.autoHunt.lastTick = 0;
+    eng.autoHunt.lastRepairCheckAt = 0;
+    eng.autoHunt.step(performance.now() + 2000);
+    const stonesAfterWhetstone = p.inventory
+      .filter((i) => i.name === '磨刀石')
+      .reduce((s, i) => s + (i.count || 0), 0);
+    const afterWhetstone = {
+      wBroken: eqWeapon.brokenCount || 0,
+      aBroken: eqArmor.brokenCount || 0,
+      stonesLeft: stonesAfterWhetstone,
+      acRestored: p.ac,
+    };
+
+    p.gold = Math.max(p.gold, 500);
+    const goldBefore = p.gold;
+    eqArmor.brokenCount = 2;
+    w.recomputePlayerStats();
+    eng.autoHunt.lastTick = 0;
+    eng.autoHunt.lastRepairCheckAt = 0;
+    eng.autoHunt.step(performance.now() + 5000);
+    const afterGold = {
+      aBroken: eqArmor.brokenCount || 0,
+      goldSpent: goldBefore - p.gold,
+      acRestored: p.ac,
+    };
+
+    p.autoConfig.autoRepairGear = false;
+    eqWeapon.brokenCount = 1;
+    w.recomputePlayerStats();
+    eng.autoHunt.lastTick = 0;
+    eng.autoHunt.lastRepairCheckAt = 0;
+    eng.autoHunt.step(performance.now() + 8000);
+    const afterDisabled = eqWeapon.brokenCount || 0;
+
+    eqWeapon.brokenCount = 0;
+    eqArmor.brokenCount = 0;
+    p.autoConfig.autoRepairGear = true;
+    p.autoConfig.enabled = false;
+    eng.autoHunt.onExternalToggle(false);
+    w.recomputePlayerStats();
+    w.saveWorld(true, { immediate: true });
+    return { acClean, afterManual, acDamaged, afterWhetstone, afterGold, afterDisabled };
+  });
+  assert(
+    !autoRepairResult.skippedReason &&
+      autoRepairResult.afterManual.ok &&
+      autoRepairResult.afterManual.acManualDamaged > autoRepairResult.acClean &&
+      autoRepairResult.afterManual.aBroken === 0 &&
+      autoRepairResult.afterManual.acRestored === autoRepairResult.acClean &&
+      autoRepairResult.acDamaged > autoRepairResult.acClean &&
+      autoRepairResult.afterWhetstone.wBroken === 0 &&
+      autoRepairResult.afterWhetstone.aBroken === 0 &&
+      autoRepairResult.afterWhetstone.stonesLeft === 0 &&
+      autoRepairResult.afterWhetstone.acRestored === autoRepairResult.acClean &&
+      autoRepairResult.afterGold.aBroken === 0 &&
+      autoRepairResult.afterGold.goldSpent >= 60 &&
+      autoRepairResult.afterGold.acRestored === autoRepairResult.acClean &&
+      autoRepairResult.afterDisabled === 1,
+    `Auto-repair behavior failed: ${JSON.stringify(autoRepairResult)}`
+  );
+
   // 驗證魔法書內僅存在分包的法術圖示（例如 11/20）透過分包 Blob 載入，不觸發散檔 404 與 Range 請求
   await page.evaluate(() => {
     const eng = window.__lineage.engine();
@@ -2165,6 +2329,116 @@ try {
     return (await c.keys()).map((req) => req.url).filter((u) => u.includes('/packs/'));
   });
   assert(cachedPackKeys.length > 0, 'Expected CacheStorage lineage-286-assets-v1 to persist .bin packs');
+
+  // 驗證藥水狀態（加速／勇敢藥水）在登出回選角與瀏覽器重載（pagehide/beforeunload）後仍完整保留剩餘時間
+  const beforeBuffLogout = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    w.addItemToInventory('綠色藥水', 1);
+    w.addItemToInventory('勇敢藥水', 1);
+    const hastePotion = w.player.inventory.find((i) => i.name === '綠色藥水');
+    const bravePotion = w.player.inventory.find((i) => i.name === '勇敢藥水');
+    if (hastePotion) w.useItem(hastePotion);
+    if (bravePotion) w.useItem(bravePotion);
+    const buffs = w.getBuffList();
+    return {
+      activeSlot: Number(w.lobbyChar?.slot ?? 0),
+      hasHaste: buffs.some((b) => b.key === 'haste' && b.remainSec > 200),
+      hasBrave: buffs.some((b) => b.key === 'brave' && b.remainSec > 200),
+      keys: buffs.map((b) => b.key),
+    };
+  });
+  assert(
+    beforeBuffLogout.hasHaste && beforeBuffLogout.hasBrave,
+    `Failed to activate haste/brave buffs before logout: ${JSON.stringify(beforeBuffLogout)}`
+  );
+  const buffSlot = beforeBuffLogout.activeSlot;
+
+  await page.click('[data-win="auto"]');
+  await page.waitForTimeout(150);
+  await page.click('[data-sys-act="lobby"]');
+  await page.waitForFunction(() => window.__lineage?.getState?.().stage === 'select', null, { timeout: 10000 });
+  await page.waitForTimeout(150);
+
+  const savedBuffsStorage = await page.evaluate((slot) => {
+    const user = String(window.__lineage.getState().username || 'adventurer01').toLowerCase();
+    const raw = localStorage.getItem(`ll286:${user}:world_slot_${slot}`);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed?.buffsRemaining || null;
+  }, buffSlot);
+  assert(
+    savedBuffsStorage && Number(savedBuffsStorage.haste) > 200000 && Number(savedBuffsStorage.brave) > 200000,
+    `Expected buffsRemaining persisted in localStorage after lobby logout, got: ${JSON.stringify(savedBuffsStorage)}`
+  );
+
+  await page.click(`[data-slot="${buffSlot}"]`);
+  await page.waitForTimeout(80);
+  await page.click('#load-btn-enter');
+  await page.waitForFunction(
+    () => {
+      const g = window.__lineage.game?.();
+      return window.__lineage.getState().gameFrame?.status === 'ready' && g && g.readyChunks >= 1;
+    },
+    null,
+    { timeout: 12000 }
+  );
+  await page.waitForTimeout(250);
+
+  const afterLobbyReenterBuffs = await page.evaluate(() => {
+    const w = window.__lineage.engine().world;
+    const buffs = w.getBuffList();
+    const badges = document.querySelectorAll('[data-role="buff-strip"] .ll-buff-badge').length;
+    return {
+      haste: buffs.find((b) => b.key === 'haste')?.remainSec || 0,
+      brave: buffs.find((b) => b.key === 'brave')?.remainSec || 0,
+      badges,
+    };
+  });
+  assert(
+    afterLobbyReenterBuffs.haste > 180 && afterLobbyReenterBuffs.brave > 180 && afterLobbyReenterBuffs.badges >= 2,
+    `Buffs not preserved after re-entering from lobby: ${JSON.stringify(afterLobbyReenterBuffs)}`
+  );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-buff-persist.png') });
+
+  // 模擬瀏覽器直接重整／關閉分頁（beforeunload / pagehide）再重新登入進入角色
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForFunction(() => window.__lineage && window.__lineage.ready === true, null, { timeout: 15000 });
+  const postReloadStage = await page.evaluate(() => window.__lineage.getState().stage);
+  if (postReloadStage === 'login') {
+    await page.fill('#login-username', 'adventurer01');
+    await page.fill('#login-password', 'pass1234');
+    await page.click('#btn-auth-login');
+    await page.waitForFunction(() => window.__lineage?.getState?.().stage === 'select', null, { timeout: 10000 });
+  }
+  await page.click(`[data-slot="${buffSlot}"]`);
+  await page.waitForTimeout(80);
+  await page.click('#load-btn-enter');
+  await page.waitForFunction(
+    () => {
+      const g = window.__lineage.game?.();
+      return window.__lineage.getState().gameFrame?.status === 'ready' && g && g.readyChunks >= 1;
+    },
+    null,
+    { timeout: 12000 }
+  );
+  await page.waitForTimeout(250);
+
+  const afterPageReloadBuffs = await page.evaluate(() => {
+    const w = window.__lineage.engine().world;
+    const buffs = w.getBuffList();
+    const out = {
+      haste: buffs.find((b) => b.key === 'haste')?.remainSec || 0,
+      brave: buffs.find((b) => b.key === 'brave')?.remainSec || 0,
+    };
+    w.player.buffs = {};
+    w.recomputePlayerStats();
+    w.saveWorld(true, { immediate: true });
+    return out;
+  });
+  assert(
+    afterPageReloadBuffs.haste > 170 && afterPageReloadBuffs.brave > 170,
+    `Buffs not preserved after full browser reload: ${JSON.stringify(afterPageReloadBuffs)}`
+  );
 
   // 遊戲畫面沒有導覽列：以 navigate 離開，實境舞台容器要卸載
   await page.evaluate(() => window.__lineage.navigate('/official'));
