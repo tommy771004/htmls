@@ -116,3 +116,14 @@ CREATE TABLE IF NOT EXISTS "gm_audit_logs" (
   "details" jsonb DEFAULT '{}'::jsonb NOT NULL,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
+
+-- 選角畫面的 8 個角色槽：角色完整資料放 data（jsonb），名字全服唯一（不分大小寫）
+CREATE TABLE IF NOT EXISTS "character_slots" (
+  "account_id" uuid NOT NULL REFERENCES "accounts"("id") ON DELETE CASCADE,
+  "slot" smallint NOT NULL CHECK ("slot" BETWEEN 1 AND 8),
+  "name" varchar(32) NOT NULL,
+  "data" jsonb NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  PRIMARY KEY ("account_id", "slot")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "character_slots_name_idx" ON "character_slots" (lower("name"));

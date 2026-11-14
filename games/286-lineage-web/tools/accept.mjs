@@ -290,6 +290,14 @@ try {
   await page.waitForTimeout(150);
 
   // (a) 驗證 4:3 登入舞台與動畫影格載入
+  await page.waitForFunction(
+    () => {
+      const img = document.getElementById('login-anim-image');
+      return Boolean(img && img.complete && img.naturalWidth > 0);
+    },
+    null,
+    { timeout: 6000 }
+  );
   const loginImgOk = await page.evaluate(() => {
     const img = document.getElementById('login-anim-image');
     return Boolean(img && img.complete && img.naturalWidth > 0);
@@ -386,7 +394,85 @@ try {
   assert(inGame.nsSave, 'Game world save should be written under the ll286: prefix');
   await page.screenshot({ path: path.join(scratchDir, 'lineage-game-stage.png') });
 
-  // 互動驗證：開啟道具／裝備視窗截圖 + 切換內掛 + 手機版零溢出檢查
+  // 驗證底部日誌文字未裁切、聊天/指令輸入列、以及狀態紙娃娃／魔法書／背包視窗
+  await page.fill('[data-role="chat-input"]', '/loc');
+  await page.press('[data-role="chat-input"]', 'Enter');
+  await page.waitForTimeout(150);
+  const hudCheck = await page.evaluate(() => {
+    const lines = [...document.querySelectorAll('.ll-log-line')];
+    const minHeight = lines.reduce((acc, el) => Math.min(acc, el.getBoundingClientRect().height), 999);
+    const logText = document.querySelector('[data-role="log-box"]')?.textContent || '';
+    const logBeforeH = document.querySelector('.ll-log-col')?.getBoundingClientRect().height || 0;
+    const radarRect = document.querySelector('[data-role="radar-canvas"]')?.getBoundingClientRect();
+    const expRect = document.querySelector('.ll-exp-footer')?.getBoundingClientRect();
+    const consoleRect = document.querySelector('.ll-center-console')?.getBoundingClientRect();
+    return {
+      count: lines.length,
+      minHeight,
+      logText,
+      logBeforeH,
+      radarW: radarRect?.width || 0,
+      expW: expRect?.width || 0,
+      consoleCenterDiff: consoleRect ? Math.abs(consoleRect.left + consoleRect.width / 2 - window.innerWidth / 2) : 999,
+    };
+  });
+  assert(hudCheck.count >= 1 && hudCheck.minHeight >= 14, `Log line vertically clipped: ${JSON.stringify(hudCheck)}`);
+  assert(hudCheck.logText.includes('目前座標'), `Chat /loc command should append location log, got: ${hudCheck.logText}`);
+  assert(hudCheck.radarW >= 120, `Top-right minimap radar should render on desktop, got width=${hudCheck.radarW}`);
+  assert(hudCheck.expW >= 1400, `Bottom EXP footer should span full viewport, got width=${hudCheck.expW}`);
+  assert(hudCheck.consoleCenterDiff <= 140, `Center console should stay horizontally centered, diff=${hudCheck.consoleCenterDiff}`);
+
+  await page.click('[data-act-chat="toggle-expand"]');
+  await page.waitForTimeout(220);
+  const expandedH = await page.evaluate(() => document.querySelector('.ll-log-col')?.getBoundingClientRect().height || 0);
+  assert(expandedH > hudCheck.logBeforeH + 30, `Chat expand should increase log height (${hudCheck.logBeforeH} -> ${expandedH})`);
+  await page.click('[data-act-chat="toggle-expand"]');
+  await page.waitForTimeout(180);
+
+  // 互動驗證：木人訓練 (Lv.1)、角色狀態(S)、魔法書(K)、道具／裝備(I)、內掛切換
+  const dummyCheck = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const dummy = w.npcs.find((n) => n.type === 'TrainingDummy');
+    if (!dummy) return { found: false };
+    const beforeExp = w.player.exp;
+    w.teleportTo(dummy.map, dummy.x, dummy.y + 1, 0);
+    const modalRet = w.interactOrWalkToNpc(dummy);
+    eng.hud.sync(true);
+    return {
+      found: true,
+      openedNpc: Boolean(modalRet) || eng.hud.activeModal === 'npc',
+      beforeExp,
+      afterExp: w.player.exp,
+      dummyAnim: dummy.animState,
+    };
+  });
+  assert(dummyCheck.found, 'Expected at least one TrainingDummy (木人) NPC on map 0');
+  assert(!dummyCheck.openedNpc, 'Interacting with TrainingDummy should NOT open NPC dialog');
+  assert(
+    dummyCheck.afterExp > dummyCheck.beforeExp,
+    `Lv.1 hitting TrainingDummy should gain EXP (${dummyCheck.beforeExp} -> ${dummyCheck.afterExp})`
+  );
+
+  await page.keyboard.press('KeyS');
+  await page.waitForTimeout(180);
+  assert(
+    await page.evaluate(() => window.__lineage.game()?.activeModal === 'status'),
+    'Pressing KeyS should open status paperdoll modal'
+  );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-game-status.png') });
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(120);
+
+  await page.keyboard.press('KeyK');
+  await page.waitForTimeout(150);
+  assert(
+    await page.evaluate(() => window.__lineage.game()?.activeModal === 'spells'),
+    'Pressing KeyK should open spells modal'
+  );
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(120);
+
   await page.keyboard.press('KeyI');
   await page.waitForTimeout(200);
   assert(
@@ -406,16 +492,22 @@ try {
   await page.keyboard.press('KeyH');
   await page.waitForTimeout(150);
 
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.waitForTimeout(250);
-  const mobileGameLayout = await page.evaluate(() => ({
-    scrollWidth: document.documentElement.scrollWidth,
-    innerWidth: window.innerWidth,
-  }));
-  assert(
-    mobileGameLayout.scrollWidth <= mobileGameLayout.innerWidth,
-    `Horizontal overflow in game on 390x844: ${mobileGameLayout.scrollWidth} > ${mobileGameLayout.innerWidth}`
-  );
+  for (const vp of [
+    { width: 1024, height: 768 },
+    { width: 844, height: 390 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(vp);
+    await page.waitForTimeout(200);
+    const vpLayout = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+    assert(
+      vpLayout.scrollWidth <= vpLayout.innerWidth,
+      `Horizontal overflow in game on ${vp.width}x${vp.height}: ${vpLayout.scrollWidth} > ${vpLayout.innerWidth}`
+    );
+  }
   await page.screenshot({ path: path.join(scratchDir, 'lineage-game-mobile.png') });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.waitForTimeout(150);
@@ -465,8 +557,413 @@ try {
   });
   st = await page.evaluate(() => window.__lineage.getState());
   assert(st.gameFrame.mode === 'load', `After reload the 286 world save should load, got ${st.gameFrame.mode}`);
-  const goldAfterReload = await page.evaluate(() => window.__lineage.game()?.gold);
+  const lv12ExpState = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const before = {
+      level: w.player.level,
+      exp: w.player.exp,
+      expPrev: w.player.expPrev,
+      expNext: w.player.expNext,
+      expText: document.querySelector('[data-role="exp-text"]')?.textContent || '',
+    };
+    // 驗證 Lv.12 預設角擊殺怪物後經驗百分比確實上升而非卡死 0.00%
+    const mob = w.mobs.find((m) => m.hp > 0 && m.exp > 0);
+    if (mob) {
+      w.player.exp += Math.max(85, mob.exp * 3);
+      w.recomputePlayerStats();
+    }
+    eng.hud.sync(true);
+    return {
+      before,
+      afterExp: w.player.exp,
+      afterText: document.querySelector('[data-role="exp-text"]')?.textContent || '',
+      gold: window.__lineage.game()?.gold,
+    };
+  });
+  assert(
+    lv12ExpState.before.level >= 12 && lv12ExpState.before.exp >= lv12ExpState.before.expPrev,
+    `Lv.12 initial exp must be >= expPrev: ${JSON.stringify(lv12ExpState.before)}`
+  );
+  assert(
+    lv12ExpState.afterText !== '0.00%' && parseFloat(lv12ExpState.afterText) > 0,
+    `Expected Lv.12 EXP % to advance above 0.00%, got ${lv12ExpState.afterText}`
+  );
+  const goldAfterReload = lv12ExpState.gold;
   assert(goldAfterReload === 424242, `Game progress lost after reload: gold=${goldAfterReload}`);
+
+  // 驗證工坊製作、導師學法、中毒與翡翠藥水／旅店休息、遠程怪物設定及死亡復活懲罰
+  const craftReady = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    w.addItemToInventory('皮革', 12);
+    w.player.gold = Math.max(w.player.gold, 5000);
+    const ladar = w.npcs.find((n) => n.name === '拉達');
+    if (!ladar) return { ok: false, reason: 'ladar missing' };
+    eng.hud.openNpc(ladar);
+    return {
+      ok: true,
+      mode: eng.hud.npcSession?.mode,
+      hasCraftBtn: Boolean(document.querySelector('[data-craft-idx]')),
+      leatherBefore: w.player.inventory.filter((i) => i.name === '皮革').reduce((s, i) => s + i.count, 0),
+      hardBefore: w.player.inventory.filter((i) => i.name === '高級皮革').reduce((s, i) => s + i.count, 0),
+    };
+  });
+  assert(craftReady.ok && craftReady.mode === 'craft' && craftReady.hasCraftBtn, `Craft modal failed: ${JSON.stringify(craftReady)}`);
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-game-craft.png') });
+  await page.click('[data-craft-idx="0"]');
+  await page.waitForTimeout(120);
+  const afterCraft = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const ret = {
+      leatherAfter: w.player.inventory.filter((i) => i.name === '皮革').reduce((s, i) => s + i.count, 0),
+      hardAfter: w.player.inventory.filter((i) => i.name === '高級皮革').reduce((s, i) => s + i.count, 0),
+    };
+    eng.hud.closeModal();
+    return ret;
+  });
+  assert(
+    afterCraft.hardAfter === craftReady.hardBefore + 1 && afterCraft.leatherAfter === craftReady.leatherBefore - 10,
+    `Craft 高級皮革 inventory mismatch: ${JSON.stringify({ craftReady, afterCraft })}`
+  );
+
+  // 魔法導師（吉倫）學法 + 翡翠藥水／旅店解毒 + 死亡復活
+  const teachReady = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    w.player.level = Math.max(w.player.level, 12);
+    w.player.spells = w.player.spells.filter((id) => id !== 1);
+    const gereng = w.npcs.find((n) => n.name === '吉倫');
+    if (!gereng) return { ok: false };
+    eng.hud.openNpc(gereng);
+    return { ok: true };
+  });
+  assert(teachReady.ok, 'Expected 吉倫 on Talking Island');
+  await page.click('[data-npc-mode="teach"]');
+  await page.waitForTimeout(100);
+  const learnBtnExists = await page.evaluate(() => Boolean(document.querySelector('[data-learn-spell="1"]')));
+  assert(learnBtnExists, 'Expected teach modal to render learnable spell #1');
+  await page.click('[data-learn-spell="1"]');
+  await page.waitForTimeout(100);
+
+  const combatAndInn = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    eng.hud.closeModal();
+    const learnedHeal = w.player.spells.includes(1);
+
+    // 毒狀態與翡翠藥水解除
+    if (!w.player.inventory.some((i) => i.name === '翡翠藥水')) {
+      w.addItemToInventory('翡翠藥水', 1);
+    }
+    w.player.buffs.poison = performance.now() + 20000;
+    eng.hud.sync(true);
+    const poisonBadgeVisible = Boolean(document.querySelector('.ll-buff-badge.debuff'));
+    const emerald = w.player.inventory.find((i) => i.name === '翡翠藥水');
+    if (emerald) w.useItem(emerald.id);
+    const poisonClearedByPotion = (w.player.buffs.poison || 0) <= performance.now();
+
+    // 旅店休息（瑟琳娜）解除中毒與補滿體力魔力
+    w.player.buffs.poison = performance.now() + 20000;
+    w.player.hp = Math.max(1, w.player.hp - 30);
+    w.player.mp = Math.max(0, w.player.mp - 5);
+    const serena = w.npcs.find((n) => n.name === '瑟琳娜');
+    if (serena) w.restAtInn(serena);
+    const innRestored = w.player.hp === w.player.maxHp && w.player.mp === w.player.maxMp && (w.player.buffs.poison || 0) <= performance.now();
+
+    // 遠程怪物攻擊範圍確認
+    const rangedMob = w.mobs.find((m) => m.attackMode === 'arrow' || m.attackMode === 'spell');
+
+    // 陣亡復活與經驗懲罰不倒扣至前級以下
+    const deathRes = w.triggerPlayerDeath('測試陣亡');
+    eng.hud.sync(true);
+
+    return {
+      learnedHeal,
+      poisonBadgeVisible,
+      poisonClearedByPotion,
+      innRestored,
+      rangedMobRange: rangedMob ? rangedMob.range : null,
+      deathRes,
+      expPrev: w.player.expPrev,
+      hpAfterDeath: w.player.hp,
+      mapAfterDeath: w.player.map,
+    };
+  });
+  assert(combatAndInn.learnedHeal, 'Should learn spell #1 from 吉倫');
+  assert(combatAndInn.poisonBadgeVisible && combatAndInn.poisonClearedByPotion, `Poison badge/cure failed: ${JSON.stringify(combatAndInn)}`);
+  assert(combatAndInn.innRestored, `Inn rest should restore HP/MP and cure poison: ${JSON.stringify(combatAndInn)}`);
+  assert(combatAndInn.rangedMobRange >= 5, `Expected ranged/caster mob with range >= 5 on map 0, got ${combatAndInn.rangedMobRange}`);
+  assert(combatAndInn.deathRes.exp >= combatAndInn.expPrev, `Death EXP penalty must stay >= expPrev: ${JSON.stringify(combatAndInn)}`);
+  assert(combatAndInn.mapAfterDeath === 0 && combatAndInn.hpAfterDeath > 0, `Player should revive alive in village: ${JSON.stringify(combatAndInn)}`);
+
+  // 驗證經典法術全套、飢餓系統、多瑪修武、對骷骨卷軸與鑑定／復活卷軸、真實變形
+  const spellsAndItems = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    w.player.gold = Math.max(w.player.gold, 25000);
+    w.player.level = Math.max(w.player.level, 14);
+    for (const sid of [14, 18, 22, 26, 28, 29, 31, 32, 33, 39, 42, 43, 44, 48]) {
+      if (!w.player.spells.includes(sid)) w.player.spells.push(sid);
+    }
+    w.recomputePlayerStats();
+    const str0 = w.player.effStr;
+    const dex0 = w.player.effDex;
+    const mr0 = w.player.mr;
+    w.player.mp = Math.max(w.player.mp, 200);
+    for (const sid of [14, 26, 31, 32, 42, 43, 48]) {
+      w.player.lastSpellAt = 0;
+      w.castSpell(sid);
+    }
+    const strAfter = w.player.effStr;
+    const dexAfter = w.player.effDex;
+    const mrAfter = w.player.mr;
+
+    // 目標控制／吸血流與 AOE／相消
+    const targetMob = w.mobs.find((m) => m.hp > 0);
+    let slowActive = false;
+    let paraActive = false;
+    let clearedByCancel = false;
+    if (targetMob) {
+      w.player.tx = targetMob.tx - 1;
+      w.player.ty = targetMob.ty;
+      w.player.targetId = targetMob.id;
+      w.player.hp = Math.max(10, w.player.maxHp - 30);
+      w.player.mp = Math.max(w.player.mp, 200);
+      for (const sid of [29, 33]) {
+        w.player.lastSpellAt = 0;
+        w.castSpell(sid, targetMob);
+      }
+      slowActive = (targetMob.slowUntil || 0) > performance.now();
+      paraActive = (targetMob.paralyzeUntil || 0) > performance.now();
+      w.player.lastSpellAt = 0;
+      w.castSpell(44, targetMob);
+      clearedByCancel = (targetMob.slowUntil || 0) === 0 && (targetMob.paralyzeUntil || 0) === 0;
+      for (const sid of [28, 39, 22, 18]) {
+        w.player.lastSpellAt = 0;
+        w.castSpell(sid, targetMob);
+      }
+    }
+
+    // 飢餓檢定與吃肉恢復
+    w.player.food = 8;
+    eng.hud.sync(true);
+    const hungryBadgeText = Array.from(document.querySelectorAll('.ll-buff-badge.debuff')).map((el) => el.textContent.trim()).join(',');
+    w.addItemToInventory('肉', 2);
+    const meat = w.player.inventory.find((i) => i.name === '肉');
+    if (meat) w.useItem(meat.id);
+    const foodAfterMeat = w.player.food;
+
+    // 復活卷軸免扣經驗原地復活
+    w.addItemToInventory('復活卷軸', 1);
+    const resScroll = w.player.inventory.find((i) => i.name === '復活卷軸');
+    if (resScroll) w.useItem(resScroll.id);
+    const expBeforeBlessRevive = w.player.exp;
+    const blessRevive = w.triggerPlayerDeath('復活卷軸庇護測試');
+
+    // 受損武器 + 多瑪修理
+    const eqWeapon = w.player.inventory.find((i) => i.equipped && w.worldData.items[i.name]?.kind === 'weapon')
+      || w.player.inventory.find((i) => w.worldData.items[i.name]?.kind === 'weapon');
+    if (eqWeapon) {
+      eqWeapon.equipped = true;
+      eqWeapon.brokenCount = 2;
+      w.recomputePlayerStats();
+    }
+    const doma = w.npcs.find((n) => n.name === '多瑪');
+    if (doma) eng.hud.openNpc(doma);
+
+    return {
+      str0,
+      strAfter,
+      dex0,
+      dexAfter,
+      mr0,
+      mrAfter,
+      slowActive,
+      paraActive,
+      clearedByCancel,
+      hungryBadgeText,
+      foodAfterMeat,
+      expBeforeBlessRevive,
+      blessRevive,
+      brokenBeforeFix: eqWeapon?.brokenCount ?? -1,
+    };
+  });
+  assert(
+    spellsAndItems.strAfter === spellsAndItems.str0 + 5 && spellsAndItems.dexAfter === spellsAndItems.dex0 + 5,
+    `Expected STR/DEX +5 buffs: ${JSON.stringify(spellsAndItems)}`
+  );
+  assert(spellsAndItems.mrAfter >= spellsAndItems.mr0 + 20, `Expected 魔法屏障 MR +20: ${JSON.stringify(spellsAndItems)}`);
+  assert(spellsAndItems.slowActive && spellsAndItems.paraActive && spellsAndItems.clearedByCancel, `Expected 緩速術 & 木乃伊的詛咒 debuffs on mob & dispel by 相消: ${JSON.stringify(spellsAndItems)}`);
+  assert(
+    spellsAndItems.hungryBadgeText.includes('飢餓') && !spellsAndItems.hungryBadgeText.includes('0s') && spellsAndItems.foodAfterMeat > 10,
+    `Hunger badge/recovery failed: ${JSON.stringify(spellsAndItems)}`
+  );
+  assert(
+    spellsAndItems.blessRevive.exp === spellsAndItems.expBeforeBlessRevive && spellsAndItems.blessRevive.penalty === 0 && spellsAndItems.blessRevive.blessed === true,
+    `復活卷軸 should grant 0-EXP-loss revival: ${JSON.stringify(spellsAndItems)}`
+  );
+  assert(spellsAndItems.brokenBeforeFix === 2 && Boolean(await page.$('[data-npc-act="fix"]')), '多瑪 dialogue should expose [data-npc-act="fix"]');
+  await page.click('[data-npc-act="fix"]');
+  await page.waitForTimeout(100);
+
+  // 未鑑定道具鑑定 + 對骷骨之劍強化的卷軸 + 變形卷軸視覺變身
+  const scrollAndMorph = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    eng.hud.closeModal();
+    const eqWeapon = w.player.inventory.find((i) => i.equipped && w.worldData.items[i.name]?.kind === 'weapon');
+    const brokenAfterFix = eqWeapon?.brokenCount ?? -1;
+
+    w.addItemToInventory('長劍', 1);
+    const unidSword = [...w.player.inventory].reverse().find((i) => i.name === '長劍' && !i.equipped);
+    if (unidSword) unidSword.identified = false;
+    w.addItemToInventory('鑑定卷軸', 1);
+    w.addItemToInventory('對骷骨之劍強化的卷軸', 1);
+    w.addItemToInventory('變形卷軸', 2);
+
+    const plusBeforeSkel = eqWeapon ? (eqWeapon.plus || 0) : 0;
+    const skelScroll = w.player.inventory.find((i) => i.name === '對骷骨之劍強化的卷軸');
+    if (skelScroll) w.useItem(skelScroll.id);
+    const plusAfterSkel = eqWeapon ? (eqWeapon.plus || 0) : 0;
+
+    eng.hud.selectedItemId = unidSword?.id || null;
+    eng.hud.toggleModal('inventory');
+    return {
+      brokenAfterFix,
+      plusBeforeSkel,
+      plusAfterSkel,
+      unidId: unidSword?.id || null,
+      hasIdentifyBtn: Boolean(document.querySelector('[data-identify-item]')),
+    };
+  });
+  assert(scrollAndMorph.brokenAfterFix === 0, `多瑪 should repair weapon to brokenCount=0: ${JSON.stringify(scrollAndMorph)}`);
+  assert(scrollAndMorph.plusAfterSkel === scrollAndMorph.plusBeforeSkel + 1, `對骷骨之劍強化的卷軸 should +1 weapon: ${JSON.stringify(scrollAndMorph)}`);
+  assert(scrollAndMorph.hasIdentifyBtn, 'Selected unid gear should display [data-identify-item]');
+  await page.click('[data-identify-item]');
+  await page.waitForTimeout(100);
+
+  const polyModalReady = await page.evaluate((unidId) => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const identifiedOk = w.player.inventory.find((i) => i.id === unidId)?.identified === true;
+    eng.hud.closeModal();
+    const polyScroll = w.player.inventory.find((i) => i.name === '變形卷軸');
+    const useRes = polyScroll ? w.useItem(polyScroll.id) : null;
+    if (useRes?.openModal) {
+      if (useRes.scrollId) eng.hud.pendingPolyScrollId = useRes.scrollId;
+      eng.hud.activeModal = useRes.openModal;
+      eng.hud.renderModal();
+      eng.hud.sync(true);
+    }
+    return { identifiedOk, hasDkCard: Boolean(document.querySelector('[data-poly-form="dk"]')) };
+  }, scrollAndMorph.unidId);
+  assert(polyModalReady.identifiedOk && polyModalReady.hasDkCard, `Identify or poly modal failed: ${JSON.stringify(polyModalReady)}`);
+  await page.click('[data-poly-form="dk"]');
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-game-poly.png') });
+
+  // 寵物系統（詹森）+ 血盟創立／傳送（血盟執行人）+ 雕像祈禱 + 港口主人 + 同服連線好友視覺渲染
+  const petModalReady = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const polyState = { polyGfx: w.player.polyGfx, polyName: w.player.polyName };
+    const jenson = w.npcs.find((n) => n.name === '詹森');
+    if (jenson) eng.hud.openNpc(jenson);
+    return {
+      ...polyState,
+      petMode: eng.hud.npcSession?.mode,
+      hasDoberman: Boolean(document.querySelector('[data-pet-adopt="doberman"]')),
+    };
+  });
+  assert(
+    petModalReady.polyGfx === 110 && petModalReady.polyName === '闇騎士',
+    `Polymorph should switch sprite to Dark Knight 110: ${JSON.stringify(petModalReady)}`
+  );
+  assert(petModalReady.petMode === 'pet' && petModalReady.hasDoberman, `Pet shop failed: ${JSON.stringify(petModalReady)}`);
+  await page.click('[data-pet-adopt="doberman"]');
+  await page.waitForTimeout(120);
+  const petHealRes = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    if (w.player.pet) w.player.pet.hp = Math.max(1, w.player.pet.hp - 25);
+    eng.hud.renderModal();
+    return { petName: w.player.pet?.name, petGfx: w.player.pet?.gfx, hasHealBtn: Boolean(document.querySelector('[data-pet-heal]')) };
+  });
+  assert(petHealRes.petName === '杜賓犬' && petHealRes.petGfx === 931 && petHealRes.hasHealBtn, `Adopt pet failed: ${JSON.stringify(petHealRes)}`);
+  await page.click('[data-pet-heal]');
+  await page.waitForTimeout(100);
+
+  const clanModalReady = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const petFullHp = w.player.pet ? w.player.pet.hp === w.player.pet.maxHp : false;
+    const registrar = w.npcs.find((n) => n.type === 'ClanRegistrar') || w.npcs.find((n) => n.name === '盧卡斯');
+    if (registrar) eng.hud.openNpc(registrar);
+    return {
+      petFullHp,
+      clanMode: eng.hud.npcSession?.mode,
+      hasInput: Boolean(document.querySelector('#ll-clan-input')),
+    };
+  });
+  assert(clanModalReady.petFullHp && clanModalReady.clanMode === 'clan' && clanModalReady.hasInput, `Clan modal failed: ${JSON.stringify(clanModalReady)}`);
+  await page.fill('#ll-clan-input', '亞丁遠征軍');
+  await page.click('[data-clan-create="1"]');
+  await page.waitForTimeout(120);
+
+  const statueHarborPeers = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    eng.hud.closeModal();
+    const clanTitle = document.querySelector('[data-role="char-title"]')?.textContent || '';
+    const statue = w.npcs.find((n) => n.name === '潘妮雅的雕像');
+    if (statue) w.prayAtStatue(statue);
+    w.addItemToInventory('血盟傳送卷軸', 1);
+    const clanScroll = w.player.inventory.find((i) => i.name === '血盟傳送卷軸');
+    if (clanScroll) w.useItem(clanScroll.id);
+    const harbor = w.npcs.find((n) => n.name.includes('港口主人'));
+    if (harbor) eng.hud.openNpc(harbor);
+    return {
+      clanName: w.player.clanName,
+      clanTitle,
+      hasHarborBtn: Boolean(document.querySelector('[data-npc-mode="harbor"]')),
+    };
+  });
+  assert(
+    statueHarborPeers.clanName === '亞丁遠征軍' && statueHarborPeers.clanTitle.includes('《亞丁遠征軍》') && statueHarborPeers.hasHarborBtn,
+    `Clan / Harbor UI failed: ${JSON.stringify(statueHarborPeers)}`
+  );
+  await page.click('[data-npc-mode="harbor"]');
+  await page.waitForTimeout(100);
+  await page.click('[data-harbor-idx="0"]');
+  await page.waitForTimeout(120);
+  const peerRenderRes = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    w.setRemotePeers(
+      [
+        {
+          id: 999,
+          charName: '亞丁劍士',
+          classId: 'knight',
+          gfx: 61,
+          clanName: '亞丁遠征軍',
+          map: 0,
+          tx: w.player.tx + 2,
+          ty: w.player.ty + 1,
+          heading: 4,
+          chatText: '組隊練功嗎！',
+        },
+      ],
+      2
+    );
+    eng.hud.sync(true);
+    return { peers: w.remotePeers.length, onlineCount: w.onlineCount };
+  });
+  assert(peerRenderRes.peers === 1 && peerRenderRes.onlineCount === 2, `Peer injection failed: ${JSON.stringify(peerRenderRes)}`);
+  await page.waitForTimeout(220);
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-game-pet-clan.png') });
 
   await page.evaluate(() => window.__lineage.pingWorld());
   await page.waitForTimeout(200);

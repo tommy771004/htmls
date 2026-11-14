@@ -62,7 +62,7 @@ export class LineageGameEngine {
     this.#bindEvents();
     this.#handleResize();
     this.isoMap.ensureVisibleChunks(this.world.player.map, this.world.player.tx, this.world.player.ty);
-    this.audio.playBgm('/lineage163/sound/0.mp3');
+    this.audio.update(this.world);
     this.loop = this.loop.bind(this);
     this.rafId = requestAnimationFrame(this.loop);
   }
@@ -74,7 +74,7 @@ export class LineageGameEngine {
     this._onPointerDown = (ev) => {
       this._downPos = { x: ev.clientX, y: ev.clientY };
       if (this.audio && !this.audio.muted && !this.audio.currentBgm) {
-        this.audio.playBgm('/lineage163/sound/0.mp3');
+        this.audio.playBgm(this.audio.bgmFor(this.world));
       } else if (this.audio?.bgmAudio?.paused && !this.audio.muted) {
         this.audio.bgmAudio.play().catch(() => {});
       }
@@ -161,9 +161,9 @@ export class LineageGameEngine {
     const { sx, sy } = this.#canvasCoords(ev);
     const hit = this.#pickAtScreen(sx, sy);
     let nextCursor = 'arrow';
-    if (hit.kind === 'mob') {
+    if (hit.kind === 'mob' || (hit.kind === 'npc' && hit.entity.type === 'TrainingDummy')) {
       this.hoverEntity = hit.entity.id;
-      this.hoverTile = { x: hit.entity.tx, y: hit.entity.ty };
+      this.hoverTile = { x: hit.entity.tx ?? hit.entity.x, y: hit.entity.ty ?? hit.entity.y };
       nextCursor = 'attack';
     } else if (hit.kind === 'npc' || hit.kind === 'drop') {
       this.hoverEntity = hit.entity.id;
@@ -203,7 +203,19 @@ export class LineageGameEngine {
 
   #handleKeyDown(ev) {
     const tag = ev.target?.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') {
+      if (ev.code === 'Escape') {
+        ev.preventDefault();
+        ev.target.blur();
+      }
+      return;
+    }
+
+    if (ev.code === 'Enter' && !this.hud.activeModal && this.hud.elements?.chatInput) {
+      ev.preventDefault();
+      this.hud.elements.chatInput.focus();
+      return;
+    }
 
     if (ev.code === 'Escape') {
       ev.preventDefault();
@@ -297,8 +309,18 @@ export class LineageGameEngine {
     const mob = this.world.mobs
       .filter((m) => m.hp > 0 && !m.isPassiveCritter)
       .sort((a, b) => tileDistance(p.tx, p.ty, a.tx, a.ty) - tileDistance(p.tx, p.ty, b.tx, b.ty))[0];
-    if (mob) {
+    const mobDist = mob ? tileDistance(p.tx, p.ty, mob.tx, mob.ty) : Infinity;
+    const dummy = this.world.npcs
+      .filter((n) => n.type === 'TrainingDummy')
+      .sort((a, b) => tileDistance(p.tx, p.ty, a.x, a.y) - tileDistance(p.tx, p.ty, b.x, b.y))[0];
+    const dummyDist = dummy ? tileDistance(p.tx, p.ty, dummy.x, dummy.y) : Infinity;
+
+    if (dummy && p.level < 5 && dummyDist <= 10 && dummyDist < mobDist) {
+      this.world.interactOrWalkToNpc(dummy);
+    } else if (mob) {
       this.world.targetMob(mob);
+    } else if (dummy) {
+      this.world.interactOrWalkToNpc(dummy);
     } else {
       this.world.addLog('附近沒有可攻擊的怪物。', 'info');
     }
@@ -312,6 +334,7 @@ export class LineageGameEngine {
 
     this.autoHunt.step(now);
     this.world.step(dtMs, now);
+    this.audio.update(this.world, now);
 
     // 攝影機平滑跟隨主角，略微下移讓底部 HUD 不會遮住角色腳下
     const targetCamX = this.world.player.worldX;
@@ -434,6 +457,22 @@ export class LineageGameEngine {
       sortY: p.worldY,
     });
 
+    if (p.pet && p.pet.hp > 0 && p.pet.map === p.map) {
+      const psx = p.pet.worldX - camLeft;
+      const psy = p.pet.worldY - camTop;
+      if (psx >= -120 && psy >= -160 && psx <= this.viewW + 120 && psy <= this.viewH + 160) {
+        renderList.push({ kind: 'pet', pet: p.pet, sx: psx, sy: psy, sortY: p.pet.worldY });
+      }
+    }
+
+    for (const peer of this.world.remotePeers || []) {
+      if (peer.map !== p.map) continue;
+      const rsx = peer.worldX - camLeft;
+      const rsy = peer.worldY - camTop;
+      if (rsx < -120 || rsy < -160 || rsx > this.viewW + 120 || rsy > this.viewH + 160) continue;
+      renderList.push({ kind: 'peer', peer, sx: rsx, sy: rsy, sortY: peer.worldY });
+    }
+
     renderList.sort((a, b) => a.sortY - b.sortY);
 
     for (const item of renderList) {
@@ -468,6 +507,7 @@ export class LineageGameEngine {
         });
       } else if (item.kind === 'mob') {
         const m = item.mob;
+        const statusPrefix = (m.paralyzeUntil || 0) > now ? '[麻] ' : (m.slowUntil || 0) > now ? '[緩] ' : '';
         this.sprites.drawActor(ctx, {
           gfx: m.gfx,
           animState: m.animState,
@@ -475,20 +515,59 @@ export class LineageGameEngine {
           elapsedMs: now - (m.animStartedAt || 0),
           screenX: item.sx,
           screenY: item.sy,
-          name: m.name,
+          name: `${statusPrefix}${m.name}`,
           hpRatio: m.hp > 0 ? m.hp / Math.max(1, m.maxHp) : 0,
           isTarget: p.targetId === m.id || this.hoverEntity === m.id,
         });
-      } else if (item.kind === 'player') {
+      } else if (item.kind === 'pet') {
+        const pet = item.pet;
         this.sprites.drawActor(ctx, {
-          gfx: p.gfx,
+          gfx: pet.gfx,
+          animState: pet.animState || 'idle',
+          heading: pet.heading ?? 4,
+          elapsedMs: now - (pet.animStartedAt || 0),
+          screenX: item.sx,
+          screenY: item.sy,
+          name: `Lv.${pet.level} ${pet.name}`,
+          hpRatio: pet.hp / Math.max(1, pet.maxHp),
+          isNpc: true,
+        });
+      } else if (item.kind === 'peer') {
+        const peer = item.peer;
+        const peerLabel = peer.clanName ? `《${peer.clanName}》${peer.charName}` : peer.charName;
+        this.sprites.drawActor(ctx, {
+          gfx: peer.gfx,
+          animState: peer.animState || 'idle',
+          heading: peer.heading ?? 4,
+          elapsedMs: now,
+          screenX: item.sx,
+          screenY: item.sy,
+          name: peerLabel,
+          isPlayer: true,
+        });
+        if (peer.chatText) {
+          ctx.save();
+          ctx.font = 'bold 12px "Noto Sans TC", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = 'rgba(0,0,0,0.88)';
+          ctx.strokeText(peer.chatText, item.sx, item.sy - 68);
+          ctx.fillStyle = '#fff4c2';
+          ctx.fillText(peer.chatText, item.sx, item.sy - 68);
+          ctx.restore();
+        }
+      } else if (item.kind === 'player') {
+        const activeGfx = (p.buffs.poly || 0) > now && p.polyGfx ? p.polyGfx : p.gfx;
+        const playerLabel = p.clanName ? `《${p.clanName}》${p.name}` : p.name;
+        this.sprites.drawActor(ctx, {
+          gfx: activeGfx,
           animState: p.animState,
           heading: p.heading,
           elapsedMs: now - (p.animStartedAt || 0),
-          weaponType: p.weaponType,
+          weaponType: activeGfx === p.gfx ? p.weaponType : 'unarmed',
           screenX: item.sx,
           screenY: item.sy,
-          name: p.name,
+          name: playerLabel,
           hpRatio: p.hp / Math.max(1, p.maxHp),
           isPlayer: true,
         });
@@ -561,7 +640,7 @@ export class LineageGameEngine {
 
     this.world.dirtySave = true;
     this.world.saveWorld(true);
-    this.audio.stopBgm();
+    this.audio.dispose();
     this.hud.destroy();
     this.assets.dispose();
     this.rootEl.remove();

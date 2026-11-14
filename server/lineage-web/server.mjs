@@ -7,15 +7,10 @@ import {
   CHARACTER_CLASSES,
   computeEggGrant,
   createAuditRecord,
-  createCharacterInSlot,
   createCheckoutSignature,
   decodeFrame,
-  deleteCharacterInSlot,
   EGG_PACKAGES,
   encodeFrame,
-  getAccountCharacterSlots,
-  getCharacterInSlot,
-  importCharacterToSlot,
   issueWsTicket,
   validateClientReport,
   verifyGmToken,
@@ -115,6 +110,7 @@ export function createLineageServer({
   const wsSecret = () => env.REALM_WS_SECRET || 'dev-realm-ws-secret-key-163';
   const paySecret = () => env.ORIGIN_PAY_SECRET || 'dev-origin-pay-secret-163';
   const gmSecret = () => env.GM_ADMIN_TOKEN || 'dev-gm-secret-token';
+  const realmPlayers = new Map();
 
   const sendJson = (res, status, body, extraHeaders = {}) => {
     res.writeHead(status, {
@@ -126,7 +122,8 @@ export function createLineageServer({
     res.end(JSON.stringify(body));
   };
 
-  async function resolveAccountKey(req) {
+  // 由 session 找出帳號：{ id, username, key（小寫帳號）}
+  async function resolveAccount(req) {
     const headerSession = String(req.headers['x-game-session'] ?? '').trim();
     const cookieSession = readCookie(req, 'realm_session')?.trim() ?? '';
     const token = headerSession || cookieSession;
@@ -136,10 +133,14 @@ export function createLineageServer({
     const session = await repository.findSessionByTokenHash(token);
     if (session) {
       const account = await repository.findAccountById(session.accountId);
-      if (account) return account.username.toLowerCase();
+      if (account) {
+        return { id: account.id, username: account.username, key: account.username.toLowerCase() };
+      }
     }
-    if (token.length >= 6) {
-      return `acct_${token.slice(0, 12).toLowerCase()}`;
+    // 記憶體模式（本機 npm start）才把未知 token 當成臨時帳號；資料庫模式一律要真的登入
+    if (!repository.persistent && token.length >= 6) {
+      const key = `acct_${token.slice(0, 12).toLowerCase()}`;
+      return { id: null, username: key, key };
     }
     return null;
   }
@@ -243,7 +244,14 @@ export function createLineageServer({
         if (account) {
           return sendJson(res, 409, { ok: false, error: 'username_taken' });
         }
-        account = await repository.createAccount(username, pwdHash, 'player');
+        try {
+          account = await repository.createAccount(username, pwdHash, 'player');
+        } catch (err) {
+          if (/already exists/i.test(err?.message ?? '')) {
+            return sendJson(res, 409, { ok: false, error: 'username_taken' });
+          }
+          throw err;
+        }
       } else {
         if (!account || account.passwordHash !== pwdHash) {
           return sendJson(res, 401, { ok: false, error: 'invalid_credentials' });
@@ -277,15 +285,15 @@ export function createLineageServer({
 
     if (endpoint === 'characters') {
       const bodyPromise = method === 'POST' ? readJsonBody(req) : null;
-      const accountKey = await resolveAccountKey(req);
-      if (!accountKey) {
+      const account = await resolveAccount(req);
+      if (!account) {
         return sendJson(res, 401, { ok: false, error: 'missing_session' });
       }
       if (method === 'GET') {
-        const slots = getAccountCharacterSlots(accountKey);
+        const slots = await repository.getCharacterSlots(account);
         return sendJson(res, 200, {
           ok: true,
-          account: accountKey,
+          account: account.key,
           maxSlots: 8,
           slots,
         });
@@ -294,7 +302,7 @@ export function createLineageServer({
         const body = await bodyPromise;
         const action = body.action ?? 'create';
         if (action === 'create') {
-          const result = createCharacterInSlot(accountKey, {
+          const result = await repository.createCharacter(account, {
             slot: Number(body.slot ?? 1),
             name: body.name ?? '',
             classId: body.classId ?? 'knight',
@@ -313,7 +321,8 @@ export function createLineageServer({
         }
         if (action === 'enter') {
           const slot = Number(body.slot ?? 1);
-          const character = getCharacterInSlot(accountKey, slot);
+          const slots = await repository.getCharacterSlots(account);
+          const character = slot >= 1 && slot <= 8 ? slots[slot - 1] : null;
           if (!character) {
             return sendJson(res, 404, { ok: false, error: 'slot_empty' });
           }
@@ -330,8 +339,8 @@ export function createLineageServer({
           });
         }
         if (action === 'delete') {
-          const result = deleteCharacterInSlot(
-            accountKey,
+          const result = await repository.deleteCharacter(
+            account,
             Number(body.slot ?? 1),
             body.confirmName ?? '',
           );
@@ -341,8 +350,8 @@ export function createLineageServer({
           return sendJson(res, 200, { ok: true, slots: result.slots });
         }
         if (action === 'import') {
-          const result = importCharacterToSlot(
-            accountKey,
+          const result = await repository.importCharacter(
+            account,
             Number(body.slot ?? 1),
             body.saveData ?? {},
           );
@@ -412,22 +421,69 @@ export function createLineageServer({
       }
 
       if (incoming.type === 'move') {
+        const nowMs = Date.now();
+        for (const [accId, rec] of realmPlayers.entries()) {
+          if (nowMs - rec.updatedAt > 45_000) realmPlayers.delete(accId);
+        }
+        const mapId = typeof incoming.payload.map === 'number' ? incoming.payload.map : 4;
         const x = typeof incoming.payload.x === 'number' ? incoming.payload.x : 32578;
         const y = typeof incoming.payload.y === 'number' ? incoming.payload.y : 32943;
+        const heading = typeof incoming.payload.heading === 'number' ? incoming.payload.heading : 4;
+        const prevRec = realmPlayers.get(claims.accountId);
+        const rec = {
+          id: claims.accountId,
+          username: claims.username,
+          charName: String(incoming.payload.charName || claims.username).slice(0, 24),
+          classId: String(incoming.payload.classId || 'royal').slice(0, 16),
+          gfx: Number(incoming.payload.gfx || 0),
+          polyGfx: incoming.payload.polyGfx ? Number(incoming.payload.polyGfx) : null,
+          clanName: String(incoming.payload.clanName || '').slice(0, 24),
+          map: mapId,
+          x,
+          y,
+          heading,
+          chatText: incoming.payload.chat ? String(incoming.payload.chat).slice(0, 60) : (prevRec?.chatText || ''),
+          chatAt: incoming.payload.chat ? nowMs : (prevRec?.chatAt || 0),
+          updatedAt: nowMs,
+        };
+        realmPlayers.set(claims.accountId, rec);
+        const peers = [];
+        for (const [accId, other] of realmPlayers.entries()) {
+          if (accId === claims.accountId || other.map !== mapId) continue;
+          peers.push({
+            id: other.id,
+            charName: other.charName,
+            classId: other.classId,
+            gfx: other.polyGfx || other.gfx,
+            clanName: other.clanName,
+            map: other.map,
+            tx: other.x,
+            ty: other.y,
+            heading: other.heading,
+            chatText: nowMs - other.chatAt < 6000 ? other.chatText : '',
+          });
+        }
         const reply = encodeFrame({
           type: 'state_sync',
           seq: incoming.seq + 1,
-          payload: { mapId: 4, x, y, verified: true },
+          payload: { mapId, x, y, verified: true, peers, onlineCount: realmPlayers.size },
         });
         return sendJson(res, 200, { ok: true, frame: reply });
       }
 
       if (incoming.type === 'chat') {
+        const nowMs = Date.now();
         const text = String(incoming.payload.text ?? '').slice(0, 120);
+        const cur = realmPlayers.get(claims.accountId);
+        if (cur) {
+          cur.chatText = text;
+          cur.chatAt = nowMs;
+          cur.updatedAt = nowMs;
+        }
         const reply = encodeFrame({
           type: 'chat',
           seq: incoming.seq + 1,
-          payload: { sender: claims.username, text, channel: 'world' },
+          payload: { sender: claims.username, text, channel: 'world', onlineCount: realmPlayers.size },
         });
         return sendJson(res, 200, { ok: true, frame: reply });
       }
@@ -630,6 +686,10 @@ export function createLineageServer({
         if (action === 'checkout') {
           const username = (body.username ?? 'adventurer').trim();
           let account = await repository.findAccountByUsername(username);
+          // 資料庫模式不替陌生帳號自動開戶（會留下固定密碼的帳號）；記憶體展示模式維持原行為
+          if (!account && repository.persistent) {
+            return sendJson(res, 404, { ok: false, error: 'account_not_found' });
+          }
           if (!account) {
             account = await repository.createAccount(
               username,
@@ -690,6 +750,9 @@ export function createLineageServer({
       const body = await readJsonBody(req);
       const username = (body.username ?? 'adventurer').trim();
       let account = await repository.findAccountByUsername(username);
+      if (!account && repository.persistent) {
+        return sendJson(res, 404, { ok: false, error: 'account_not_found' });
+      }
       if (!account) {
         account = await repository.createAccount(username, hashPassword('default1234'), 'player');
       }

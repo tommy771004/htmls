@@ -334,7 +334,7 @@ const localStore = {
 };
 
 function ensureLocalSlots(accountKey) {
-  const key = (accountKey || 'adventurer01').toLowerCase();
+  const key = (accountKey || 'guest').toLowerCase();
   if (!localStore.slotsByAccount.has(key)) {
     const slots = Array.from({ length: 8 }, () => null);
     slots[0] = {
@@ -434,7 +434,7 @@ async function localApiCall(endpoint, method = 'GET', body = null, headers = {})
 
   if (pathPart === 'characters') {
     const sid = headers['x-game-session'] || '';
-    const accountKey = localStore.sessions.get(sid) || 'adventurer01';
+    const accountKey = localStore.sessions.get(sid) || 'guest';
     const slots = ensureLocalSlots(accountKey);
     if (method === 'GET') {
       return { status: 200, data: { ok: true, account: accountKey, maxSlots: 8, slots: [...slots] } };
@@ -609,7 +609,7 @@ async function localApiCall(endpoint, method = 'GET', body = null, headers = {})
       const orderNo = `ORD${Date.now()}`;
       const order = {
         orderNo,
-        accountId: body.username || 'adventurer01',
+        accountId: body.username || 'guest',
         packageId: pkg.id,
         amountTwd: pkg.amountTwd,
         eggsGranted: pkg.baseEggs + pkg.bonusEggs,
@@ -643,7 +643,7 @@ async function localApiCall(endpoint, method = 'GET', body = null, headers = {})
 
   if (pathPart === 'google-play-billing' && method === 'POST') {
     const key = `${body?.productId}:${body?.purchaseToken}`;
-    const uKey = String(body?.username || 'adventurer01').toLowerCase();
+    const uKey = String(body?.username || 'guest').toLowerCase();
     const acct = localStore.accounts.get(uKey) || { eggs: 300 };
     if (localStore.gpReceipts.has(key)) {
       return {
@@ -728,6 +728,7 @@ export async function apiRequest(endpoint, options = {}) {
 
 const ERROR_MESSAGES = {
   missing_session: '請先登入帳號',
+  account_not_found: '找不到這個帳號，請先註冊',
   slot_occupied: '此角色欄位已被佔用',
   slot_empty: '此欄位沒有角色',
   confirm_name_mismatch: '輸入的角色名稱與目標角色不一致',
@@ -753,8 +754,8 @@ function escapeHtml(str) {
 const state = {
   route: '/',
   stage: 'login', // login | select | create | game
-  username: 'adventurer01',
-  password: 'password1234',
+  username: '',
+  password: '',
   sessionId: null,
   authNotice: '尚未登入',
   realtimeLog: '尚未測試連線',
@@ -803,7 +804,7 @@ const state = {
   diceFinal: { str: 20, dex: 12, con: 14, wis: 9, cha: 12, intel: 8 },
   diceSimResult: null,
   // Topup view state
-  topupUsername: 'adventurer01',
+  topupUsername: '',
   topupPackageId: 'pack-medium',
   topupCheckout: null,
   topupWebhookResult: null,
@@ -814,7 +815,7 @@ const state = {
   gmToken: 'dev-gm-secret-token',
   gmData: null,
   gmError: null,
-  gmTargetUser: 'adventurer01',
+  gmTargetUser: '',
   gmEggsToGrant: 500,
 };
 
@@ -1607,7 +1608,7 @@ function renderTopupView() {
           <h2 style="margin-top:0;font-size:18px">1. 網頁儲值結帳 (Origin Pay)</h2>
           <div style="margin-bottom:10px">
             <label class="muted" style="font-size:13px">儲值目標帳號</label>
-            <input id="topup-user-input" class="input" value="${escapeHtml(state.topupUsername)}" style="width:100%;margin-top:4px" />
+            <input id="topup-user-input" class="input" value="${escapeHtml(state.topupUsername)}" placeholder="帳號" style="width:100%;margin-top:4px" />
           </div>
           <div style="margin-bottom:12px">
             ${EGG_PACKAGES.map(
@@ -1699,7 +1700,7 @@ function renderGmView() {
             <hr style="border:0;border-top:1px solid var(--border);margin:14px 0" />
             <div style="margin-bottom:8px">
               <label class="muted" style="font-size:13px">目標玩家帳號</label>
-              <input id="gm-target-input" class="input" value="${escapeHtml(state.gmTargetUser)}" style="width:100%;margin-top:4px" />
+              <input id="gm-target-input" class="input" value="${escapeHtml(state.gmTargetUser)}" placeholder="帳號" style="width:100%;margin-top:4px" />
             </div>
             <div class="row" style="margin-bottom:10px">
               <button id="gm-hold-btn" type="button" class="btn danger">凍結帳號</button>
@@ -1866,7 +1867,7 @@ function syncCharacterSlotFromGame(patch) {
   if (slotIdx >= 0 && slotIdx < state.slots.length && state.slots[slotIdx]) {
     applyPatch(state.slots[slotIdx]);
   }
-  const accountKey = String(state.username || 'adventurer01').trim().toLowerCase();
+  const accountKey = String(state.username || 'guest').trim().toLowerCase();
   const localSlots = localStore.slotsByAccount.get(accountKey);
   if (localSlots && slotIdx >= 0 && slotIdx < localSlots.length && localSlots[slotIdx]) {
     applyPatch(localSlots[slotIdx]);
@@ -1927,6 +1928,7 @@ async function mountGameFrame(ch) {
     gameFrame.engine = engine;
     gameFrame.status = 'ready';
     gameFrame.mode = hasExistingSave ? 'load' : 'create';
+    startGamePresenceSync(gameFrame);
   } catch (err) {
     if (gameFrame?.token !== token) return;
     gameFrame.status = 'error';
@@ -1935,8 +1937,74 @@ async function mountGameFrame(ch) {
   }
 }
 
+function startGamePresenceSync(frameObj) {
+  let ticket = null;
+  let ticketRefreshAt = 0;
+  let seq = 0;
+  let busy = false;
+  let lastChatAt = 0;
+
+  const pushPresence = async () => {
+    if (busy || !realtimeWanted() || gameFrame !== frameObj) return;
+    const world = frameObj.engine?.world;
+    if (!world?.player) return;
+    busy = true;
+    try {
+      const now = Date.now();
+      if (!ticket || now >= ticketRefreshAt) {
+        const rt = await apiRequest('realtime', { method: 'POST', body: { sessionId: state.sessionId } });
+        if (!rt.data?.ok || !rt.data.ticket) return;
+        ticket = rt.data.ticket;
+        const ttl = Number(rt.data.expiresInMs || 60_000);
+        ticketRefreshAt = now + Math.max(10_000, Math.floor(ttl * 0.7));
+      }
+      const p = world.player;
+      const sendChat = p.lastChatAt && p.lastChatAt > lastChatAt ? p.lastChatText : '';
+      if (sendChat) lastChatAt = p.lastChatAt;
+      seq += 1;
+      const payload = {
+        map: p.map,
+        x: p.tx,
+        y: p.ty,
+        heading: p.heading,
+        charName: p.name,
+        classId: p.classId,
+        gfx: p.gfx,
+        polyGfx: p.polyGfx || null,
+        clanName: p.clanName || '',
+        chat: sendChat || undefined,
+      };
+      const res = await apiRequest('world', {
+        method: 'POST',
+        body: { ticket, frame: JSON.stringify({ t: 'move', s: seq, p: payload }) },
+      });
+      if (!res.data?.ok) {
+        ticket = null;
+        return;
+      }
+      const sync = JSON.parse(String(res.data.frame || '{}'));
+      if (sync?.t === 'state_sync' && sync.p) {
+        world.setRemotePeers(sync.p.peers || [], sync.p.onlineCount || 1);
+      }
+    } catch {
+      // 單機或離線環境略過同服同步
+    } finally {
+      busy = false;
+    }
+  };
+
+  void pushPresence();
+  frameObj.presenceTimer = setInterval(() => {
+    void pushPresence();
+  }, 2800);
+}
+
 function unmountGameFrame() {
   if (!gameFrame) return;
+  if (gameFrame.presenceTimer) {
+    clearInterval(gameFrame.presenceTimer);
+    gameFrame.presenceTimer = null;
+  }
   try {
     gameFrame.engine?.destroy();
   } catch {
@@ -2180,7 +2248,23 @@ export function renderApp() {
   }
 }
 
+// 登入框不再預填帳密：沒填就不送出
+function missingCredentials() {
+  if (String(state.username).trim() && String(state.password)) return false;
+  state.stageNotice = '請輸入帳號與密碼';
+  state.authNotice = state.stageNotice;
+  renderApp();
+  return true;
+}
+
+// 登入成功後，儲值與 GM 頁的帳號欄預設帶入目前帳號
+function rememberSignedInUser(username) {
+  if (!state.topupUsername) state.topupUsername = username;
+  if (!state.gmTargetUser) state.gmTargetUser = username;
+}
+
 async function handleAuthAction(action) {
+  if (missingCredentials()) return null;
   state.charBusy = true;
   state.stageNotice = '驗證帳號中...';
   renderApp();
@@ -2197,6 +2281,7 @@ async function handleAuthAction(action) {
     return null;
   }
   state.sessionId = data.sessionId;
+  rememberSignedInUser(data.account.username);
   state.authNotice = `已登入：${data.account.username} (蛋幣 ${data.account.eggs})`;
   state.stageNotice = `登入成功，歡迎 ${data.account.username}`;
   renderApp();
@@ -2234,6 +2319,7 @@ async function loadCharactersAndOpenSelect(overrideSid) {
 }
 
 async function handleQuickStart() {
+  if (missingCredentials()) return;
   state.charBusy = true;
   state.stageNotice = '連線至說語之島認證伺服器...';
   renderApp();
@@ -2256,6 +2342,7 @@ async function handleQuickStart() {
     return;
   }
   state.sessionId = res.data.sessionId;
+  rememberSignedInUser(res.data.account.username);
   state.authNotice = `已登入：${res.data.account.username} (蛋幣 ${res.data.account.eggs})`;
   await loadCharactersAndOpenSelect(res.data.sessionId);
 }

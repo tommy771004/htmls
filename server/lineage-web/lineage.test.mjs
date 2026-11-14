@@ -400,6 +400,28 @@ describe('286 lineage-web HTTP API & Pack Slicing integration tests', () => {
     assert.equal(replyFrame.type, 'pong');
     assert.equal(replyFrame.seq, 2);
 
+    // 驗證多玩家同地圖即時位置與對話廣播狀態同步
+    const moveRes = await invokeHandler(lineage, '/api/lineage/world', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: {
+        ticket: rtTicket.ticket,
+        frame: encodeFrame({
+          type: 'move',
+          seq: 2,
+          payload: { map: 0, x: 32580, y: 32944, heading: 4, charName: '測試騎士', classId: 'knight', gfx: 61 },
+        }),
+      },
+    });
+    const moveData = await moveRes.json();
+    assert.equal(moveData.ok, true);
+    const syncFrame = decodeFrame(moveData.frame);
+    assert.equal(syncFrame.type, 'state_sync');
+    assert.equal(syncFrame.payload.mapId, 0);
+    assert.equal(syncFrame.payload.x, 32580);
+    assert.equal(Array.isArray(syncFrame.payload.peers), true);
+    assert.ok(syncFrame.payload.onlineCount >= 1);
+
     // 4. /api/lineage/forum
     const forumListRes = await invokeHandler(lineage, '/api/lineage/forum');
     const forumList = await forumListRes.json();

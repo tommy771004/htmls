@@ -676,10 +676,16 @@ function getSlotsMap() {
 
 function createInitialSlots(accountKey) {
   const slots = Array.from({ length: 8 }, () => null);
+  slots[0] = buildSeedKnight(accountKey);
+  return slots;
+}
+
+/** 新帳號送的 Lv.12 騎士（第 1 槽）。name 可覆寫，給資料庫模式在撞名時改名。 */
+export function buildSeedKnight(accountKey, name = `${String(accountKey).slice(0, 8)}騎士`) {
   const knightDef = CHARACTER_CLASSES.knight;
-  slots[0] = {
+  return {
     slot: 1,
-    name: `${accountKey.slice(0, 8)}騎士`,
+    name,
     classId: 'knight',
     className: knightDef.name,
     gender: 'm',
@@ -706,7 +712,12 @@ function createInitialSlots(accountKey) {
     inventory: [...knightDef.startingWeapons, ...knightDef.startingItems],
     createdAt: new Date().toISOString(),
   };
-  return slots;
+}
+
+/** 槽位 1..8 轉成 0..7，不合法回傳 -1。 */
+export function parseSlotIndex(slot) {
+  const idx = Number(slot) - 1;
+  return Number.isInteger(idx) && idx >= 0 && idx < 8 ? idx : -1;
 }
 
 export function getAccountCharacterSlots(accountKey) {
@@ -752,6 +763,22 @@ export function createCharacterInSlot(accountKey, input) {
     if (existingSlots.some((c) => c && c.name.toLowerCase() === trimmedName.toLowerCase())) {
       return { ok: false, error: 'name_taken' };
     }
+  }
+
+  const built = buildNewCharacter(slotIndex, input);
+  if (!built.ok) return built;
+  slots[slotIndex] = built.character;
+  return { ok: true, character: { ...built.character }, slots: getAccountCharacterSlots(key) };
+}
+
+/** 依創角輸入驗證並產生角色資料（不檢查槽位是否已占用、名字是否重複，那由儲存層負責）。 */
+export function buildNewCharacter(slotIndex, input) {
+  if (parseSlotIndex(slotIndex + 1) < 0) {
+    return { ok: false, error: 'invalid_slot' };
+  }
+  const trimmedName = (input.name ?? '').trim();
+  if (trimmedName.length < 2 || trimmedName.length > 12) {
+    return { ok: false, error: 'invalid_name' };
   }
 
   const classDef = CHARACTER_CLASSES[input.classId];
@@ -808,8 +835,7 @@ export function createCharacterInSlot(accountKey, input) {
     createdAt: new Date().toISOString(),
   };
 
-  slots[slotIndex] = created;
-  return { ok: true, character: { ...created }, slots: getAccountCharacterSlots(key) };
+  return { ok: true, character: created };
 }
 
 export function deleteCharacterInSlot(accountKey, slot, confirmName) {
@@ -851,6 +877,13 @@ export function importCharacterToSlot(accountKey, slot, rawSave) {
     return { ok: false, error: 'slot_occupied' };
   }
 
+  const imported = buildImportedCharacter(slotIndex, rawSave);
+  slots[slotIndex] = imported;
+  return { ok: true, character: { ...imported }, slots: getAccountCharacterSlots(key) };
+}
+
+/** 由匯入的存檔產生角色資料（不檢查槽位與名字）。 */
+export function buildImportedCharacter(slotIndex, rawSave) {
   const classId =
     rawSave.classId && CHARACTER_CLASSES[rawSave.classId] ? rawSave.classId : 'knight';
   const classDef = CHARACTER_CLASSES[classId];
@@ -859,7 +892,7 @@ export function importCharacterToSlot(accountKey, slot, rawSave) {
       ? rawSave.name.trim().slice(0, 12)
       : `匯入${classDef.name}${slotIndex + 1}`;
 
-  const imported = {
+  return {
     slot: slotIndex + 1,
     name,
     classId: classDef.id,
@@ -893,9 +926,6 @@ export function importCharacterToSlot(accountKey, slot, rawSave) {
     inventory: [...classDef.startingWeapons, ...classDef.startingItems],
     createdAt: new Date().toISOString(),
   };
-
-  slots[slotIndex] = imported;
-  return { ok: true, character: { ...imported }, slots: getAccountCharacterSlots(key) };
 }
 
 export function resetRealmGameStore() {

@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/lineage.mjs": { "includeFiles": "{games/286-lineage-web/src/data/captured/**,server/lineage-web/schema.sql}" }
+  },
   "headers": [
     {
       "source": "/assets/282/:path((?!manifest\\.json$).*)",

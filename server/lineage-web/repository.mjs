@@ -4,6 +4,16 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { neon } from '@neondatabase/serverless';
+import {
+  buildImportedCharacter,
+  buildNewCharacter,
+  buildSeedKnight,
+  createCharacterInSlot,
+  deleteCharacterInSlot,
+  getAccountCharacterSlots,
+  importCharacterToSlot,
+  parseSlotIndex,
+} from './core.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../..');
@@ -437,47 +447,311 @@ export class InMemoryRealmRepository {
   async listGmAudits(limit = 50) {
     return this.auditLogs.slice(0, limit);
   }
+
+  /** 帳號、session 與角色是否跨實例保存（Neon 模式才是）。 */
+  get persistent() {
+    return false;
+  }
+
+  // 角色槽：記憶體模式沿用 core.mjs 的全域 Map，以帳號小寫為鍵（account.key）
+  async getCharacterSlots(account) {
+    return getAccountCharacterSlots(account.key);
+  }
+
+  async createCharacter(account, input) {
+    return createCharacterInSlot(account.key, input);
+  }
+
+  async importCharacter(account, slot, rawSave) {
+    return importCharacterToSlot(account.key, slot, rawSave);
+  }
+
+  async deleteCharacter(account, slot, confirmName) {
+    return deleteCharacterInSlot(account.key, slot, confirmName);
+  }
 }
 
+const SCHEMA_SQL_PATH = join(__dirname, 'schema.sql');
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function sha256Hex(text) {
+  return createHash('sha256').update(String(text)).digest('hex');
+}
+
+function isoOrNull(value) {
+  return value ? new Date(value).toISOString() : null;
+}
+
+function toAccount(row) {
+  return row ? { ...row, createdAt: isoOrNull(row.createdAt) } : null;
+}
+
+/** schema.sql 拆成單句（Neon HTTP 一次只能送一句）。 */
+export function splitSchemaStatements(text) {
+  return text
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('--'))
+    .join('\n')
+    .split(';')
+    .map((stmt) => stmt.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Neon PostgreSQL 模式：帳號、session 與 8 槽角色存在資料庫，跨 Vercel 實例與冷啟動都在。
+ * 帳號、session、角色、蛋幣、儲值訂單與收據在資料庫；論壇、回報、維護開關與 GM 稽核仍沿用記憶體實作（繼承自 InMemoryRealmRepository）。
+ * 這裡沒有記憶體後援：資料庫出錯就丟例外，讓 API 回 500，而不是把資料偷偷寫進會消失的記憶體。
+ */
 export class NeonRealmRepository extends InMemoryRealmRepository {
-  constructor(databaseUrl, dataDir = DEFAULT_DATA_DIR) {
+  constructor(databaseUrl, dataDir = DEFAULT_DATA_DIR, sqlClient = null) {
     super(dataDir);
-    this.sql = neon(databaseUrl);
+    this.sql = sqlClient ?? neon(databaseUrl);
+    this.schemaReady = null;
+  }
+
+  get persistent() {
+    return true;
+  }
+
+  // 第一次查詢前確認資料表存在；缺 character_slots（最後加入的表）就整份套用 schema.sql（全是 IF NOT EXISTS）
+  ensureSchema() {
+    if (!this.schemaReady) {
+      this.schemaReady = (async () => {
+        const rows = await this.sql`SELECT to_regclass('public.character_slots') AS t`;
+        if (rows[0]?.t) return;
+        for (const stmt of splitSchemaStatements(readFileSync(SCHEMA_SQL_PATH, 'utf8'))) {
+          await this.sql.query(stmt);
+        }
+      })().catch((err) => {
+        this.schemaReady = null;
+        throw err;
+      });
+    }
+    return this.schemaReady;
   }
 
   async createAccount(username, passwordHash, role = 'player') {
-    try {
-      const rows = await this.sql`
-        INSERT INTO accounts (username, password_hash, role, eggs, is_held)
-        VALUES (${username}, ${passwordHash}, ${role}, 300, false)
-        RETURNING id, username, password_hash AS "passwordHash", role, eggs, is_held AS "isHeld", created_at AS "createdAt"
-      `;
-      if (rows[0]) {
-        return { ...rows[0], createdAt: new Date(rows[0].createdAt).toISOString() };
-      }
-    } catch (e) {
-      if (/unique/i.test(e?.message ?? '')) {
-        throw new Error('Username already exists');
-      }
+    await this.ensureSchema();
+    const rows = await this.sql`
+      INSERT INTO accounts (username, password_hash, role, eggs, is_held)
+      VALUES (${username}, ${passwordHash}, ${role}, 300, false)
+      ON CONFLICT DO NOTHING
+      RETURNING id, username, password_hash AS "passwordHash", role, eggs, is_held AS "isHeld", created_at AS "createdAt"
+    `;
+    if (!rows[0]) throw new Error('Username already exists');
+    const account = toAccount(rows[0]);
+    await this.seedStarterKnight(account);
+    return account;
+  }
+
+  // 新帳號送一隻 Lv.12 騎士；名字「帳號前 8 字＋騎士」跨帳號可能撞名，撞了就加數字
+  async seedStarterKnight(account) {
+    const base = `${account.username.toLowerCase().slice(0, 8)}騎士`;
+    for (let n = 0; n < 10; n += 1) {
+      const name = n === 0 ? base : `${base}${n + 1}`;
+      const result = await this.insertCharacterRow(account.id, buildSeedKnight(account.username.toLowerCase(), name));
+      if (result.ok || result.error === 'slot_occupied') return;
     }
-    return super.createAccount(username, passwordHash, role);
   }
 
   async findAccountByUsername(username) {
-    try {
-      const rows = await this.sql`
-        SELECT id, username, password_hash AS "passwordHash", role, eggs, is_held AS "isHeld", created_at AS "createdAt"
-        FROM accounts
-        WHERE lower(username) = lower(${username})
-        LIMIT 1
-      `;
-      if (rows[0]) {
-        return { ...rows[0], createdAt: new Date(rows[0].createdAt).toISOString() };
-      }
-    } catch {
-      // Fallback to in-memory if schema not applied
+    await this.ensureSchema();
+    const rows = await this.sql`
+      SELECT id, username, password_hash AS "passwordHash", role, eggs, is_held AS "isHeld", created_at AS "createdAt"
+      FROM accounts
+      WHERE lower(username) = lower(${username})
+      LIMIT 1
+    `;
+    return toAccount(rows[0]);
+  }
+
+  async findAccountById(id) {
+    if (!UUID_RE.test(String(id ?? ''))) return null;
+    await this.ensureSchema();
+    const rows = await this.sql`
+      SELECT id, username, password_hash AS "passwordHash", role, eggs, is_held AS "isHeld", created_at AS "createdAt"
+      FROM accounts
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    return toAccount(rows[0]);
+  }
+
+  async updateAccountHold(username, isHeld) {
+    await this.ensureSchema();
+    const rows = await this.sql`
+      UPDATE accounts SET is_held = ${Boolean(isHeld)}
+      WHERE lower(username) = lower(${username})
+      RETURNING id, username, password_hash AS "passwordHash", role, eggs, is_held AS "isHeld", created_at AS "createdAt"
+    `;
+    return toAccount(rows[0]);
+  }
+
+  async addAccountEggs(accountId, deltaEggs) {
+    if (!UUID_RE.test(String(accountId ?? ''))) return null;
+    await this.ensureSchema();
+    const rows = await this.sql`
+      UPDATE accounts SET eggs = GREATEST(0, eggs + ${Math.trunc(Number(deltaEggs) || 0)})
+      WHERE id = ${accountId}
+      RETURNING id, username, password_hash AS "passwordHash", role, eggs, is_held AS "isHeld", created_at AS "createdAt"
+    `;
+    return toAccount(rows[0]);
+  }
+
+  // 蛋幣、儲值訂單與 Google Play 收據一起放資料庫：入帳與「已處理」標記在同一句 SQL 裡完成，不會重複加值
+  async createPaymentOrder(input) {
+    await this.ensureSchema();
+    const rows = await this.sql`
+      INSERT INTO payment_orders (order_no, account_id, package_id, amount_twd, eggs_granted, provider)
+      VALUES (${input.orderNo}, ${input.accountId}, ${input.packageId}, ${input.amountTwd}, ${input.eggsGranted}, ${input.provider ?? 'origin-pay'})
+      RETURNING order_no AS "orderNo"
+    `;
+    return this.findPaymentOrder(rows[0].orderNo);
+  }
+
+  async findPaymentOrder(orderNo) {
+    if (!orderNo) return null;
+    await this.ensureSchema();
+    const rows = await this.sql`
+      SELECT id, order_no AS "orderNo", account_id AS "accountId", package_id AS "packageId",
+             amount_twd AS "amountTwd", eggs_granted AS "eggsGranted", provider, status,
+             provider_tx_id AS "providerTxId", created_at AS "createdAt", completed_at AS "completedAt"
+      FROM payment_orders WHERE order_no = ${orderNo} LIMIT 1
+    `;
+    const row = rows[0];
+    return row ? { ...row, createdAt: isoOrNull(row.createdAt), completedAt: isoOrNull(row.completedAt) } : null;
+  }
+
+  async completePaymentOrder(orderNo, providerTxId) {
+    await this.ensureSchema();
+    await this.sql`
+      WITH done AS (
+        UPDATE payment_orders
+        SET status = 'completed', provider_tx_id = ${providerTxId}, completed_at = now()
+        WHERE order_no = ${orderNo} AND status <> 'completed'
+        RETURNING account_id, eggs_granted
+      )
+      UPDATE accounts SET eggs = accounts.eggs + done.eggs_granted
+      FROM done WHERE accounts.id = done.account_id
+    `;
+    return this.findPaymentOrder(orderNo);
+  }
+
+  async hasPurchaseReceipt(idempotencyKey) {
+    await this.ensureSchema();
+    const rows = await this.sql`
+      SELECT 1 FROM purchase_receipts WHERE idempotency_key = ${idempotencyKey} LIMIT 1
+    `;
+    return rows.length > 0;
+  }
+
+  async recordPurchaseReceipt(input) {
+    await this.ensureSchema();
+    await this.sql`
+      WITH ins AS (
+        INSERT INTO purchase_receipts (idempotency_key, account_id, product_id, purchase_token, eggs_granted)
+        VALUES (${input.idempotencyKey}, ${input.accountId}, ${input.productId}, ${input.purchaseToken}, ${input.eggsGranted})
+        ON CONFLICT (idempotency_key) DO NOTHING
+        RETURNING account_id, eggs_granted
+      )
+      UPDATE accounts SET eggs = accounts.eggs + ins.eggs_granted
+      FROM ins WHERE accounts.id = ins.account_id
+    `;
+  }
+
+  // session token 只存 SHA-256，資料庫外洩也拿不到可用的登入憑證
+  async createSession(accountId, token, ttlMs) {
+    await this.ensureSchema();
+    const tokenHash = sha256Hex(token);
+    const expiresAt = new Date(Date.now() + ttlMs).toISOString();
+    const rows = await this.sql`
+      INSERT INTO sessions (account_id, token_hash, expires_at)
+      VALUES (${accountId}, ${tokenHash}, ${expiresAt})
+      RETURNING id, account_id AS "accountId", token_hash AS "tokenHash", expires_at AS "expiresAt", created_at AS "createdAt"
+    `;
+    const row = rows[0];
+    return { ...row, expiresAt: isoOrNull(row.expiresAt), createdAt: isoOrNull(row.createdAt) };
+  }
+
+  async findSessionByTokenHash(token) {
+    const raw = String(token ?? '').trim();
+    if (!raw) return null;
+    await this.ensureSchema();
+    const rows = await this.sql`
+      SELECT id, account_id AS "accountId", token_hash AS "tokenHash", expires_at AS "expiresAt", created_at AS "createdAt"
+      FROM sessions
+      WHERE token_hash = ${sha256Hex(raw)} AND expires_at > now()
+      LIMIT 1
+    `;
+    const row = rows[0];
+    return row ? { ...row, expiresAt: isoOrNull(row.expiresAt), createdAt: isoOrNull(row.createdAt) } : null;
+  }
+
+  // 單句 INSERT … ON CONFLICT DO NOTHING 同時擋槽位占用（主鍵）與撞名（lower(name) 唯一索引）
+  async insertCharacterRow(accountId, character) {
+    const rows = await this.sql`
+      INSERT INTO character_slots (account_id, slot, name, data)
+      VALUES (${accountId}, ${character.slot}, ${character.name}, ${JSON.stringify(character)}::jsonb)
+      ON CONFLICT DO NOTHING
+      RETURNING slot
+    `;
+    if (rows[0]) return { ok: true };
+    const occupied = await this.sql`
+      SELECT 1 FROM character_slots WHERE account_id = ${accountId} AND slot = ${character.slot}
+    `;
+    return { ok: false, error: occupied.length > 0 ? 'slot_occupied' : 'name_taken' };
+  }
+
+  async getCharacterSlots(account) {
+    await this.ensureSchema();
+    const rows = await this.sql`
+      SELECT slot, data FROM character_slots WHERE account_id = ${account.id} ORDER BY slot
+    `;
+    const slots = Array.from({ length: 8 }, () => null);
+    for (const row of rows) {
+      const data = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      slots[row.slot - 1] = { ...data, slot: row.slot };
     }
-    return super.findAccountByUsername(username);
+    return slots;
+  }
+
+  async createCharacter(account, input) {
+    const slotIndex = parseSlotIndex(input.slot);
+    if (slotIndex < 0) return { ok: false, error: 'invalid_slot' };
+    const built = buildNewCharacter(slotIndex, input);
+    if (!built.ok) return built;
+    await this.ensureSchema();
+    const inserted = await this.insertCharacterRow(account.id, built.character);
+    if (!inserted.ok) return inserted;
+    return { ok: true, character: built.character, slots: await this.getCharacterSlots(account) };
+  }
+
+  async importCharacter(account, slot, rawSave) {
+    const slotIndex = parseSlotIndex(slot);
+    if (slotIndex < 0) return { ok: false, error: 'invalid_slot' };
+    const character = buildImportedCharacter(slotIndex, rawSave ?? {});
+    await this.ensureSchema();
+    const inserted = await this.insertCharacterRow(account.id, character);
+    if (!inserted.ok) return inserted;
+    return { ok: true, character, slots: await this.getCharacterSlots(account) };
+  }
+
+  async deleteCharacter(account, slot, confirmName) {
+    const slotIndex = parseSlotIndex(slot);
+    if (slotIndex < 0) return { ok: false, error: 'invalid_slot' };
+    await this.ensureSchema();
+    const rows = await this.sql`
+      DELETE FROM character_slots
+      WHERE account_id = ${account.id} AND slot = ${slotIndex + 1} AND name = ${String(confirmName ?? '').trim()}
+      RETURNING slot
+    `;
+    if (!rows[0]) {
+      const exists = await this.sql`
+        SELECT 1 FROM character_slots WHERE account_id = ${account.id} AND slot = ${slotIndex + 1}
+      `;
+      return { ok: false, error: exists.length > 0 ? 'confirm_name_mismatch' : 'slot_empty' };
+    }
+    return { ok: true, slots: await this.getCharacterSlots(account) };
   }
 }
 

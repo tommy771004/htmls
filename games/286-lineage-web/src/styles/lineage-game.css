@@ -22,7 +22,7 @@
   image-rendering: pixelated;
 }
 
-/* 左上角地區與目標膠囊 */
+/* 頂部左右懸浮區：左上圖示工具列＋Buff列＋目標條｜右上即時小地圖＋可折疊任務面板 */
 .ll-top-strip {
   position: fixed;
   top: 8px;
@@ -31,42 +31,188 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   pointer-events: none;
   z-index: 65;
 }
 
-.ll-map-pill,
-.ll-target-pill {
+.ll-tl-cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ll-tl-toolbar {
   pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 4px;
+  background: rgba(11, 13, 18, 0.84);
+  border: 1px solid #6b5532;
+  border-radius: 5px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
+}
+
+.ll-tl-toolbar.collapsed .ll-tl-btn {
+  display: none;
+}
+
+.ll-tl-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 34px;
+  height: 34px;
+  padding: 2px 4px;
+  border: 1px solid #493b25;
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(35, 29, 21, 0.92), rgba(17, 15, 13, 0.95));
+  color: #e6d4ad;
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ll-tl-btn:hover {
+  border-color: #ebc26d;
+  color: #fff3d1;
+}
+
+.ll-tl-btn img {
+  width: 17px;
+  height: 17px;
+  object-fit: contain;
+  display: block;
+}
+
+.ll-tl-chevron {
+  width: 18px;
+  height: 34px;
+  border: 1px solid #493b25;
+  border-radius: 4px;
+  background: rgba(20, 22, 28, 0.92);
+  color: #d7c090;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ll-buff-strip {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ll-buff-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
-  background: rgba(10, 14, 20, 0.84);
-  border: 1px solid #755b32;
-  border-radius: 6px;
-  color: #efe4cc;
-  font-size: 12px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
-  max-width: calc(100vw - 16px);
-}
-
-.ll-map-name {
-  color: #f3d284;
-  font-weight: 700;
-}
-
-.ll-coords {
-  color: #a9b8cb;
+  gap: 3px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(12, 26, 23, 0.86);
+  border: 1px solid #2e8474;
+  color: #8bf5de;
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
 
+.ll-buff-badge.auto {
+  background: rgba(16, 46, 36, 0.9);
+  border-color: #34d399;
+  color: #6ee7b7;
+  font-weight: 700;
+}
+
+.ll-buff-badge.debuff {
+  background: rgba(68, 18, 44, 0.92);
+  border-color: #d946ef;
+  color: #f5d0fe;
+  font-weight: 700;
+}
+
+.ll-craft-reqs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 11px;
+}
+
+.ll-craft-mat {
+  color: #93c5fd;
+}
+
+.ll-craft-mat.lack {
+  color: #fca5a5;
+}
+
+.ll-item-sub.warn {
+  color: #fca5a5;
+}
+
+.ll-item-sub.unid {
+  color: #93c5fd;
+}
+
+.ll-morph-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 8px;
+}
+
+.ll-morph-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  border: 1px solid #594426;
+  background: rgba(18, 15, 11, 0.92);
+  color: #f3ead3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ll-morph-card:hover {
+  border-color: #d7ab58;
+  background: rgba(34, 27, 17, 0.96);
+}
+
+.ll-morph-card.active {
+  border-color: #38bdf8;
+  background: rgba(14, 42, 60, 0.88);
+}
+
+.ll-morph-card:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.ll-buff-badge img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
 .ll-target-pill {
+  pointer-events: auto;
+  display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 3px;
-  min-width: 150px;
+  padding: 5px 10px;
+  background: rgba(10, 14, 20, 0.86);
+  border: 1px solid #8a4236;
+  border-radius: 5px;
+  color: #efe4cc;
+  min-width: 156px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
 }
 
 .ll-target-pill[hidden] {
@@ -80,7 +226,7 @@
 }
 
 .ll-target-bar {
-  width: 140px;
+  width: 144px;
   height: 6px;
   background: #1b222c;
   border: 1px solid #483822;
@@ -94,82 +240,398 @@
   transition: width 100ms linear;
 }
 
-.ll-top-actions {
+/* 右上角小地圖＋區域名＋可折疊試煉任務手風琴 */
+.ll-tr-cluster {
   pointer-events: auto;
+  width: 172px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
 }
 
-.ll-mini-btn {
-  padding: 4px 9px;
+.ll-radar-card {
+  background: rgba(10, 13, 18, 0.86);
+  border: 1px solid #6f5833;
   border-radius: 5px;
-  border: 1px solid #6e5733;
-  background: rgba(19, 25, 34, 0.9);
-  color: #f0dfba;
-  font-size: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65);
+}
+
+.ll-radar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 7px;
+  background: linear-gradient(90deg, #271f14, #181410);
+  border-bottom: 1px solid #59462a;
   cursor: pointer;
+  font-size: 11px;
+}
+
+.ll-map-name {
+  color: #f3d284;
+  font-weight: 700;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.ll-mini-btn:hover {
-  border-color: #d6ae63;
-  background: rgba(45, 36, 22, 0.94);
+.ll-radar-open-hint {
+  color: #b7c2d0;
+  font-size: 10px;
+  flex-shrink: 0;
 }
 
-.ll-mini-btn.active {
-  border-color: #5eead4;
-  color: #99f6e4;
-  background: rgba(13, 62, 56, 0.85);
+.ll-radar-body {
+  padding: 3px;
+  background: #070b10;
 }
 
-/* 經典底部狀態列 */
+.ll-radar-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+  border-radius: 2px;
+}
+
+.ll-radar-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 3px 6px;
+  border-top: 1px solid #3c3120;
+  font-size: 10px;
+}
+
+.ll-coords {
+  color: #a9b8cb;
+  font-variant-numeric: tabular-nums;
+}
+
+.ll-zone-badge {
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.ll-zone-badge.safety {
+  color: #67e8f9;
+  background: rgba(14, 62, 82, 0.55);
+}
+
+.ll-zone-badge.combat {
+  color: #fca5a5;
+  background: rgba(102, 24, 24, 0.55);
+}
+
+.ll-tr-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ll-acc-item {
+  background: rgba(10, 13, 18, 0.78);
+  border: 1px solid #4d3f28;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #e4d8bd;
+}
+
+.ll-acc-item summary {
+  padding: 3px 7px;
+  cursor: pointer;
+  list-style: none;
+  color: #f1cf84;
+  font-weight: 600;
+}
+
+.ll-acc-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.ll-acc-body {
+  padding: 4px 7px 6px;
+  border-top: 1px solid rgba(90, 72, 42, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10.5px;
+}
+
+.ll-quest-row {
+  display: flex;
+  justify-content: space-between;
+  color: #d6cbb2;
+}
+
+.ll-quest-row .done {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.ll-acc-action {
+  border: 1px solid #4c402c;
+  border-radius: 3px;
+  background: rgba(24, 21, 16, 0.9);
+  color: #d8ccb4;
+  padding: 3px 5px;
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ll-acc-action:hover {
+  border-color: #eab967;
+  color: #fff;
+}
+
+/* 底部浮動 Remaster 控制三區＋最底滿版 EXP 條 */
 #ll-hud-bottom {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 68;
-  background-color: #120f0c;
-  background-position: center bottom;
-  background-size: 100% 100%;
-  border-top: 2px solid #8a6c3b;
-  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.72);
-  padding: 6px 10px 8px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
 }
 
 .ll-hud-backdrop {
-  position: relative;
-  max-width: 1380px;
-  margin: 0 auto;
+  width: 100%;
+  padding: 0 10px 5px;
   display: grid;
-  grid-template-columns: 270px minmax(220px, 1fr) auto;
-  gap: 10px;
-  align-items: stretch;
-  background: linear-gradient(180deg, rgba(16, 13, 10, 0.88), rgba(10, 8, 6, 0.94));
-  border: 1px solid rgba(154, 121, 69, 0.55);
-  border-radius: 6px;
-  padding: 6px 8px;
+  grid-template-columns: minmax(270px, 1fr) auto minmax(120px, 1fr);
+  gap: 12px;
+  align-items: end;
+  pointer-events: none;
 }
 
-/* 左側狀態條區 */
-.ll-vitals-col {
+/* 左下：半透明對話視窗 */
+.ll-chat-col {
+  justify-self: start;
+  width: min(356px, 100%);
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
+  background: rgba(9, 11, 16, 0.82);
+  border: 1px solid #59472c;
+  border-radius: 5px;
+  padding: 4px 5px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.72);
 }
 
-.ll-char-line {
+.ll-chat-tabs {
   display: flex;
   align-items: center;
+  gap: 3px;
+}
+
+.ll-chat-tab {
+  padding: 1px 8px;
+  font-size: 10.5px;
+  border: 1px solid #443927;
+  border-radius: 3px;
+  background: rgba(21, 23, 29, 0.85);
+  color: #a99e8a;
+  cursor: pointer;
+}
+
+.ll-chat-tab.active {
+  border-color: #b48a46;
+  background: linear-gradient(180deg, #3c2f1b, #231b0e);
+  color: #f8e3b0;
+  font-weight: 700;
+}
+
+.ll-chat-tabs-spacer {
+  flex: 1;
+}
+
+.ll-chat-expand-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #6b532f;
+  border-radius: 3px;
+  background: rgba(20, 17, 13, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ll-chat-expand-btn:hover {
+  border-color: #eab967;
+}
+
+.ll-chat-expand-btn img {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/* 保持 block 流排版，嚴禁 flexbox 垂直壓扁裁切文字 */
+.ll-log-col {
+  display: block;
+  width: 100%;
+  height: 108px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: rgba(5, 7, 10, 0.56);
+  border: 1px solid #3c3222;
+  border-radius: 3px;
+  padding: 4px 6px;
+  font-size: 11.5px;
+  line-height: 1.44;
+  transition: height 150ms ease;
+}
+
+#ll-hud-bottom.chat-expanded .ll-log-col {
+  height: 212px;
+}
+
+.ll-log-line {
+  display: block;
+  min-height: 17px;
+  line-height: 1.44;
+  white-space: normal;
+  word-break: break-word;
+  margin-bottom: 1px;
+}
+
+.ll-chat-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ll-chat-chan {
+  font-size: 10.5px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  border: 1px solid #493b25;
+  background: #171512;
+  color: #d9c69e;
+  white-space: nowrap;
+}
+
+.ll-chat-input {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid #59462b;
+  background: rgba(8, 10, 14, 0.92);
+  color: #f3e6c8;
+  font-size: 11.5px;
+  outline: none;
+}
+
+.ll-chat-input::placeholder {
+  color: #707887;
+}
+
+.ll-chat-input:focus {
+  border-color: #e3b963;
+}
+
+.ll-chat-send-btn {
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #755b33;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #322719, #1b140c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ll-chat-send-btn:hover {
+  border-color: #f0ca76;
+}
+
+.ll-chat-send-btn img {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.ll-log-time {
+  color: #7c8798;
+  margin-right: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ll-log-line.gold { color: #f7d277; }
+.ll-log-line.cyan { color: #7be0ff; }
+.ll-log-line.warn { color: #f6b352; }
+.ll-log-line.danger { color: #ff7676; }
+.ll-log-line.chat { color: #fef08a; }
+.ll-log-line.info { color: #e2dac9; }
+
+/* 中下核心主控台（等級牌＋HP/MP＋即時紅水鈕＋F5~F12＋底排能力數值列） */
+.ll-center-console {
+  justify-self: center;
+  pointer-events: auto;
+  display: flex;
+  align-items: stretch;
+  background: linear-gradient(180deg, rgba(25, 21, 17, 0.93), rgba(11, 10, 9, 0.96));
+  border: 1px solid #7d6237;
+  border-radius: 6px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(245, 206, 128, 0.14);
+  overflow: hidden;
+}
+
+.ll-level-card {
+  width: 88px;
+  padding: 5px 6px;
+  border-right: 1px solid #594425;
+  background: radial-gradient(circle at 50% 25%, #2f2518, #14110d 82%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ll-level-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.ll-level-label {
+  font-size: 10px;
+  color: #d1b784;
+  letter-spacing: 0.4px;
+}
+
+.ll-level-num {
+  font-size: 26px;
+  font-weight: 800;
+  color: #fff2c6;
+  text-shadow: 0 2px 4px #000;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
 }
 
 .ll-char-title {
+  width: 100%;
+  font-size: 10.5px;
   font-weight: 700;
   color: #f6d992;
   white-space: nowrap;
@@ -178,32 +640,41 @@
 }
 
 .ll-lawful {
-  font-size: 11px;
-  padding: 1px 6px;
+  font-size: 9.5px;
+  padding: 0 5px;
   border-radius: 999px;
-  border: 1px solid #42546d;
-  background: #131c28;
+  border: 1px solid #486182;
+  background: rgba(14, 24, 38, 0.88);
   color: #9ec5ff;
   white-space: nowrap;
 }
 
-.ll-gauge-row {
-  display: grid;
-  grid-template-columns: 26px 1fr;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
+.ll-console-main {
+  padding: 5px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
-.ll-gauge-label {
-  color: #d7c4a0;
-  font-weight: 700;
+.ll-bars-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 5px;
+}
+
+.ll-bars-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .ll-gauge-track {
   position: relative;
-  height: 14px;
-  background: #0c0e13;
+  height: 15px;
+  background: #0a0c10;
   border: 1px solid #594425;
   border-radius: 3px;
   overflow: hidden;
@@ -222,93 +693,62 @@
   background: linear-gradient(90deg, #1d4ed8, #38bdf8);
 }
 
-.ll-gauge-fill.exp {
-  background: linear-gradient(90deg, #b45309, #facc15);
-}
-
 .ll-gauge-text {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
   color: #fff;
   text-shadow: 0 1px 2px #000;
   font-variant-numeric: tabular-nums;
 }
 
-.ll-stat-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  font-size: 11px;
-  color: #d2c8b4;
-}
-
-.ll-chip {
-  padding: 1px 6px;
+.ll-side-pot-btn {
+  position: relative;
+  width: 34px;
+  height: 33px;
+  padding: 2px;
+  border: 1px solid #84683b;
   border-radius: 4px;
-  background: rgba(25, 29, 36, 0.85);
-  border: 1px solid #3c3428;
-  font-variant-numeric: tabular-nums;
-}
-
-.ll-chip.gold {
-  color: #ffd872;
-}
-
-.ll-chip.buff {
-  border-color: #2f7d6e;
-  color: #79f2d8;
-}
-
-/* 中間對話 / 戰鬥日誌框 */
-.ll-log-col {
+  background: linear-gradient(180deg, #271f15, #120f0c);
   display: flex;
-  flex-direction: column;
-  min-width: 0;
-  background: rgba(6, 9, 13, 0.84);
-  border: 1px solid #493923;
-  border-radius: 4px;
-  padding: 4px 7px;
-  max-height: 92px;
-  overflow-y: auto;
-  font-size: 12px;
-  line-height: 1.38;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-.ll-log-line {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.ll-side-pot-btn:hover {
+  border-color: #f4cd75;
 }
 
-.ll-log-time {
-  color: #7c8798;
-  margin-right: 5px;
-  font-variant-numeric: tabular-nums;
+.ll-side-pot-btn img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
-.ll-log-line.gold { color: #f7d277; }
-.ll-log-line.cyan { color: #7be0ff; }
-.ll-log-line.warn { color: #f6b352; }
-.ll-log-line.danger { color: #ff7676; }
-.ll-log-line.info { color: #e2dac9; }
-
-/* 右側快捷列 + 功能鈕 */
-.ll-right-col {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 5px;
+.ll-side-pot-btn span {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
 }
 
 .ll-quickbar {
   display: grid;
   grid-template-columns: repeat(8, 38px);
-  gap: 4px;
+  gap: 3px;
+}
+
+.ll-qslot[data-qidx="4"] {
+  margin-left: 2px;
 }
 
 .ll-qslot {
@@ -316,9 +756,10 @@
   width: 38px;
   height: 38px;
   padding: 2px;
-  border: 1px solid #785f36;
+  border: 1px solid #84683b;
   border-radius: 4px;
-  background: rgba(14, 17, 23, 0.92);
+  background: linear-gradient(180deg, #1b1917, #0e1014);
+  box-shadow: inset 0 0 0 1px rgba(240, 200, 120, 0.12);
   color: #efe4cc;
   display: flex;
   align-items: center;
@@ -361,38 +802,206 @@
   text-shadow: 0 1px 2px #000;
 }
 
-.ll-hud-buttons {
+.ll-stat-chips {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
   gap: 4px;
-  justify-content: flex-end;
+  font-size: 10.5px;
+  color: #dfd4bd;
+  padding-top: 2px;
+  border-top: 1px solid rgba(117, 91, 51, 0.35);
 }
 
-.ll-hud-btn {
-  padding: 4px 8px;
-  border-radius: 4px;
+.ll-chip {
+  padding: 0 4px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ll-chip.gold {
+  color: #ffd872;
+  font-weight: 700;
+}
+
+/* 右下：圓形 Play / 自動狩獵與周邊鈕 */
+.ll-br-dock {
+  justify-self: end;
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.ll-br-sub-btn {
+  padding: 5px 10px;
+  border-radius: 999px;
   border: 1px solid #755b33;
-  background: linear-gradient(180deg, #272017, #16120d);
+  background: rgba(14, 17, 23, 0.88);
   color: #efe2c4;
   font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.65);
+}
+
+.ll-br-sub-btn:hover {
+  border-color: #f3ce7b;
+}
+
+.ll-play-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid #9e7a41;
+  background: radial-gradient(circle at 35% 30%, #3a2e1d, #12100d 75%);
+  color: #f6dc9c;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(246, 210, 122, 0.18);
+}
+
+.ll-play-btn:hover {
+  border-color: #f7d47c;
+}
+
+.ll-play-btn.active {
+  border-color: #34d399;
+  background: radial-gradient(circle at 35% 30%, #165e45, #0a1f18 75%);
+  color: #a7f3d0;
+  box-shadow: 0 0 18px rgba(52, 211, 153, 0.55);
+}
+
+.ll-play-ring {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.ll-play-label {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* 最底端 100% 滿版經驗條（Remaster 招牌風格） */
+.ll-exp-footer {
+  pointer-events: auto;
+  position: relative;
+  width: 100%;
+  height: 15px;
+  background: #080a0e;
+  border-top: 1px solid #6b522c;
+  overflow: hidden;
+}
+
+.ll-exp-footer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent calc(10% - 1px),
+    rgba(0, 0, 0, 0.55) calc(10% - 1px),
+    rgba(0, 0, 0, 0.55) 10%
+  );
+  pointer-events: none;
+}
+
+.ll-exp-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #9a6704, #eab308 65%, #fde047);
+  transition: width 150ms linear;
+}
+
+.ll-exp-pct {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px #000, 0 0 4px #000;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 狀態視窗紙娃娃裝備格 */
+.ll-doll-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ll-doll-slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+  border: 1px solid #493923;
+  border-radius: 5px;
+  background: rgba(18, 15, 11, 0.9);
+  color: #d7ccb4;
+  font-size: 11px;
+  text-align: left;
   cursor: pointer;
 }
 
-.ll-hud-btn:hover {
-  border-color: #ecc676;
-  color: #fff3d2;
+.ll-doll-slot.equipped {
+  border-color: #7c6236;
+  background: rgba(34, 28, 19, 0.92);
+  color: #f9e8be;
 }
 
-.ll-hud-btn.active {
-  border-color: #34d399;
-  color: #86efac;
-  background: #103227;
+.ll-doll-slot:hover {
+  border-color: #ecc676;
+}
+
+.ll-doll-slot img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.ll-doll-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  line-height: 1.2;
+}
+
+.ll-doll-label {
+  color: #9e8a67;
+  font-size: 10px;
+}
+
+.ll-doll-empty {
+  width: 22px;
+  text-align: center;
+  color: #5b5244;
+  flex-shrink: 0;
+}
+
+.ll-doll-name {
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 浮動功能視窗（道具、魔法、狀態、NPC 對話／商店／倉庫、地圖、系統） */
 #ll-modal-layer {
   position: fixed;
-  inset: 0 0 112px 0;
+  inset: 0 0 122px 0;
   pointer-events: none;
   z-index: 72;
   display: flex;
@@ -459,6 +1068,10 @@
   display: grid;
   grid-template-columns: 195px 1fr;
   gap: 12px;
+}
+
+.ll-inv-grid.status-layout {
+  grid-template-columns: 270px 1fr;
 }
 
 .ll-equip-box,
@@ -626,30 +1239,88 @@
   display: none;
 }
 
-@media (max-width: 900px), (max-height: 460px) {
+@media (max-width: 1120px) and (min-width: 821px) {
+  .ll-hud-backdrop {
+    grid-template-columns: minmax(220px, 1fr) auto minmax(88px, auto);
+    gap: 8px;
+  }
+
+  .ll-chat-col {
+    width: 100%;
+  }
+
+  .ll-level-card {
+    width: 72px;
+  }
+
+  .ll-quickbar {
+    grid-template-columns: repeat(8, 34px);
+  }
+
+  .ll-qslot {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (max-width: 820px) {
+  .ll-tr-cluster {
+    width: auto;
+    max-width: 170px;
+  }
+
+  .ll-tr-accordion,
+  .ll-radar-body {
+    display: none;
+  }
+
   .ll-hud-backdrop {
     grid-template-columns: 1fr;
     gap: 5px;
-    padding: 5px 6px;
+    padding: 0 6px 4px;
+  }
+
+  .ll-center-console {
+    width: 100%;
+    order: 1;
+  }
+
+  .ll-chat-col {
+    width: 100%;
+    order: 2;
+  }
+
+  .ll-br-dock {
+    display: none;
+  }
+
+  .ll-level-card {
+    width: 68px;
+    padding: 4px;
+  }
+
+  .ll-level-num {
+    font-size: 20px;
   }
 
   .ll-log-col {
-    max-height: 54px;
+    height: 56px;
     font-size: 11px;
-    line-height: 1.35;
-    padding: 3px 6px;
+    line-height: 1.4;
   }
 
-  .ll-right-col {
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
+  .ll-log-line {
+    min-height: 15px;
+    line-height: 1.4;
   }
 
   .ll-quickbar {
     grid-template-columns: repeat(8, minmax(0, 1fr));
     width: 100%;
+  }
+
+  .ll-qslot[data-qidx="4"] {
+    margin-left: 0;
   }
 
   .ll-qslot {
@@ -662,46 +1333,106 @@
     height: 22px;
   }
 
-  .ll-hud-buttons {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .ll-hud-btn {
-    flex: 1 1 auto;
-    padding: 4px 5px;
-    text-align: center;
-  }
-
-  .ll-inv-grid {
+  .ll-inv-grid,
+  .ll-inv-grid.status-layout {
     grid-template-columns: 1fr;
   }
 
-  .ll-mobile-bar {
-    display: flex;
-    gap: 6px;
-    flex-wrap: nowrap;
+  .ll-doll-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   #ll-modal-layer {
-    inset: 0 0 148px 0;
+    inset: 0 0 185px 0;
+  }
+}
+
+@media (max-height: 460px) and (min-width: 600px) {
+  .ll-tr-accordion,
+  .ll-radar-body {
+    display: none;
+  }
+
+  .ll-hud-backdrop {
+    grid-template-columns: minmax(180px, 240px) auto auto;
+    gap: 6px;
+    padding: 0 6px 4px;
+  }
+
+  .ll-center-console {
+    width: auto;
+    order: 2;
+  }
+
+  .ll-chat-col {
+    width: 100%;
+    order: 1;
+  }
+
+  .ll-br-dock {
+    display: flex;
+    order: 3;
+    gap: 4px;
+  }
+
+  .ll-br-sub-btn {
+    display: none;
+  }
+
+  .ll-play-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .ll-level-card {
+    width: 60px;
+  }
+
+  .ll-level-num {
+    font-size: 18px;
+  }
+
+  .ll-stat-chips {
+    display: none;
+  }
+
+  .ll-log-col {
+    height: 44px;
+    font-size: 11px;
+  }
+
+  .ll-quickbar {
+    grid-template-columns: repeat(8, 30px);
+    gap: 2px;
+  }
+
+  .ll-qslot {
+    width: 30px;
+    height: 30px;
+  }
+
+  #ll-modal-layer {
+    inset: 0 0 98px 0;
   }
 }
 
 @media (max-width: 520px) {
   .ll-top-strip {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 4px;
+    gap: 6px;
   }
 
-  .ll-map-pill {
-    font-size: 11px;
-    padding: 4px 8px;
+  .ll-tl-btn {
+    min-width: 30px;
+    height: 32px;
+    padding: 2px;
+  }
+
+  .ll-tl-btn span {
+    display: none;
   }
 
   .ll-stat-chips {
     font-size: 10px;
-    gap: 4px;
+    gap: 3px;
   }
 }
