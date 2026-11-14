@@ -4,6 +4,7 @@ export interface WorkerWebSocket {
   close(code?: number, reason?: string): void;
   addEventListener(type: "message", listener: (event: { data: unknown }) => void): void;
   addEventListener(type: "close", listener: () => void): void;
+  addEventListener(type: "error", listener: () => void): void;
 }
 
 export interface DurableObjectStateLike {
@@ -66,13 +67,32 @@ export function processRealmFrame(
 export class RealmGatewayDO {
   private readonly connections = new Set<WorkerWebSocket>();
 
+  // Cloudflare 以 (state, env) 建立 Durable Object；第三個參數只給測試注入假的 WebSocketPair
   constructor(
     private readonly _state: DurableObjectStateLike,
+    _env?: unknown,
     private readonly pairFactory: WebSocketPairFactory = defaultWebSocketPairFactory,
   ) {}
 
   get activeConnections(): number {
     return this.connections.size;
+  }
+
+  /** 有人進出時，把最新在線人數推給同一個 realm 的所有連線（except：剛收到 snapshot 的那條）。 */
+  private broadcastPresence(except?: WorkerWebSocket): void {
+    const frame = JSON.stringify({ type: "presence", online: this.connections.size });
+    for (const ws of [...this.connections]) {
+      if (ws === except) continue;
+      try {
+        ws.send(frame);
+      } catch {
+        this.connections.delete(ws);
+      }
+    }
+  }
+
+  private drop(ws: WorkerWebSocket): void {
+    if (this.connections.delete(ws)) this.broadcastPresence();
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -96,14 +116,19 @@ export class RealmGatewayDO {
         online: this.connections.size,
       }),
     );
+    this.broadcastPresence(server);
 
     server.addEventListener("message", (event) => {
-      server.send(processRealmFrame(event.data, subject, realm));
+      try {
+        server.send(processRealmFrame(event.data, subject, realm));
+      } catch {
+        this.drop(server);
+      }
     });
 
-    server.addEventListener("close", () => {
-      this.connections.delete(server);
-    });
+    const leave = () => this.drop(server);
+    server.addEventListener("close", leave);
+    server.addEventListener("error", leave);
 
     const upgradeInit = {
       status: 101,

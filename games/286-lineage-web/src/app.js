@@ -1985,6 +1985,178 @@ function bindBgmUnlock() {
   document.addEventListener('visibilitychange', syncBgm);
 }
 
+// ── 即時連線：Cloudflare Worker（RealmGatewayDO）的 WebSocket ──
+// 登入且走後端 API 時，向 /api/lineage/realtime 取票證與 wsEndpoint；只有 wsEndpoint 是 ws(s):// 才連
+// （Vercel 設了 NEXT_PUBLIC_WS_GATEWAY_URL）。每 5 秒 ping 量延遲，斷線以指數退避重連並重新取票證。
+// 狀態只更新導覽列的徽章元素，不整頁重繪（避免打斷論壇等表單輸入）。
+const REALTIME_PING_MS = 5000;
+const realtime = {
+  ws: null,
+  status: 'idle', // idle | connecting | open | reconnecting | unavailable
+  sessionId: null,
+  online: null,
+  latencyMs: null,
+  seq: 0,
+  sentAt: new Map(),
+  pingTimer: null,
+  retry: 0,
+  retryTimer: null,
+  pingLogWaiter: null,
+};
+
+function realtimeWanted() {
+  return Boolean(state.sessionId) && shouldUseNetworkBackend();
+}
+
+function realtimeBadgeText() {
+  if (realtime.status === 'open') {
+    const online = realtime.online == null ? '—' : realtime.online;
+    const latency = realtime.latencyMs == null ? '—' : `${realtime.latencyMs} ms`;
+    return `● 線上 ${online} · ${latency}`;
+  }
+  if (realtime.status === 'connecting') return '○ 連線中…';
+  if (realtime.status === 'reconnecting') return '○ 重新連線中…';
+  return '';
+}
+
+function updateRealtimeBadge() {
+  const el = document.getElementById('realtime-badge');
+  if (!el) return;
+  const text = realtimeBadgeText();
+  el.textContent = text;
+  el.hidden = !text;
+  el.dataset.status = realtime.status;
+}
+
+function sendRealtimePing() {
+  const ws = realtime.ws;
+  if (!ws || ws.readyState !== 1) return false;
+  realtime.seq += 1;
+  realtime.sentAt.set(realtime.seq, performance.now());
+  if (realtime.sentAt.size > 20) realtime.sentAt.delete(realtime.sentAt.keys().next().value);
+  ws.send(JSON.stringify({ type: 'ping', seq: realtime.seq }));
+  return true;
+}
+
+function handleRealtimeFrame(raw) {
+  let msg;
+  try {
+    msg = JSON.parse(String(raw));
+  } catch {
+    return;
+  }
+  if ((msg.type === 'snapshot' || msg.type === 'presence') && Number.isFinite(msg.online)) {
+    realtime.online = msg.online;
+  } else if (msg.type === 'pong') {
+    const t0 = realtime.sentAt.get(msg.seq);
+    if (t0 != null) {
+      realtime.latencyMs = Math.round(performance.now() - t0);
+      realtime.sentAt.delete(msg.seq);
+    }
+    if (realtime.pingLogWaiter === msg.seq) {
+      realtime.pingLogWaiter = null;
+      state.realtimeLog = `收到 Worker Frame: ${JSON.stringify(msg)}（${realtime.latencyMs} ms）`;
+      renderApp();
+    }
+  }
+  updateRealtimeBadge();
+}
+
+function scheduleRealtimeReconnect() {
+  clearTimeout(realtime.retryTimer);
+  if (!realtimeWanted()) {
+    realtime.status = 'idle';
+    updateRealtimeBadge();
+    return;
+  }
+  realtime.status = 'reconnecting';
+  updateRealtimeBadge();
+  const delay = Math.min(30000, 1000 * 2 ** realtime.retry);
+  realtime.retry += 1;
+  realtime.retryTimer = setTimeout(() => void connectRealtime(), delay);
+}
+
+async function connectRealtime() {
+  if (realtime.ws || !realtimeWanted()) return;
+  const sid = state.sessionId;
+  realtime.sessionId = sid;
+  if (realtime.status !== 'reconnecting') realtime.status = 'connecting';
+  updateRealtimeBadge();
+  const rt = await apiRequest('realtime', { method: 'POST', body: { sessionId: sid } });
+  if (realtime.sessionId !== sid || realtime.ws || !realtimeWanted()) return;
+  const endpoint = rt.data?.wsEndpoint || '';
+  if (!rt.data?.ok) {
+    scheduleRealtimeReconnect();
+    return;
+  }
+  if (!/^wss?:\/\//i.test(endpoint)) {
+    // 沒設定 Worker 閘道（NEXT_PUBLIC_WS_GATEWAY_URL）：不連線，Ping 走 HTTP
+    realtime.status = 'unavailable';
+    updateRealtimeBadge();
+    return;
+  }
+  const url = new URL(endpoint);
+  url.searchParams.set('ticket', rt.data.ticket);
+  let ws;
+  try {
+    ws = new WebSocket(url.toString());
+  } catch {
+    scheduleRealtimeReconnect();
+    return;
+  }
+  realtime.ws = ws;
+  ws.addEventListener('open', () => {
+    if (realtime.ws !== ws) return;
+    realtime.status = 'open';
+    realtime.retry = 0;
+    ws.send(JSON.stringify({ type: 'hello' }));
+    sendRealtimePing();
+    clearInterval(realtime.pingTimer);
+    realtime.pingTimer = setInterval(sendRealtimePing, REALTIME_PING_MS);
+    updateRealtimeBadge();
+  });
+  ws.addEventListener('message', (ev) => {
+    if (realtime.ws === ws) handleRealtimeFrame(ev.data);
+  });
+  ws.addEventListener('close', () => {
+    if (realtime.ws !== ws) return;
+    clearInterval(realtime.pingTimer);
+    realtime.ws = null;
+    realtime.online = null;
+    realtime.latencyMs = null;
+    scheduleRealtimeReconnect();
+  });
+}
+
+function disconnectRealtime() {
+  clearTimeout(realtime.retryTimer);
+  clearInterval(realtime.pingTimer);
+  const ws = realtime.ws;
+  realtime.ws = null;
+  realtime.sessionId = null;
+  realtime.status = 'idle';
+  realtime.online = null;
+  realtime.latencyMs = null;
+  realtime.retry = 0;
+  if (ws) {
+    try {
+      ws.close(1000, 'logout');
+    } catch {
+      // 已關閉
+    }
+  }
+}
+
+function syncRealtime() {
+  if (!realtimeWanted()) {
+    if (realtime.ws || realtime.status !== 'idle') disconnectRealtime();
+    return;
+  }
+  // 換了帳號：舊連線關掉重來
+  if (realtime.sessionId && realtime.sessionId !== state.sessionId) disconnectRealtime();
+  if (!realtime.ws && realtime.status === 'idle') void connectRealtime();
+}
+
 export function renderApp() {
   const root = document.getElementById('app-root');
   if (!root) return;
@@ -2002,6 +2174,7 @@ export function renderApp() {
 
   syncBgm();
   syncGameFrame();
+  syncRealtime();
 
   // 登入、選角與遊戲畫面只顯示舞台，不顯示導覽列與其他區塊
   const stageOnly =
@@ -2021,6 +2194,7 @@ export function renderApp() {
     <main class="container">
       ${contentHtml}
     </main>
+    <span id="realtime-badge" class="realtime-badge" data-status="${realtime.status}" aria-live="polite" ${realtimeBadgeText() ? '' : 'hidden'}>${escapeHtml(realtimeBadgeText())}</span>
   `;
 
   if (state.route === '/') {
@@ -2109,6 +2283,13 @@ async function handleQuickStart() {
 }
 
 async function pingWorld() {
+  // 已連上 Worker：直接用 WebSocket ping，pong 回來時寫入 realtimeLog
+  if (realtime.ws && realtime.ws.readyState === 1 && sendRealtimePing()) {
+    realtime.pingLogWaiter = realtime.seq;
+    state.realtimeLog = '已送出 Worker ping…';
+    renderApp();
+    return;
+  }
   let activeSession = state.sessionId;
   if (!activeSession) {
     const reg = await handleAuthAction('register');
@@ -2761,6 +2942,7 @@ export function bootLineageWebApp() {
       bgmTrack: bgm.track,
       bgmPlaying: Boolean(bgm.el && !bgm.el.paused),
       bgmMuted: bgm.muted,
+      realtime: { status: realtime.status, online: realtime.online, latencyMs: realtime.latencyMs },
       gameFrame: gameFrame ? { status: gameFrame.status, mode: gameFrame.mode, error: gameFrame.error } : null,
       guideTotal: (CAPTURED_DATA.guide?.records || []).length,
       dialogueResultsCount: state.dialogueResults.length,

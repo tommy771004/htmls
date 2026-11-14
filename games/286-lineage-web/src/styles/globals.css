@@ -220,3 +220,29 @@ table.data-table th {
   color: var(--accent-strong);
   font-weight: 600;
 }
+
+/* Worker 即時連線狀態：固定在右下角，不佔導覽列寬度 */
+.realtime-badge {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 45;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(12, 17, 24, 0.92);
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.realtime-badge[data-status="open"] {
+  color: var(--ok);
+  border-color: rgba(63, 185, 80, 0.4);
+}
+
+.realtime-badge[hidden] {
+  display: none;
+}
