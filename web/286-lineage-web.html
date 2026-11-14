@@ -13504,6 +13504,12 @@ function readMatchingLocalSlotSave(slot, char, username = state.username) {
     if (parsed.createdAt && char.createdAt && parsed.createdAt !== char.createdAt) {
       return null;
     }
+    const dbSave = char.worldSave && typeof char.worldSave === "object" ? char.worldSave : null;
+    const dbUpdatedAt = Number(dbSave?.updatedAt) || 0;
+    const localUpdatedAt = Number(parsed.updatedAt) || 0;
+    if (dbUpdatedAt > localUpdatedAt) {
+      return null;
+    }
     return parsed;
   } catch {
     return null;

@@ -2055,6 +2055,13 @@ function readMatchingLocalSlotSave(slot, char, username = state.username) {
     if (parsed.createdAt && char.createdAt && parsed.createdAt !== char.createdAt) {
       return null;
     }
+    // 資料庫的存檔更新時間較新（例如直接在 DB 改過資料）→ 不採用本機存檔，改用伺服器版本
+    const dbSave = char.worldSave && typeof char.worldSave === 'object' ? char.worldSave : null;
+    const dbUpdatedAt = Number(dbSave?.updatedAt) || 0;
+    const localUpdatedAt = Number(parsed.updatedAt) || 0;
+    if (dbUpdatedAt > localUpdatedAt) {
+      return null;
+    }
     return parsed;
   } catch {
     return null;
