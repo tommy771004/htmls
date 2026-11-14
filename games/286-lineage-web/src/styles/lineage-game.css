@@ -22,14 +22,14 @@
   image-rendering: pixelated;
 }
 
-/* 頂部左右懸浮區：左上圖示工具列＋Buff列＋目標條｜右上即時小地圖＋可折疊任務面板 */
+/* 頂部右側懸浮區：即時小地圖＋可折疊任務面板（左側清空給遊戲視野） */
 .ll-top-strip {
   position: fixed;
   top: 8px;
-  left: 8px;
+  left: auto;
   right: 8px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: flex-start;
   gap: 10px;
   pointer-events: none;
@@ -39,15 +39,17 @@
 .ll-tl-cluster {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 5px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .ll-tl-toolbar {
   pointer-events: auto;
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 3px;
   padding: 3px 4px;
@@ -106,6 +108,7 @@
   pointer-events: auto;
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 4px;
 }
 
@@ -824,14 +827,24 @@
   font-weight: 700;
 }
 
-/* 右下：圓形 Play / 自動狩獵與周邊鈕 */
+/* 右下：目標血條、Buff 列、圓形 Play 自動狩獵與周邊鈕＋功能狀態工具列 */
 .ll-br-dock {
   justify-self: end;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ll-br-actions {
   pointer-events: auto;
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  padding-bottom: 2px;
 }
 
 .ll-br-sub-btn {
@@ -932,70 +945,242 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 狀態視窗紙娃娃裝備格 */
+/* 狀態視窗與經典人型紙娃娃裝備格 */
+.ll-doll-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ll-doll-stage {
+  position: relative;
+  padding: 10px 8px;
+  border: 2px ridge #8f703d;
+  border-radius: 5px;
+  background: radial-gradient(circle at 50% 42%, rgba(92, 84, 70, 0.44) 0%, #1a1e24 55%, #101318 100%);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.82);
+  overflow: hidden;
+}
+
+.ll-doll-silhouette {
+  position: absolute;
+  inset: 4px auto 4px 50%;
+  transform: translateX(-50%);
+  height: calc(100% - 8px);
+  width: auto;
+  max-width: 86%;
+  pointer-events: none;
+  opacity: 0.96;
+}
+
 .ll-doll-grid {
+  position: relative;
+  z-index: 1;
+  max-width: 306px;
+  margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(54px, auto));
+  justify-items: center;
   gap: 6px;
 }
 
 .ll-doll-slot {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 5px 7px;
-  border: 1px solid #493923;
-  border-radius: 5px;
-  background: rgba(18, 15, 11, 0.9);
-  color: #d7ccb4;
-  font-size: 11px;
-  text-align: left;
+  justify-content: center;
+  gap: 2px;
+  width: 82px;
+  max-width: 100%;
+  min-height: 54px;
+  padding: 12px 4px 4px;
+  border: 1px solid #6c5733;
+  border-radius: 3px;
+  background: rgba(13, 16, 20, 0.80);
+  box-shadow: inset 0 1px 0 rgba(255, 224, 150, 0.08), 0 2px 6px rgba(0, 0, 0, 0.65);
+  color: #b7ad9a;
+  font-size: 10.5px;
+  text-align: center;
   cursor: pointer;
+  min-width: 0;
 }
 
 .ll-doll-slot.equipped {
-  border-color: #7c6236;
-  background: rgba(34, 28, 19, 0.92);
-  color: #f9e8be;
+  border-color: #c99c4d;
+  background: rgba(26, 23, 18, 0.92);
+  color: #f9e6b3;
+  box-shadow: inset 0 0 10px rgba(212, 162, 72, 0.16), 0 2px 6px rgba(0, 0, 0, 0.72);
 }
 
 .ll-doll-slot:hover {
-  border-color: #ecc676;
+  border-color: #f4cf7a;
+}
+
+.ll-doll-corner {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 9px;
+  color: #9e8a67;
+  line-height: 1;
+}
+
+.ll-doll-on {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #36e8ff;
+  text-shadow: 0 0 4px rgba(0, 210, 255, 0.85), 0 1px 1px #000;
+  line-height: 1;
+}
+
+.ll-doll-plus {
+  position: absolute;
+  bottom: 15px;
+  right: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #ffe08a;
+  text-shadow: 0 1px 2px #000;
 }
 
 .ll-doll-slot img {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
-.ll-doll-meta {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-  line-height: 1.2;
-}
-
-.ll-doll-label {
-  color: #9e8a67;
-  font-size: 10px;
-}
-
 .ll-doll-empty {
-  width: 22px;
-  text-align: center;
-  color: #5b5244;
-  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 24px;
+  color: #4f4a40;
+  opacity: 0.72;
 }
 
 .ll-doll-name {
-  min-width: 0;
+  width: 100%;
+  font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 經典石板角色數值面板 */
+.ll-status-slate {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 2px ridge #8f703d;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #1b1f25 0%, #121519 100%);
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.75);
+}
+
+.ll-st-exp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ll-st-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ll-st-attrs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 8px;
+}
+
+.ll-st-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.ll-st-lbl {
+  color: #d7c39a;
+  font-weight: 600;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.ll-st-box {
+  min-width: 58px;
+  padding: 2px 7px;
+  border: 1px solid #4c4335;
+  border-radius: 2px;
+  background: #0c0e12;
+  color: #f3ead6;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ll-st-box.wide {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  color: #ffe094;
+}
+
+.ll-st-box .buff-plus {
+  font-style: normal;
+  color: #6df0a4;
+  font-size: 10.5px;
+}
+
+.ll-st-divider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(164, 130, 74, 0.1), rgba(164, 130, 74, 0.55), rgba(164, 130, 74, 0.1));
+  margin: 2px 0;
+}
+
+.ll-st-elems {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.ll-st-elem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 4px;
+  border: 1px solid #3c352a;
+  border-radius: 2px;
+  background: #0c0e12;
+  font-size: 10.5px;
+}
+
+.ll-st-elem span {
+  color: #9f937e;
+}
+
+.ll-st-elem b {
+  color: #e6dac2;
+  font-variant-numeric: tabular-nums;
+}
+
+.ll-status-extra {
+  padding: 8px;
+  border: 1px solid #493822;
+  border-radius: 4px;
+  background: rgba(11, 13, 16, 0.85);
 }
 
 /* 浮動功能視窗（道具、魔法、狀態、NPC 對話／商店／倉庫、地圖、系統） */
@@ -1017,10 +1202,13 @@
   max-height: calc(100dvh - 140px);
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #1b1713 0%, #100d0a 100%);
-  border: 2px solid #8a6c3b;
-  border-radius: 8px;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.85);
+  background: linear-gradient(180deg, #21252b 0%, #121519 100%);
+  border: 2px solid #9b7a44;
+  border-radius: 5px;
+  box-shadow:
+    inset 0 0 0 1px #241b10,
+    inset 0 0 0 2px rgba(226, 184, 108, 0.28),
+    0 20px 46px rgba(0, 0, 0, 0.88);
   color: #efe6d4;
   overflow: hidden;
 }
@@ -1029,41 +1217,750 @@
   width: min(720px, 96vw);
 }
 
+.ll-win.inv-win {
+  width: min(650px, 96vw);
+}
+
+.ll-win.spell-win {
+  width: min(490px, 96vw);
+}
+
+.ll-win.status-win {
+  width: min(700px, 96vw);
+}
+
 .ll-win-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 12px;
-  background: linear-gradient(90deg, #322515, #221a10);
-  border-bottom: 1px solid #725830;
+  padding: 7px 10px;
+  background: linear-gradient(180deg, #372a19 0%, #20180f 100%);
+  border-bottom: 1px solid #8a6c3b;
+}
+
+.ll-win-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .ll-win-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #f3d284;
+  color: #f6d586;
+  text-shadow: 0 1px 2px #000;
 }
 
 .ll-win-close {
-  border: 1px solid #755b33;
-  background: #1a140e;
-  color: #e8dcc6;
-  border-radius: 4px;
-  padding: 2px 8px;
+  border: 2px ridge #a88446;
+  background: linear-gradient(180deg, #22262c 0%, #121519 100%);
+  color: #f6d993;
+  border-radius: 3px;
+  padding: 2px 10px;
   font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.65);
+}
+
+.ll-win-close:hover {
+  border-color: #f6cf78;
+  color: #fff3d1;
 }
 
 .ll-win-body {
-  padding: 12px;
+  padding: 10px 12px;
   overflow-y: auto;
   font-size: 13px;
   line-height: 1.5;
 }
 
-/* 道具欄 + 裝備欄 */
+.ll-win-body::-webkit-scrollbar,
+.ll-inv-grid-4col::-webkit-scrollbar,
+.ll-spell-grid-5col::-webkit-scrollbar,
+.ll-spell-list-box::-webkit-scrollbar {
+  width: 9px;
+}
+
+.ll-win-body::-webkit-scrollbar-track,
+.ll-inv-grid-4col::-webkit-scrollbar-track,
+.ll-spell-grid-5col::-webkit-scrollbar-track,
+.ll-spell-list-box::-webkit-scrollbar-track {
+  background: #0e1013;
+  border-left: 1px solid #3c3222;
+}
+
+.ll-win-body::-webkit-scrollbar-thumb,
+.ll-inv-grid-4col::-webkit-scrollbar-thumb,
+.ll-spell-grid-5col::-webkit-scrollbar-thumb,
+.ll-spell-list-box::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #b8914e, #785b2c);
+  border: 1px solid #2b2113;
+  border-radius: 2px;
+}
+
+/* 經典 4×6 道具背包格子盤 + 黑色半透明屬性卡 */
+.ll-inv-classic-wrap {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.ll-bag-slate-frame {
+  border: 2px ridge #a98647;
+  border-radius: 4px;
+  background: #14171c;
+  box-shadow:
+    inset 0 0 0 1px rgba(235, 198, 120, 0.25),
+    0 6px 18px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+}
+
+.ll-bag-frame-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: linear-gradient(180deg, #27221b 0%, #181613 100%);
+  border-bottom: 1px solid #6b5431;
+  font-size: 11px;
+  color: #e4c98e;
+  font-weight: 700;
+}
+
+.ll-gold-tag {
+  color: #ffde7a;
+  font-variant-numeric: tabular-nums;
+}
+
+.ll-inv-grid-4col {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-height: 318px;
+  overflow-y: auto;
+  background: #121519;
+  border-bottom: 1px solid #6b5431;
+}
+
+.ll-inv-slot {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  border-right: 1px solid rgba(176, 139, 76, 0.28);
+  border-bottom: 1px solid rgba(176, 139, 76, 0.28);
+  background: linear-gradient(180deg, #1b1f25 0%, #121519 100%);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.ll-inv-slot.empty {
+  cursor: default;
+  background: linear-gradient(180deg, #16191e 0%, #101216 100%);
+}
+
+.ll-inv-slot:not(.empty):hover {
+  background: rgba(68, 55, 32, 0.42);
+}
+
+.ll-inv-slot.equipped {
+  box-shadow: inset 0 0 8px rgba(32, 165, 198, 0.16);
+}
+
+.ll-inv-slot.selected {
+  background: radial-gradient(circle, rgba(226, 174, 88, 0.34) 0%, rgba(56, 40, 18, 0.85) 100%);
+  box-shadow: inset 0 0 0 1.5px #f4c869;
+}
+
+.ll-inv-slot img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.ll-slot-on {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  padding: 0 2px;
+  border-radius: 2px;
+  background: rgba(5, 18, 22, 0.78);
+  color: #38ecff;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-shadow: 0 0 4px rgba(0, 218, 255, 0.85);
+}
+
+.ll-slot-tag {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 1px 2px #000;
+}
+
+.ll-slot-tag.plus {
+  color: #ffe285;
+}
+
+.ll-slot-tag.unid {
+  color: #7ee7ff;
+}
+
+.ll-slot-tag.warn {
+  color: #ff7a7a;
+}
+
+.ll-slot-lock {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.ll-slot-cnt {
+  position: absolute;
+  bottom: 2px;
+  right: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px #000, 1px 0 2px #000;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.ll-bag-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 6px;
+  background: linear-gradient(180deg, #27292e 0%, #191b1f 100%);
+}
+
+.ll-bag-filters,
+.ll-bag-ops {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ll-inv-tool {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 5px;
+  border: 1px solid #594b36;
+  border-radius: 3px;
+  background: #171a1f;
+  color: #c8bea7;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ll-inv-tool:hover:not(:disabled) {
+  border-color: #eab95f;
+  color: #fff0c8;
+}
+
+.ll-inv-tool.active {
+  border-color: #f0c265;
+  background: linear-gradient(180deg, #523e21 0%, #312412 100%);
+  color: #ffe39b;
+}
+
+.ll-inv-tool.locked-on {
+  border-color: #60c8ff;
+  color: #8ee2ff;
+}
+
+.ll-inv-tool.danger:hover:not(:disabled) {
+  border-color: #ff7373;
+  color: #ffc2c2;
+}
+
+.ll-inv-tool:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.ll-inv-weight {
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: #0d1014;
+  border: 1px solid #3c3a35;
+}
+
+.ll-inv-weight.ok {
+  color: #7ee69e;
+}
+
+.ll-inv-weight.warn {
+  color: #ffcb6b;
+}
+
+.ll-inv-weight.danger {
+  color: #ff7c7c;
+}
+
+.ll-inv-detail-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 經典黑色半透明道具詳情框（對照原版浮動框視覺） */
+.ll-classic-tooltip {
+  padding: 9px 11px;
+  border: 1px solid #969fad;
+  border-radius: 2px;
+  background: rgba(6, 8, 12, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.72);
+  color: #edf1f8;
+}
+
+.ll-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(154, 166, 184, 0.25);
+}
+
+.ll-tip-head img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  padding: 3px;
+  border: 1px solid #594b36;
+  background: #14171c;
+  flex-shrink: 0;
+}
+
+.ll-tip-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffe394;
+}
+
+.ll-tip-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.ll-tip-badge {
+  font-size: 10px;
+  padding: 0 5px;
+  border-radius: 2px;
+  border: 1px solid #525b68;
+  background: #161b22;
+}
+
+.ll-tip-badge.unid {
+  color: #7ee7ff;
+  border-color: #2f7d99;
+}
+
+.ll-tip-badge.lock {
+  color: #9dd4ff;
+  border-color: #3c6ea1;
+}
+
+.ll-tip-badge.warn {
+  color: #ff8e8e;
+  border-color: #9e3d3d;
+}
+
+.ll-tip-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.ll-tip-line.bright {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.ll-tip-line.muted {
+  color: #b4becc;
+}
+
+.ll-tip-line.cls {
+  color: #ffd98a;
+}
+
+.ll-tip-line.warn {
+  color: #ff8d8d;
+}
+
+.ll-discard-confirm {
+  padding: 6px 8px;
+  border: 1px solid #a64646;
+  border-radius: 4px;
+  background: rgba(58, 16, 16, 0.72);
+  font-size: 12px;
+  color: #ffd6d6;
+}
+
+.ll-act-btn.danger {
+  border-color: #b85252;
+  background: linear-gradient(180deg, #5d2020, #381111);
+  color: #ffe2e2;
+}
+
+.ll-qbind-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ll-qbind-label {
+  font-size: 11px;
+  color: #b9ad97;
+}
+
+.ll-qbind-row {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.ll-qbind-btn {
+  padding: 4px 2px;
+  border: 1px solid #465366;
+  border-radius: 3px;
+  background: #18202b;
+  color: #d7e1ef;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ll-qbind-btn:hover {
+  border-color: #f0c265;
+  color: #fff2cc;
+}
+
+.ll-qbind-btn.bound {
+  border-color: #3ce5ff;
+  background: #133144;
+  color: #8cf3ff;
+}
+
+.ll-inv-eq-mini {
+  padding: 7px 9px;
+  border: 1px solid #493822;
+  border-radius: 4px;
+  background: rgba(13, 16, 20, 0.86);
+}
+
+.ll-eq-mini-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ll-eq-mini-pill {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid #59462b;
+  background: #1d1a14;
+  color: #eddab0;
+  cursor: pointer;
+}
+
+.ll-eq-mini-pill:hover {
+  border-color: #eab95f;
+  color: #fff2cf;
+}
+
+/* 經典魔法書（5×N 圖示盤 + 條列切換 + 魔攻／魔防 + F9~F12 凹槽） */
+.ll-view-switch {
+  display: inline-flex;
+  border: 1px solid #6b5431;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ll-view-btn {
+  padding: 2px 8px;
+  border: none;
+  background: #15181d;
+  color: #bcae92;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ll-view-btn.active {
+  background: #47361d;
+  color: #ffe39e;
+}
+
+.ll-spell-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.ll-spell-tab {
+  padding: 2px 7px;
+  border: 1px solid #4d412e;
+  border-radius: 3px;
+  background: #14171c;
+  color: #b7ac96;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ll-spell-tab.active {
+  border-color: #e6ba64;
+  background: #3d2e18;
+  color: #ffe4a1;
+  font-weight: 700;
+}
+
+.ll-spell-slate-wrap {
+  border: 2px ridge #a98647;
+  border-radius: 4px;
+  background: #13161b;
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+
+.ll-spell-grid-5col {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-height: 244px;
+  overflow-y: auto;
+}
+
+.ll-spell-cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  border-right: 1px solid rgba(182, 146, 82, 0.34);
+  border-bottom: 1px solid rgba(182, 146, 82, 0.34);
+  background: linear-gradient(180deg, #1b1f26 0%, #12151a 100%);
+  cursor: pointer;
+}
+
+.ll-spell-cell.empty {
+  cursor: default;
+  background: linear-gradient(180deg, #15181e 0%, #101216 100%);
+}
+
+.ll-spell-cell:not(.empty):hover {
+  background: rgba(74, 58, 32, 0.45);
+}
+
+.ll-spell-cell.selected {
+  background: radial-gradient(circle, rgba(226, 174, 88, 0.34) 0%, rgba(56, 40, 18, 0.85) 100%);
+  box-shadow: inset 0 0 0 1.5px #f5cb6e;
+}
+
+.ll-spell-cell img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.ll-spell-lv {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 9px;
+  color: #cdb88b;
+  font-weight: 700;
+}
+
+.ll-spell-mp {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 9.5px;
+  color: #79d4ff;
+  font-weight: 700;
+  text-shadow: 0 1px 2px #000;
+}
+
+.ll-spell-list-box {
+  max-height: 244px;
+  overflow-y: auto;
+}
+
+.ll-spell-list-row.selected {
+  background: rgba(212, 166, 78, 0.14);
+}
+
+.ll-spell-empty {
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: #9eb5cb;
+}
+
+.ll-spell-selected-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 7px 9px;
+  border: 1px solid #6b5431;
+  border-radius: 4px;
+  background: rgba(10, 13, 17, 0.9);
+}
+
+.ll-spell-sel-info {
+  min-width: 0;
+}
+
+.ll-spell-sel-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffe199;
+}
+
+.ll-spell-sel-tier {
+  font-size: 11px;
+  color: #8eb5da;
+  font-weight: 600;
+}
+
+.ll-spell-sel-meta {
+  font-size: 11px;
+  color: #aebdce;
+}
+
+.ll-spell-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 7px 10px;
+  border: 1px solid #755b33;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #2d2418 0%, #1b150e 100%);
+}
+
+.ll-spell-stats {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ll-stat-pill-classic {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.ll-stat-pill-classic span {
+  color: #d8c69f;
+  font-weight: 700;
+}
+
+.ll-stat-pill-classic b {
+  min-width: 34px;
+  padding: 2px 6px;
+  border: 1px solid #6b5431;
+  border-radius: 2px;
+  background: #101318;
+  color: #ffe194;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ll-f9-tray {
+  display: flex;
+  gap: 6px;
+}
+
+.ll-f9-socket {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border: 2px ridge #8f703d;
+  border-radius: 3px;
+  background: #13161b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.ll-f9-socket:hover:not(:disabled) {
+  border-color: #f6cf78;
+}
+
+.ll-f9-socket.bound {
+  border-color: #46e2ff;
+  box-shadow: 0 0 8px rgba(54, 226, 255, 0.35);
+}
+
+.ll-f9-socket img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.ll-f9-socket.is-item img {
+  opacity: 0.32;
+  filter: grayscale(0.55);
+}
+
+.ll-spell-empty-hint {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 11.5px;
+  color: #9eb5cb;
+}
+
+.ll-f9-socket span {
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: rgba(235, 224, 198, 0.85);
+  text-shadow: 0 1px 2px #000;
+}
+
+/* 通用雙欄配置 */
 .ll-inv-grid {
   display: grid;
   grid-template-columns: 195px 1fr;
@@ -1071,7 +1968,7 @@
 }
 
 .ll-inv-grid.status-layout {
-  grid-template-columns: 270px 1fr;
+  grid-template-columns: 245px minmax(0, 1fr);
 }
 
 .ll-equip-box,
@@ -1261,6 +2158,12 @@
     width: 34px;
     height: 34px;
   }
+
+  .ll-tl-btn {
+    min-width: 29px;
+    height: 32px;
+    padding: 2px 3px;
+  }
 }
 
 @media (max-width: 820px) {
@@ -1291,6 +2194,12 @@
   }
 
   .ll-br-dock {
+    order: 3;
+    width: 100%;
+    align-items: flex-end;
+  }
+
+  .ll-br-actions {
     display: none;
   }
 
@@ -1334,20 +2243,87 @@
   }
 
   .ll-inv-grid,
-  .ll-inv-grid.status-layout {
+  .ll-inv-grid.status-layout,
+  .ll-inv-classic-wrap {
     grid-template-columns: 1fr;
   }
 
+  .ll-inv-grid-4col {
+    max-height: 224px;
+  }
+
+  .ll-spell-grid-5col,
+  .ll-spell-list-box {
+    max-height: 210px;
+  }
+
+  .ll-qbind-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .ll-spell-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ll-f9-tray {
+    justify-content: space-between;
+  }
+
   .ll-doll-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   #ll-modal-layer {
-    inset: 0 0 185px 0;
+    inset: 0 0 226px 0;
   }
 }
 
 @media (max-height: 460px) and (min-width: 600px) {
+  #ll-modal-layer {
+    inset: 0 0 98px 0;
+    padding: 6px;
+  }
+
+  .ll-win {
+    max-height: calc(100vh - 108px);
+    max-height: calc(100dvh - 108px);
+  }
+
+  .ll-inv-classic-wrap {
+    grid-template-columns: 204px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .ll-inv-grid.status-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .ll-inv-grid-4col {
+    max-height: 158px;
+  }
+
+  .ll-spell-grid-5col,
+  .ll-spell-list-box {
+    max-height: 112px;
+  }
+
+  .ll-spell-footer {
+    flex-direction: row;
+    padding: 5px 8px;
+  }
+
+  .ll-f9-socket {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ll-f9-socket img {
+    width: 22px;
+    height: 22px;
+  }
+
   .ll-tr-accordion,
   .ll-radar-body {
     display: none;
@@ -1372,6 +2348,11 @@
   .ll-br-dock {
     display: flex;
     order: 3;
+    gap: 3px;
+  }
+
+  .ll-br-actions {
+    display: flex;
     gap: 4px;
   }
 
@@ -1379,9 +2360,34 @@
     display: none;
   }
 
+  .ll-tl-toolbar {
+    gap: 2px;
+    padding: 2px 3px;
+  }
+
+  .ll-tl-btn {
+    min-width: 24px;
+    height: 26px;
+    padding: 1px 2px;
+  }
+
+  .ll-tl-btn img {
+    width: 14px;
+    height: 14px;
+  }
+
+  .ll-tl-btn span {
+    display: none;
+  }
+
+  .ll-tl-chevron {
+    width: 15px;
+    height: 26px;
+  }
+
   .ll-play-btn {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
   }
 
   .ll-level-card {
@@ -1410,10 +2416,6 @@
     width: 30px;
     height: 30px;
   }
-
-  #ll-modal-layer {
-    inset: 0 0 98px 0;
-  }
 }
 
 @media (max-width: 520px) {
@@ -1429,6 +2431,10 @@
 
   .ll-tl-btn span {
     display: none;
+  }
+
+  .ll-tl-chevron {
+    height: 32px;
   }
 
   .ll-stat-chips {

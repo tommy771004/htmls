@@ -68,7 +68,7 @@ export class SpriteRenderer {
   /**
    * 挑選指定動作與方向之當前影格資訊。
    */
-  resolveFrame(gfx, animState, heading, elapsedMs, weaponType = 'unarmed') {
+  resolveFrame(gfx, animState, heading, elapsedMs, weaponType = 'unarmed', opts = {}) {
     const g = String(gfx);
     const meta = this.metaMap[g];
     if (!meta) return null;
@@ -77,25 +77,89 @@ export class SpriteRenderer {
     const h = ((Math.round(heading) % 8) + 8) % 8;
 
     if (meta.kind === 'player') {
-      return this.#resolvePlayerFrame(meta, animState, h, elapsedMs, weaponType);
+      return this.#resolvePlayerFrame(meta, animState, h, elapsedMs, weaponType, opts);
     }
-    return this.#resolveActorFrame(meta, animState, h, elapsedMs);
+    return this.#resolveActorFrame(meta, animState, h, elapsedMs, opts);
   }
 
-  #resolvePlayerFrame(meta, animState, h, elapsedMs, weaponType) {
+  #filterValidSteps(meta, seqFrames, h, animState, walkBase = null) {
+    if (!seqFrames?.length) return [];
+    const hasKey = (baseOff) => {
+      if (baseOff < 0) return false;
+      const key = String(baseOff + h);
+      return meta.kind === 'player' ? Boolean(meta.atlas?.[key]?.r?.length) : Boolean(meta.acts?.[key]);
+    };
+    let valid = seqFrames.filter(([baseOff]) => hasKey(baseOff));
+    if (!valid.length) return [];
+    // 移除攻擊起手殘留的走路跨步格，避免揮砍／拉弓前腳閃爍跨出
+    if (animState === 'attack' && valid.length >= 3) {
+      const leadWalk = walkBase !== null ? walkBase : 0;
+      const firstWalk = valid[0][0] === leadWalk;
+      const nonWalkCount = valid.filter(([b]) => b !== leadWalk).length;
+      if (firstWalk && nonWalkCount >= 2) {
+        valid = valid.filter(([b], idx) => idx > 0 || b !== leadWalk);
+      }
+    }
+    return valid;
+  }
+
+  #resolvePlayerFrame(meta, animState, h, elapsedMs, weaponType, opts = {}) {
     const wCfg = WEAPON_ACTION_BASE[weaponType] || WEAPON_ACTION_BASE.unarmed;
+    const durationMs = opts.durationMs || 0;
+    const walkRate = opts.walkRate || 1;
+
+    if (animState === 'idle') {
+      // 先找真正的呼吸待機動作（例如 0/734 的 3,7,14,23,27,43 或 闇騎士 110 的 27）
+      const idleCandidates = [wCfg.idle, 27, 7, 3, 14, 23, 43];
+      for (const actCode of idleCandidates) {
+        const valid = this.#filterValidSteps(meta, meta.seq?.[String(actCode)], h, 'idle');
+        if (valid.length) {
+          const picked = this.#pickSequenceSlot(valid, elapsedMs, true, 0);
+          const atl = meta.atlas?.[String(picked[0] + h)];
+          if (atl && atl.r?.length) {
+            const [rx, ry] = atl.r[picked[1] % atl.r.length];
+            return { path: `/lineage163/player-atlases/${atl.f}`, sx: rx, sy: ry, sw: atl.w, sh: atl.h, ax: atl.x, ay: atl.y };
+          }
+        }
+      }
+      // 經典職業（男女騎/女妖/女皇）無獨立待機動作：取走路序列第 2 格（雙腳併攏站立），嚴禁輪播走路腳步
+      for (const walkCode of [wCfg.walk, 4, 0, 24]) {
+        const valid = this.#filterValidSteps(meta, meta.seq?.[String(walkCode)], h, 'idle');
+        if (valid.length) {
+          const standStep = valid.length === 4 ? valid[1] : valid[0];
+          const atl = meta.atlas?.[String(standStep[0] + h)];
+          if (atl && atl.r?.length) {
+            const [rx, ry] = atl.r[standStep[1] % atl.r.length];
+            return { path: `/lineage163/player-atlases/${atl.f}`, sx: rx, sy: ry, sw: atl.w, sh: atl.h, ax: atl.x, ay: atl.y };
+          }
+        }
+        for (const directOff of [walkCode * 8, walkCode]) {
+          const atl = meta.atlas?.[String(directOff + h)];
+          if (atl && atl.r?.length) {
+            const standIdx = atl.r.length === 4 ? 1 : 0;
+            const [rx, ry] = atl.r[standIdx];
+            return { path: `/lineage163/player-atlases/${atl.f}`, sx: rx, sy: ry, sw: atl.w, sh: atl.h, ax: atl.x, ay: atl.y };
+          }
+        }
+      }
+    }
+
     const candidates = [];
     if (animState === 'walk') candidates.push(wCfg.walk, 4, 0);
     else if (animState === 'attack') candidates.push(wCfg.atk, 5, 1);
     else if (animState === 'spell') candidates.push(19, 18, wCfg.atk, 1);
     else if (animState === 'damage') candidates.push(wCfg.dmg, 6, 2);
     else if (animState === 'die') candidates.push(8);
-    else candidates.push(wCfg.idle, wCfg.walk, 7, 3, 4, 0);
+    else candidates.push(wCfg.idle, 27, 7, 3);
+
+    const loop = animState === 'walk';
+    const effElapsed = animState === 'walk' ? elapsedMs * walkRate : elapsedMs;
+    const effDuration = animState === 'attack' || animState === 'spell' || animState === 'damage' ? durationMs : 0;
 
     for (const actCode of candidates) {
-      const seqFrames = meta.seq?.[String(actCode)];
-      if (seqFrames?.length) {
-        const picked = this.#pickSequenceSlot(seqFrames, elapsedMs, animState !== 'die' && animState !== 'attack' && animState !== 'spell');
+      const valid = this.#filterValidSteps(meta, meta.seq?.[String(actCode)], h, animState, wCfg.walk);
+      if (valid.length) {
+        const picked = this.#pickSequenceSlot(valid, effElapsed, loop, effDuration);
         const key = String(picked[0] + h);
         const atl = meta.atlas?.[key];
         if (atl && atl.r?.length) {
@@ -116,7 +180,12 @@ export class SpriteRenderer {
       for (const directOff of [actCode * 8, actCode]) {
         const atl = meta.atlas?.[String(directOff + h)];
         if (atl && atl.r?.length) {
-          const fi = Math.floor(elapsedMs / (TICK_MS * 4)) % atl.r.length;
+          const fi =
+            effDuration > 0
+              ? Math.min(atl.r.length - 1, Math.floor((Math.max(0, effElapsed) / effDuration) * atl.r.length))
+              : loop
+                ? Math.floor(effElapsed / (TICK_MS * 4)) % atl.r.length
+                : Math.min(atl.r.length - 1, Math.floor(effElapsed / (TICK_MS * 4)));
           const [rx, ry] = atl.r[fi];
           return {
             path: `/lineage163/player-atlases/${atl.f}`,
@@ -146,23 +215,27 @@ export class SpriteRenderer {
     };
   }
 
-  #resolveActorFrame(meta, animState, h, elapsedMs) {
+  #resolveActorFrame(meta, animState, h, elapsedMs, opts = {}) {
     if (!meta.dir || !meta.acts) return null;
+    const durationMs = opts.durationMs || 0;
+    const walkRate = opts.walkRate || 1;
     const wantMap = {
-      walk: [0, 4],
-      attack: [1, 5, 12, 18],
-      spell: [18, 19, 1],
-      damage: [2, 6],
+      walk: [0, 24, 20, 4],
+      attack: [1, 5, 12, 25, 18],
+      spell: [18, 19, 30, 1],
+      damage: [2, 6, 26],
       die: [8],
-      idle: [3, 0, 17, 19],
+      idle: [3, 27, 7, 14, 23, 43, 17, 19],
     };
-    const candidates = wantMap[animState] || [3, 0];
+    const candidates = wantMap[animState] || wantMap.idle;
+    const loop = animState === 'walk' || animState === 'idle';
+    const effElapsed = animState === 'walk' ? elapsedMs * walkRate : elapsedMs;
+    const effDuration = animState === 'attack' || animState === 'spell' || animState === 'damage' ? durationMs : 0;
 
     for (const actCode of candidates) {
-      const seqFrames = meta.seq?.[String(actCode)];
-      if (seqFrames?.length) {
-        const loop = animState !== 'die' && animState !== 'attack' && animState !== 'spell' && animState !== 'damage';
-        const picked = this.#pickSequenceSlot(seqFrames, elapsedMs, loop);
+      const valid = this.#filterValidSteps(meta, meta.seq?.[String(actCode)], h, animState, 0);
+      if (valid.length) {
+        const picked = this.#pickSequenceSlot(valid, effElapsed, loop, effDuration);
         const key = String(picked[0] + h);
         if (meta.acts[key]) {
           return this.#actorGeomFrame(meta, key, picked[1]);
@@ -170,13 +243,29 @@ export class SpriteRenderer {
       }
     }
 
+    // 無專屬待機動作時（如僅有移動 seq '0'），待機定格於靜止姿態，絕不原地踏步
+    if (animState === 'idle') {
+      const walkValid = this.#filterValidSteps(meta, meta.seq?.['0'], h, 'idle');
+      if (walkValid.length) {
+        const standStep = walkValid.length === 4 ? walkValid[1] : walkValid[0];
+        const key = String(standStep[0] + h);
+        if (meta.acts[key]) return this.#actorGeomFrame(meta, key, standStep[1]);
+      }
+    }
+
     // 依標準天堂方向塊嘗試：0(移動), 8(待機或攻擊), 24(待機/受傷)
-    const fallbackBases = animState === 'idle' ? [8, 0, 24] : animState === 'attack' ? [8, 16, 0] : animState === 'die' ? [16, 24, 32] : [0, 8];
+    const fallbackBases = animState === 'idle' ? [8, 24, 0] : animState === 'attack' ? [8, 16, 0] : animState === 'die' ? [16, 24, 32] : [0, 8, 24];
     for (const base of fallbackBases) {
       const key = String(base + h);
       if (meta.acts[key]) {
         const geom = meta.geom?.[key];
-        const fi = animState === 'idle' && base === 0 ? 0 : Math.floor(elapsedMs / (TICK_MS * 4)) % Math.max(1, geom?.n || 1);
+        const n = Math.max(1, geom?.n || 1);
+        const fi =
+          animState === 'idle'
+            ? n === 4 && base === 0
+              ? 1
+              : 0
+            : Math.floor(effElapsed / (TICK_MS * 4)) % n;
         return this.#actorGeomFrame(meta, key, fi);
       }
     }
@@ -187,7 +276,7 @@ export class SpriteRenderer {
     const pickedKey = meta.acts[String(h % Math.max(1, availKeys.length))]
       ? String(h % Math.max(1, availKeys.length))
       : availKeys[0];
-    return this.#actorGeomFrame(meta, pickedKey, animState === 'idle' ? 0 : Math.floor(elapsedMs / (TICK_MS * 4)));
+    return this.#actorGeomFrame(meta, pickedKey, animState === 'idle' ? 0 : Math.floor(effElapsed / (TICK_MS * 4)));
   }
 
   #actorGeomFrame(meta, actKey, frameIndex) {
@@ -205,9 +294,15 @@ export class SpriteRenderer {
     };
   }
 
-  #pickSequenceSlot(seqList, elapsedMs, loop) {
+  #pickSequenceSlot(seqList, elapsedMs, loop, durationMs = 0) {
     const totalTicks = seqList.reduce((sum, item) => sum + (item[2] || 4), 0) || 1;
-    let tick = Math.floor(elapsedMs / TICK_MS);
+    let tick;
+    if (durationMs > 0) {
+      const progress = Math.min(1, Math.max(0, elapsedMs / durationMs));
+      tick = progress >= 1 ? totalTicks : Math.min(totalTicks - 0.0001, progress * totalTicks);
+    } else {
+      tick = Math.max(0, Math.floor(elapsedMs / TICK_MS));
+    }
     if (loop) {
       tick %= totalTicks;
     } else if (tick >= totalTicks) {
@@ -223,8 +318,28 @@ export class SpriteRenderer {
     return [last[0], last[1]];
   }
 
-  drawActor(ctx, { gfx, animState, heading, elapsedMs, weaponType, screenX, screenY, isTarget, hpRatio, name, isPlayer, isNpc, alpha = 1 }) {
-    const frame = this.resolveFrame(gfx, animState, heading, elapsedMs, weaponType);
+  drawActor(
+    ctx,
+    {
+      gfx,
+      animState,
+      heading,
+      elapsedMs,
+      weaponType,
+      durationMs = 0,
+      walkRate = 1,
+      viewZoom = 1,
+      screenX,
+      screenY,
+      isTarget,
+      hpRatio,
+      name,
+      isPlayer,
+      isNpc,
+      alpha = 1,
+    },
+  ) {
+    const frame = this.resolveFrame(gfx, animState, heading, elapsedMs, weaponType, { durationMs, walkRate });
     ctx.save();
     ctx.globalAlpha = alpha;
 
@@ -267,22 +382,27 @@ export class SpriteRenderer {
       ctx.fill();
     }
 
+    const labelScale = Math.max(0.6, Math.min(1, 1 / Math.pow(Math.max(1, viewZoom), 0.72)));
+
     // 血條與名稱標籤
     if (hpRatio !== null && hpRatio < 1 && animState !== 'die') {
-      const barW = 36;
+      const barW = Math.round(36 * labelScale);
+      const barH = Math.max(3, Math.round(4 * labelScale));
+      const pad = Math.max(0.7, labelScale);
       const bx = Math.round(screenX - barW / 2);
-      const by = Math.round(screenY - 58);
+      const by = Math.round(screenY - 56);
       ctx.fillStyle = 'rgba(0,0,0,0.78)';
-      ctx.fillRect(bx - 1, by - 1, barW + 2, 6);
+      ctx.fillRect(bx - pad, by - pad, barW + pad * 2, barH + pad * 2);
       ctx.fillStyle = hpRatio > 0.5 ? '#d93829' : hpRatio > 0.25 ? '#e67e22' : '#ff2e2e';
-      ctx.fillRect(bx, by, Math.max(1, Math.round(barW * Math.max(0, Math.min(1, hpRatio)))), 4);
+      ctx.fillRect(bx, by, Math.max(1, Math.round(barW * Math.max(0, Math.min(1, hpRatio)))), barH);
     }
 
     if (name && (isPlayer || isNpc || isTarget)) {
-      ctx.font = 'bold 12px "Noto Sans TC", "PingFang TC", sans-serif';
+      const fontPx = Math.max(8, Math.round(12.5 * labelScale * 10) / 10);
+      ctx.font = `bold ${fontPx}px "Noto Sans TC", "PingFang TC", sans-serif`;
       ctx.textAlign = 'center';
-      const labelY = Math.round(screenY + 18);
-      ctx.lineWidth = 3;
+      const labelY = Math.round(screenY + 14);
+      ctx.lineWidth = Math.max(1.8, 3 * labelScale);
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.88)';
       ctx.strokeText(name, screenX, labelY);
       ctx.fillStyle = isPlayer ? '#ffe28a' : isNpc ? '#8cd6ff' : '#ffb499';

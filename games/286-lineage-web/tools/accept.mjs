@@ -425,23 +425,50 @@ try {
     const logText = document.querySelector('[data-role="log-box"]')?.textContent || '';
     const logBeforeH = document.querySelector('.ll-log-col')?.getBoundingClientRect().height || 0;
     const radarRect = document.querySelector('[data-role="radar-canvas"]')?.getBoundingClientRect();
+    const radarCardRect = document.querySelector('.ll-tr-cluster')?.getBoundingClientRect();
+    const tlToolbarRect = document.querySelector('[data-role="tl-toolbar"]')?.getBoundingClientRect();
     const expRect = document.querySelector('.ll-exp-footer')?.getBoundingClientRect();
     const consoleRect = document.querySelector('.ll-center-console')?.getBoundingClientRect();
+    const tlInBottomHud = Boolean(document.querySelector('#ll-hud-bottom .ll-br-dock [data-role="tl-toolbar"]'));
     return {
       count: lines.length,
       minHeight,
       logText,
       logBeforeH,
       radarW: radarRect?.width || 0,
+      radarCardRight: radarCardRect?.right || 0,
+      radarCardTop: radarCardRect?.top ?? 999,
+      tlToolbarLeft: tlToolbarRect?.left || 0,
+      tlToolbarBottom: tlToolbarRect?.bottom || 0,
+      tlInBottomHud,
       expW: expRect?.width || 0,
       consoleCenterDiff: consoleRect ? Math.abs(consoleRect.left + consoleRect.width / 2 - window.innerWidth / 2) : 999,
+      vw: window.innerWidth,
+      vh: window.innerHeight,
     };
   });
   assert(hudCheck.count >= 1 && hudCheck.minHeight >= 14, `Log line vertically clipped: ${JSON.stringify(hudCheck)}`);
   assert(hudCheck.logText.includes('目前座標'), `Chat /loc command should append location log, got: ${hudCheck.logText}`);
   assert(hudCheck.radarW >= 120, `Top-right minimap radar should render on desktop, got width=${hudCheck.radarW}`);
+  assert(
+    hudCheck.tlInBottomHud
+      && hudCheck.tlToolbarLeft >= hudCheck.vw * 0.45
+      && hudCheck.tlToolbarBottom >= hudCheck.vh * 0.75
+      && hudCheck.radarCardRight >= hudCheck.vw * 0.75
+      && hudCheck.radarCardTop <= 40,
+    `Bottom-right status/toolbar or top-right radar alignment wrong: ${JSON.stringify(hudCheck)}`
+  );
   assert(hudCheck.expW >= 1400, `Bottom EXP footer should span full viewport, got width=${hudCheck.expW}`);
   assert(hudCheck.consoleCenterDiff <= 140, `Center console should stay horizontally centered, diff=${hudCheck.consoleCenterDiff}`);
+
+  // 驗證右下工具列可正常收合展開
+  await page.click('[data-act="toggle-tl"]');
+  const collapsedOk = await page.evaluate(() => ({
+    hasClass: Boolean(document.querySelector('[data-role="tl-toolbar"]')?.classList.contains('collapsed')),
+    chevron: document.querySelector('[data-act="toggle-tl"]')?.textContent?.trim(),
+  }));
+  assert(collapsedOk.hasClass && collapsedOk.chevron === '‹', `Collapse toggle failed: ${JSON.stringify(collapsedOk)}`);
+  await page.click('[data-act="toggle-tl"]');
 
   await page.click('[data-act-chat="toggle-expand"]');
   await page.waitForTimeout(220);
@@ -477,9 +504,15 @@ try {
 
   await page.keyboard.press('KeyS');
   await page.waitForTimeout(180);
+  const statusUiCheck = await page.evaluate(() => ({
+    modal: window.__lineage.game()?.activeModal,
+    dollSlots: document.querySelectorAll('.ll-doll-stage .ll-doll-grid .ll-doll-slot').length,
+    equippedSlots: document.querySelectorAll('.ll-doll-slot.equipped').length,
+    hasSlateStats: Boolean(document.querySelector('.ll-status-slate')),
+  }));
   assert(
-    await page.evaluate(() => window.__lineage.game()?.activeModal === 'status'),
-    'Pressing KeyS should open status paperdoll modal'
+    statusUiCheck.modal === 'status' && statusUiCheck.dollSlots === 11 && statusUiCheck.equippedSlots >= 1 && statusUiCheck.hasSlateStats,
+    `Classic status & paperdoll layout mismatch: ${JSON.stringify(statusUiCheck)}`
   );
   await page.screenshot({ path: path.join(scratchDir, 'lineage-game-status.png') });
   await page.keyboard.press('Escape');
@@ -487,20 +520,53 @@ try {
 
   await page.keyboard.press('KeyK');
   await page.waitForTimeout(150);
+  const spellUiCheck = await page.evaluate(() => ({
+    modal: window.__lineage.game()?.activeModal,
+    gridCells: document.querySelectorAll('.ll-spell-grid-5col .ll-spell-cell').length,
+    fSockets: document.querySelectorAll('.ll-f9-tray .ll-f9-socket').length,
+    hasFooterStats: Boolean(document.querySelector('.ll-spell-footer .ll-stat-pill-classic')),
+  }));
   assert(
-    await page.evaluate(() => window.__lineage.game()?.activeModal === 'spells'),
-    'Pressing KeyK should open spells modal'
+    spellUiCheck.modal === 'spells' && spellUiCheck.gridCells >= 20 && spellUiCheck.fSockets === 4 && spellUiCheck.hasFooterStats,
+    `Classic spellbook grid layout mismatch: ${JSON.stringify(spellUiCheck)}`
   );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-game-spells.png') });
+  await page.click('[data-spell-view="list"]');
+  await page.waitForTimeout(100);
+  assert(Boolean(await page.$('.ll-spell-list-box')), 'Switching spell view to list should render .ll-spell-list-box');
+  await page.click('[data-spell-view="grid"]');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(120);
 
   await page.keyboard.press('KeyI');
   await page.waitForTimeout(200);
+  const invUiCheck = await page.evaluate(() => ({
+    modal: window.__lineage.game()?.activeModal,
+    totalSlots: document.querySelectorAll('.ll-inv-grid-4col .ll-inv-slot').length,
+    onBadges: document.querySelectorAll('.ll-inv-slot .ll-slot-on').length,
+    tooltipText: document.querySelector('.ll-classic-tooltip')?.textContent || '',
+    tools: document.querySelectorAll('.ll-bag-footer .ll-inv-tool').length,
+  }));
   assert(
-    await page.evaluate(() => window.__lineage.game()?.activeModal === 'inventory'),
-    'Pressing KeyI should open inventory modal'
+    invUiCheck.modal === 'inventory' &&
+      invUiCheck.totalSlots >= 24 &&
+      invUiCheck.onBadges >= 1 &&
+      invUiCheck.tooltipText.includes('重量') &&
+      invUiCheck.tools >= 6,
+    `Classic 4x6 inventory UI mismatch: ${JSON.stringify(invUiCheck)}`
   );
   await page.screenshot({ path: path.join(scratchDir, 'lineage-game-inventory.png') });
+  await page.click('[data-inv-filter="gear"]');
+  await page.waitForTimeout(80);
+  const gearCount = await page.evaluate(() => document.querySelectorAll('.ll-inv-grid-4col .ll-inv-slot:not(.empty)').length);
+  await page.click('[data-inv-filter="all"]');
+  await page.waitForTimeout(80);
+  const allCount = await page.evaluate(() => document.querySelectorAll('.ll-inv-grid-4col .ll-inv-slot:not(.empty)').length);
+  assert(gearCount >= 1 && allCount >= gearCount, `Inventory filter toggle failed: gear=${gearCount}, all=${allCount}`);
+  await page.click('[data-toggle-lock]');
+  await page.waitForTimeout(80);
+  assert(Boolean(await page.$('.ll-inv-slot .ll-slot-lock')), 'Lock button should toggle .ll-slot-lock badge on selected item');
+  await page.click('[data-toggle-lock]');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
 
@@ -520,14 +586,31 @@ try {
   ]) {
     await page.setViewportSize(vp);
     await page.waitForTimeout(200);
-    const vpLayout = await page.evaluate(() => ({
-      scrollWidth: document.documentElement.scrollWidth,
-      innerWidth: window.innerWidth,
-    }));
-    assert(
-      vpLayout.scrollWidth <= vpLayout.innerWidth,
-      `Horizontal overflow in game on ${vp.width}x${vp.height}: ${vpLayout.scrollWidth} > ${vpLayout.innerWidth}`
-    );
+    for (const modalKey of [null, 'KeyI', 'KeyK', 'KeyS']) {
+      if (modalKey) {
+        await page.keyboard.press(modalKey);
+        await page.waitForTimeout(140);
+      }
+      const vpLayout = await page.evaluate(() => {
+        const win = document.querySelector('.ll-win');
+        const rect = win ? win.getBoundingClientRect() : null;
+        return {
+          scrollWidth: document.documentElement.scrollWidth,
+          innerWidth: window.innerWidth,
+          innerHeight: window.innerHeight,
+          winRight: rect ? Math.round(rect.right) : 0,
+          winBottom: rect ? Math.round(rect.bottom) : 0,
+        };
+      });
+      assert(
+        vpLayout.scrollWidth <= vpLayout.innerWidth && vpLayout.winRight <= vp.width + 1 && vpLayout.winBottom <= vp.height + 1,
+        `Modal/HUD overflow (${modalKey || 'hud'}) on ${vp.width}x${vp.height}: ${JSON.stringify(vpLayout)}`
+      );
+      if (modalKey) {
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(100);
+      }
+    }
   }
   await page.screenshot({ path: path.join(scratchDir, 'lineage-game-mobile.png') });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -1046,6 +1129,159 @@ try {
   assert(
     bgmCheck.currentBgmBattle.includes('battle.mp3') && bgmCheck.battleVol <= 0.16 && !bgmCheck.currentBgmAfter.includes('battle.mp3'),
     `Battle BGM switch/volume normalization failed: ${JSON.stringify(bgmCheck)}`
+  );
+
+  // 驗證經典練功地圖與 BOSS 接線（Map 22 傑瑞德的試煉地監、巴風特、死靈騎士、巨蟻女皇、獨眼巨人）與怪物不走進安全區
+  const dungeonBossCheck = await page.evaluate(async () => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    w.player.hp = w.player.maxHp = Math.max(w.player.maxHp, 800);
+    w.player.gold += 5000;
+
+    // (a) 銀騎士之村 NPC 傑瑞德 -> Map 22 傑瑞德的試煉地監（蛇女）
+    w.teleportTo(4, 33099, 33352, 4);
+    const jared = w.npcs.find((n) => n.name === '傑瑞德');
+    if (!jared) return { ok: false, reason: 'missing jared' };
+    eng.hud.openNpc(jared);
+    document.querySelector('[data-npc-mode="teleport"]')?.click();
+    const tpButtons = [...document.querySelectorAll('[data-tp-idx]')];
+    const trialBtn = tpButtons.find((b) => (b.closest('.ll-list-row')?.textContent || b.textContent).includes('試煉地監'));
+    if (!trialBtn) {
+      return {
+        ok: false,
+        reason: 'missing trial dungeon tp button',
+        rows: tpButtons.map((b) => b.closest('.ll-list-row')?.textContent?.trim() || b.textContent),
+      };
+    }
+    trialBtn.click();
+    const map22State = {
+      map: w.player.map,
+      medusaCount: w.mobs.filter((m) => m.name === '蛇女').length,
+      walkableMob: w.mobs.every((m) => w.isoMap.isWalkableTile(m.tx, m.ty, m.map)),
+    };
+
+    // (b) 各經典地圖 BOSS / 新增生態
+    w.teleportTo(2, 32670, 32800, 4);
+    const hasBaphomet = w.mobs.some((m) => m.name === '巴風特');
+    w.teleportTo(11, 32670, 32800, 4);
+    const hasDeathKnight = w.mobs.some((m) => m.name === '死靈騎士');
+    w.teleportTo(51, 32768, 32800, 4);
+    const hasAntQueen = w.mobs.some((m) => m.name === '巨蟻女皇');
+    const hasGiantSoldierAnt = w.mobs.some((m) => m.name === '巨型蟻兵');
+    w.teleportTo(4, 33375, 32365, 4);
+    const hasCyclops = w.mobs.some((m) => m.name === '獨眼巨人');
+
+    // (c) 說話之島 & 銀騎士安全區與怪物不入城測試
+    w.teleportTo(0, 32592, 32911, 4);
+    eng.hud.closeModal();
+    eng.hud.sync(true);
+    const tiZoneBadge = document.querySelector('.ll-zone-badge')?.textContent?.trim() || '';
+    const tiHostilesOnSafeBit = w.mobs.filter(
+      (m) => m.hp > 0 && !m.spawn?.villageAnimal && w.isoMap.hasSafetyBit(m.tx, m.ty, 0)
+    ).length;
+
+    const testMob =
+      w.mobs.find((m) => m.hp > 0 && !m.spawn?.villageAnimal && m.aggressive) ||
+      w.mobs.find((m) => m.hp > 0 && !m.spawn?.villageAnimal);
+    let borderCheck = { ok: false, reason: 'no test mob' };
+    if (testMob) {
+      const savedPos = {
+        tx: testMob.tx,
+        ty: testMob.ty,
+        homeX: testMob.homeX,
+        homeY: testMob.homeY,
+        aggressive: Boolean(testMob.aggressive),
+      };
+      testMob.aggressive = true;
+      testMob.tx = 32592;
+      testMob.ty = 32908;
+      testMob.homeX = 32592;
+      testMob.homeY = 32906;
+      testMob.aggroTarget = false;
+      testMob.lastAttackAt = 0;
+      w.player.hp = w.player.maxHp;
+      const hpInsideBefore = w.player.hp;
+      for (let i = 0; i < 14; i += 1) {
+        w.step(200, performance.now() + (i + 1) * 200);
+      }
+      const mobEnteredSafety = testMob.ty >= 32910 || w.isoMap.hasSafetyBit(testMob.tx, testMob.ty, 0);
+      const hpInsideAfter = w.player.hp;
+      const aggroWhileInside = testMob.aggroTarget;
+
+      // 玩家走出城外 (一般區域) 怪物可鎖定追擊，退回安全區後立即解除仇恨且不進城
+      w.teleportTo(0, 32592, 32906, 4);
+      eng.hud.sync(true);
+      const wildZoneBadge = document.querySelector('.ll-zone-badge')?.textContent?.trim() || '';
+      testMob.tx = 32592;
+      testMob.ty = 32908;
+      for (let i = 0; i < 4; i += 1) {
+        w.step(200, performance.now() + 4000 + i * 200);
+      }
+      const aggroOutside = testMob.aggroTarget;
+
+      w.teleportTo(0, 32592, 32912, 4);
+      eng.hud.sync(true);
+      for (let i = 0; i < 6; i += 1) {
+        w.step(200, performance.now() + 5000 + i * 200);
+      }
+      const aggroClearedOnReenter = testMob.aggroTarget === false;
+      const mobStillOutside = testMob.ty < 32910 && !w.isoMap.hasSafetyBit(testMob.tx, testMob.ty, 0);
+
+      testMob.tx = savedPos.tx;
+      testMob.ty = savedPos.ty;
+      testMob.homeX = savedPos.homeX;
+      testMob.homeY = savedPos.homeY;
+      testMob.aggressive = savedPos.aggressive;
+      testMob.aggroTarget = false;
+      borderCheck = {
+        ok: true,
+        mobEnteredSafety,
+        hpDeltaInside: hpInsideAfter - hpInsideBefore,
+        aggroWhileInside,
+        wildZoneBadge,
+        aggroOutside,
+        aggroClearedOnReenter,
+        mobStillOutside,
+      };
+    }
+
+    w.teleportTo(0, 32578, 32943, 4);
+    eng.hud.closeModal();
+    return {
+      ok: true,
+      map22State,
+      hasBaphomet,
+      hasDeathKnight,
+      hasAntQueen,
+      hasGiantSoldierAnt,
+      hasCyclops,
+      tiZoneBadge,
+      tiHostilesOnSafeBit,
+      borderCheck,
+    };
+  });
+  assert(
+    dungeonBossCheck.ok
+      && dungeonBossCheck.map22State.map === 22
+      && dungeonBossCheck.map22State.medusaCount >= 1
+      && dungeonBossCheck.hasBaphomet
+      && dungeonBossCheck.hasDeathKnight
+      && dungeonBossCheck.hasAntQueen
+      && dungeonBossCheck.hasGiantSoldierAnt
+      && dungeonBossCheck.hasCyclops,
+    `Dungeon/Boss check failed: ${JSON.stringify(dungeonBossCheck)}`
+  );
+  assert(
+    dungeonBossCheck.tiZoneBadge === '安全區域'
+      && dungeonBossCheck.tiHostilesOnSafeBit === 0
+      && dungeonBossCheck.borderCheck.ok
+      && dungeonBossCheck.borderCheck.mobEnteredSafety === false
+      && dungeonBossCheck.borderCheck.hpDeltaInside === 0
+      && dungeonBossCheck.borderCheck.aggroWhileInside === false
+      && dungeonBossCheck.borderCheck.aggroOutside === true
+      && dungeonBossCheck.borderCheck.aggroClearedOnReenter === true
+      && dungeonBossCheck.borderCheck.mobStillOutside === true,
+    `Town safety border guard failed: ${JSON.stringify(dungeonBossCheck)}`
   );
 
   // 驗證全 64 張地圖接通（世界地圖跨大陸傳送、古魯丁安全區、奇岩地監隨機刷怪、回卷最近城鎮、禁瞬移地圖、風木 2F 穿牆修正）

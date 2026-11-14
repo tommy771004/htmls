@@ -184,8 +184,9 @@ export class LineageIsoMap {
 
   /** 回傳該座標的 Lineage 原始安全區旗標（collision bit 0x04） */
   hasSafetyBit(tx, ty, mapId) {
-    const [b0, b1] = this.getCollisionBytes(tx, ty, mapId);
-    return (b0 & 4) !== 0 || (b1 & 4) !== 0;
+    const bytes = this.getCollisionBytes(tx, ty, mapId);
+    if (!bytes) return false;
+    return (bytes[0] & 4) !== 0 || (bytes[1] & 4) !== 0;
   }
 
   /**

@@ -30,18 +30,37 @@ const CLASS_LABELS = {
   warrior: '戰士',
 };
 
+const CLASS_ALLOW_LABELS = ['王族', '騎士', '妖精', '法師'];
+
+const WEAPON_TYPE_LABELS = {
+  sword: '單手劍',
+  dagger: '匕首',
+  tohandsword: '雙手劍',
+  bow: '弓弩',
+  spear: '矛戟',
+  axe: '戰斧',
+  blunt: '鈍器',
+  wand: '魔杖',
+};
+
 const QUICKBAR_KEYS = ['F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'];
 
-const EQUIP_SLOT_LABELS = [
-  ['武器', '武器'],
-  ['t', '內衣'],
-  ['armor', '盔甲'],
-  ['helm', '頭盔'],
-  ['shield', '盾牌'],
-  ['cloak', '斗篷'],
-  ['boot', '長靴'],
-  ['glove', '手套'],
+// 3×5 人型紙娃娃格位配置（area, slotKey, label, placeholderGlyph）
+const PAPERDOLL_GRID_SLOTS = [
+  { col: 2, row: 1, key: 'helm', label: '頭盔', glyph: '⛑' },
+  { col: 1, row: 2, key: 'necklace', label: '項鍊', glyph: '📿' },
+  { col: 2, row: 2, key: 't', label: '內衣', glyph: '👕' },
+  { col: 3, row: 2, key: 'cloak', label: '斗篷', glyph: '🧥' },
+  { col: 1, row: 3, key: '武器', label: '武器', glyph: '⚔' },
+  { col: 2, row: 3, key: 'armor', label: '盔甲', glyph: '🛡' },
+  { col: 3, row: 3, key: 'shield', label: '盾牌', glyph: '🔰' },
+  { col: 1, row: 4, key: 'glove', label: '手套', glyph: '🧤' },
+  { col: 2, row: 4, key: 'belt', label: '腰帶', glyph: '➰' },
+  { col: 3, row: 4, key: 'ring', label: '戒指', glyph: '💍' },
+  { col: 2, row: 5, key: 'boot', label: '長靴', glyph: '🥾' },
 ];
+
+const EQUIP_SLOT_LABELS = PAPERDOLL_GRID_SLOTS.map((s) => [s.key, s.label]);
 
 const NPC_DIALOGUE_START = {
   朵琳: 'dorin',
@@ -106,6 +125,11 @@ export class GameHud {
 
     this.activeModal = null;
     this.selectedItemId = null;
+    this.invFilter = 'all'; // 'all' | 'consumable' | 'gear' | 'etc'
+    this.pendingDiscardId = null;
+    this.spellView = 'grid'; // 'grid' | 'list'
+    this.spellCircle = 'all'; // 'all' | 1..6
+    this.selectedSpellId = null;
     this.npcSession = null; // { npc, mode: 'talk'|'buy'|'sell'|'deposit'|'withdraw'|'teleport', dialogueKey }
     this.chatExpanded = false;
     this.chatTab = 'all'; // 'all' | 'combat' | 'chat'
@@ -134,30 +158,10 @@ export class GameHud {
     const sendIcon = assetUrl('/lineage163/ui-redraw-v8/send.png');
     const expandIcon = assetUrl('/lineage163/ui-redraw-v8/chat-expand.png');
 
-    // 1. 左上角圖示工具列＋Buff 狀態列＋目標血條
+    // 1. 右上角小地圖雷達＋安全/戰鬥區＋可折疊任務與地監面板（左上角保持完全清空）
     const topStrip = document.createElement('div');
     topStrip.className = 'll-top-strip';
     topStrip.innerHTML = `
-      <div class="ll-tl-cluster">
-        <div class="ll-tl-toolbar" data-role="tl-toolbar">
-          <button type="button" class="ll-tl-btn" data-win="inventory" title="道具欄 (I)"><img src="${esc(iconBag)}" alt="" /><span>道具</span></button>
-          <button type="button" class="ll-tl-btn" data-win="spells" title="魔法書 (K)"><img src="${esc(iconMagic)}" alt="" /><span>魔法</span></button>
-          <button type="button" class="ll-tl-btn" data-win="status" title="狀態紙娃娃 (S)"><img src="${esc(iconStatus)}" alt="" /><span>狀態</span></button>
-          <button type="button" class="ll-tl-btn" data-win="map" title="世界地圖 (M)"><img src="${esc(iconMap)}" alt="" /><span>地圖</span></button>
-          <button type="button" class="ll-tl-btn" data-win="auto" title="內掛設定 (H)"><img src="${esc(iconAuto)}" alt="" /><span>設定</span></button>
-          <button type="button" class="ll-tl-btn" data-act="attack-nearest" title="鎖敵攻擊 (Space)"><img src="${esc(iconAtk)}" alt="" /><span>鎖敵</span></button>
-          <button type="button" class="ll-tl-btn" data-act="pickup-nearest" title="拾取道具"><img src="${esc(iconLoot)}" alt="" /><span>拾取</span></button>
-          <button type="button" class="ll-tl-btn" data-win="system" title="系統與選角 (Esc)"><img src="${esc(iconSys)}" alt="" /><span>系統</span></button>
-          <button type="button" class="ll-tl-chevron" data-act="toggle-tl" title="收合／展開工具列">‹</button>
-        </div>
-        <div class="ll-buff-strip" data-role="buff-strip"></div>
-        <div class="ll-target-pill" data-role="target-pill" hidden>
-          <span class="ll-target-name" data-role="target-name"></span>
-          <div class="ll-target-bar"><div class="ll-target-fill" data-role="target-fill" style="width:100%"></div></div>
-        </div>
-      </div>
-
-      <!-- 2. 右上角小地圖雷達＋安全/戰鬥區＋可折疊任務與地監面板 -->
       <div class="ll-tr-cluster">
         <div class="ll-radar-card">
           <div class="ll-radar-head" data-win="map" title="點擊開啟完整世界地圖 (M)">
@@ -251,11 +255,31 @@ export class GameHud {
         </div>
 
         <div class="ll-br-dock">
-          <button type="button" class="ll-br-sub-btn" data-act="attack-nearest" title="鎖定最近目標 (Space)">周邊</button>
-          <button type="button" class="ll-play-btn" data-act="toggle-auto" data-role="hud-auto-btn" title="切換自動狩獵／內掛 (H)">
-            <span class="ll-play-ring">▶</span>
-            <span class="ll-play-label" data-role="auto-label">內掛</span>
-          </button>
+          <div class="ll-tl-cluster">
+            <div class="ll-target-pill" data-role="target-pill" hidden>
+              <span class="ll-target-name" data-role="target-name"></span>
+              <div class="ll-target-bar"><div class="ll-target-fill" data-role="target-fill" style="width:100%"></div></div>
+            </div>
+            <div class="ll-buff-strip" data-role="buff-strip"></div>
+            <div class="ll-br-actions">
+              <button type="button" class="ll-br-sub-btn" data-act="attack-nearest" title="鎖定最近目標 (Space)">周邊</button>
+              <button type="button" class="ll-play-btn" data-act="toggle-auto" data-role="hud-auto-btn" title="切換自動狩獵／內掛 (H)">
+                <span class="ll-play-ring">▶</span>
+                <span class="ll-play-label" data-role="auto-label">內掛</span>
+              </button>
+            </div>
+            <div class="ll-tl-toolbar" data-role="tl-toolbar">
+              <button type="button" class="ll-tl-btn" data-win="inventory" title="道具欄 (I)"><img src="${esc(iconBag)}" alt="" /><span>道具</span></button>
+              <button type="button" class="ll-tl-btn" data-win="spells" title="魔法書 (K)"><img src="${esc(iconMagic)}" alt="" /><span>魔法</span></button>
+              <button type="button" class="ll-tl-btn" data-win="status" title="狀態紙娃娃 (S)"><img src="${esc(iconStatus)}" alt="" /><span>狀態</span></button>
+              <button type="button" class="ll-tl-btn" data-win="map" title="世界地圖 (M)"><img src="${esc(iconMap)}" alt="" /><span>地圖</span></button>
+              <button type="button" class="ll-tl-btn" data-win="auto" title="內掛設定 (H)"><img src="${esc(iconAuto)}" alt="" /><span>設定</span></button>
+              <button type="button" class="ll-tl-btn" data-act="attack-nearest" title="鎖敵攻擊 (Space)"><img src="${esc(iconAtk)}" alt="" /><span>鎖敵</span></button>
+              <button type="button" class="ll-tl-btn" data-act="pickup-nearest" title="拾取道具"><img src="${esc(iconLoot)}" alt="" /><span>拾取</span></button>
+              <button type="button" class="ll-tl-btn" data-win="system" title="系統與選角 (Esc)"><img src="${esc(iconSys)}" alt="" /><span>系統</span></button>
+              <button type="button" class="ll-tl-chevron" data-act="toggle-tl" title="收合／展開工具列">›</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -286,11 +310,6 @@ export class GameHud {
       const act = btn.dataset.act;
       if (act === 'attack-nearest') this.onActionNearest?.('attack');
       else if (act === 'pickup-nearest') this.onActionNearest?.('pickup');
-      else if (act === 'toggle-tl') {
-        this.tlCollapsed = !this.tlCollapsed;
-        topStrip.querySelector('[data-role="tl-toolbar"]')?.classList.toggle('collapsed', this.tlCollapsed);
-        btn.textContent = this.tlCollapsed ? '›' : '‹';
-      }
     });
 
     bottomHud.addEventListener('click', (ev) => {
@@ -323,6 +342,12 @@ export class GameHud {
           this.sync(true);
         } else if (act === 'attack-nearest') {
           this.onActionNearest?.('attack');
+        } else if (act === 'pickup-nearest') {
+          this.onActionNearest?.('pickup');
+        } else if (act === 'toggle-tl') {
+          this.tlCollapsed = !this.tlCollapsed;
+          bottomHud.querySelector('[data-role="tl-toolbar"]')?.classList.toggle('collapsed', this.tlCollapsed);
+          actBtn.textContent = this.tlCollapsed ? '‹' : '›';
         } else if (act === 'quick-heal') {
           const hpPot = this.world.player.inventory.find((i) =>
             ['紅色藥水', '橙色藥水', '白色藥水'].includes(i.name) && i.count > 0,
@@ -368,11 +393,11 @@ export class GameHud {
       coords: topStrip.querySelector('[data-role="coords"]'),
       zoneBadge: topStrip.querySelector('[data-role="zone-badge"]'),
       radarCanvas: topStrip.querySelector('[data-role="radar-canvas"]'),
-      buffStrip: topStrip.querySelector('[data-role="buff-strip"]'),
+      buffStrip: bottomHud.querySelector('[data-role="buff-strip"]'),
       questSummary: topStrip.querySelector('[data-role="quest-summary"]'),
-      targetPill: topStrip.querySelector('[data-role="target-pill"]'),
-      targetName: topStrip.querySelector('[data-role="target-name"]'),
-      targetFill: topStrip.querySelector('[data-role="target-fill"]'),
+      targetPill: bottomHud.querySelector('[data-role="target-pill"]'),
+      targetName: bottomHud.querySelector('[data-role="target-name"]'),
+      targetFill: bottomHud.querySelector('[data-role="target-fill"]'),
       hudAutoBtn: bottomHud.querySelector('[data-role="hud-auto-btn"]'),
       autoLabel: bottomHud.querySelector('[data-role="auto-label"]'),
       charLevel: bottomHud.querySelector('[data-role="char-level"]'),
@@ -416,6 +441,9 @@ export class GameHud {
       this.closeModal();
       return;
     }
+    this.pendingDiscardId = null;
+    this.invFilter = 'all';
+    this.spellCircle = 'all';
     this.activeModal = name;
     this.renderModal();
     this.sync(true);
@@ -423,6 +451,9 @@ export class GameHud {
 
   closeModal() {
     this.activeModal = null;
+    this.pendingDiscardId = null;
+    this.invFilter = 'all';
+    this.spellCircle = 'all';
     this.npcSession = null;
     this.elements.modalLayer.hidden = true;
     this.elements.modalLayer.innerHTML = '';
@@ -526,86 +557,273 @@ export class GameHud {
     return eqMap;
   }
 
+  /** 依道具定義分類至經典背包頁籤 */
+  #classifyInvItem(it, def) {
+    if (def?.kind === 'weapon' || def?.kind === 'armor') return 'gear';
+    if (
+      def?.type === 'manapotion' ||
+      /(藥水|餅乾|肉|蘋果|起司|麵包|果汁|解毒|牛奶|蘿蔔|檸檬|香蕉|茶)/.test(it?.name || '')
+    ) {
+      return 'consumable';
+    }
+    return 'etc';
+  }
+
+  /** 將道具可使用職業旗標陣列格式化為【職業】字串 */
+  #formatAllowedClasses(def) {
+    if (!Array.isArray(def?.classes)) return '全職業';
+    const allowed = CLASS_ALLOW_LABELS.filter((_, idx) => Boolean(def.classes[idx]));
+    if (!allowed.length) return '無職業限制 / 一般';
+    return allowed.map((c) => `【${c}】`).join('');
+  }
+
+  /** 建構經典黑色半透明屬性視窗的詳細欄位列 */
+  #buildItemTooltipLines(it, def) {
+    const lines = [];
+    const plus = it.plus || 0;
+    const isGear = def?.kind === 'weapon' || def?.kind === 'armor';
+    const unid = isGear && it.identified === false;
+
+    if (unid) {
+      lines.push({ text: '尚未鑑定，無法確認詳細強化與附加能力。', cls: 'muted' });
+      lines.push({ text: '可使用「鑑定卷軸」進行辨識。', cls: 'muted' });
+    } else if (def?.kind === 'weapon') {
+      const plusSuffix = plus ? `+${plus}` : '';
+      const wType = WEAPON_TYPE_LABELS[def.type] || '武器';
+      lines.push({ text: `攻擊力 ${def.small}${plusSuffix}/${def.large}${plusSuffix} (${wType})`, cls: 'bright' });
+      if (def.twoHand) lines.push({ text: '雙手武器.', cls: '' });
+      if (def.hit) lines.push({ text: `${def.type === 'bow' ? '遠距離命中' : '近距離命中'} +${def.hit}.`, cls: '' });
+      if (def.damage) lines.push({ text: `${def.type === 'bow' ? '遠距離傷害' : '額外傷害'} +${def.damage}.`, cls: '' });
+      if (it.brokenCount > 0) {
+        lines.push({ text: `武器受損 -${it.brokenCount}（請前往武器店找多瑪修理）.`, cls: 'warn' });
+      }
+      lines.push({ text: `安定值 +${def.safe ?? 6}.`, cls: '' });
+    } else if (def?.kind === 'armor') {
+      const slotName = PAPERDOLL_GRID_SLOTS.find((s) => s.key === def.type)?.label || '防具';
+      lines.push({ text: `防禦 -${(def.ac || 0) + plus}（部位：${slotName}）`, cls: 'bright' });
+      const bonuses = [
+        def.hp && `體力 +${def.hp}`,
+        def.mp && `魔力 +${def.mp}`,
+        def.sp && `魔攻 +${def.sp}`,
+        def.mr && `魔防 +${def.mr}%`,
+        def.str && `力量 +${def.str}`,
+        def.dex && `敏捷 +${def.dex}`,
+        def.regenHp && `體力回復 +${def.regenHp}`,
+        def.regenMp && `魔力回復 +${def.regenMp}`,
+      ].filter(Boolean);
+      for (const b of bonuses) lines.push({ text: `${b}.`, cls: '' });
+      lines.push({ text: `安定值 +${def.safe ?? 4}.`, cls: '' });
+    } else {
+      const catText = def?.kind === 'book'
+        ? '魔法書（雙擊或點使用學習法術）'
+        : this.#classifyInvItem(it, def) === 'consumable'
+          ? '消耗道具（雙擊或綁定 F5~F12 快速使用）'
+          : '道具／卷軸／材料';
+      lines.push({ text: catText, cls: 'muted' });
+      lines.push({ text: `持有數量 ${it.count.toLocaleString()}.`, cls: 'bright' });
+      if (def?.price > 0) lines.push({ text: `商店估價 ${def.price.toLocaleString()} 金幣.`, cls: '' });
+    }
+
+    if (isGear) lines.push({ text: `可使用職業：${this.#formatAllowedClasses(def)}`, cls: 'cls' });
+    const unitWeight = def?.weight || 0;
+    const totalWeight = unitWeight * (it.count || 1);
+    lines.push({
+      text: `重量 ${totalWeight}${it.count > 1 ? ` (單件 ${unitWeight})` : ''}.`,
+      cls: '',
+    });
+    return lines;
+  }
+
+  /** 人型紙娃娃背景 SVG 剪影（內嵌圖示零額外請求） */
+  #renderPaperdollSvg() {
+    return `
+      <svg class="ll-doll-silhouette" viewBox="0 0 180 250" aria-hidden="true">
+        <defs>
+          <radialGradient id="llDollGlow" cx="50%" cy="38%" r="58%">
+            <stop offset="0%" stop-color="rgba(220, 178, 102, 0.34)" />
+            <stop offset="100%" stop-color="rgba(12, 15, 20, 0)" />
+          </radialGradient>
+        </defs>
+        <ellipse cx="90" cy="122" rx="76" ry="108" fill="url(#llDollGlow)" />
+        <path d="M90 16 C105 16 113 27 113 41 C113 51 107 58 102 61 L104 69 L136 82 L154 126 L142 133 L125 99 L120 148 L131 230 L111 230 L97 166 L90 166 L76 230 L56 230 L67 148 L62 99 L45 133 L33 126 L51 82 L83 69 L85 61 C80 58 74 51 74 41 C74 27 82 16 90 16 Z"
+              fill="rgba(22, 26, 33, 0.88)"
+              stroke="rgba(224, 184, 108, 0.62)"
+              stroke-width="2" />
+      </svg>
+    `;
+  }
+
+  /** 渲染 3×5 解剖位置人型紙娃娃格子（供狀態視窗與其他需要位置重用） */
+  #renderPaperdollSlotsHtml(eqMap) {
+    return PAPERDOLL_GRID_SLOTS.map((slot) => {
+      const it = eqMap[slot.key];
+      const def = it ? this.world.worldData.items[it.name] : null;
+      const iconUrl = def?.icon != null ? this.world.assets.itemIconUrl(def.icon) : '';
+      const fullTitle = it ? `${it.plus ? `+${it.plus} ` : ''}${it.name}` : '未裝備';
+      return `
+        <button type="button"
+                class="ll-doll-slot ${it ? 'equipped' : ''}"
+                style="grid-column:${slot.col};grid-row:${slot.row};"
+                data-open-win="inventory"
+                ${it ? `data-preselect-item="${esc(it.id)}"` : ''}
+                title="${esc(slot.label)}：${esc(fullTitle)}">
+          <span class="ll-doll-corner">${esc(slot.label)}</span>
+          ${it ? '<span class="ll-doll-on">ON</span>' : ''}
+          ${it?.plus ? `<span class="ll-doll-plus">+${it.plus}</span>` : ''}
+          ${iconUrl ? `<img src="${esc(iconUrl)}" alt="" />` : `<span class="ll-doll-empty">${slot.glyph}</span>`}
+          <span class="ll-doll-name">${esc(it ? `${it.plus ? `+${it.plus} ` : ''}${it.name}` : '空')}</span>
+        </button>
+      `;
+    }).join('');
+  }
+
   #renderInventoryHtml() {
     const p = this.world.player;
     const eqMap = this.#buildEquipMap(p);
+    const items = p.inventory || [];
+    const filtered = this.invFilter === 'all'
+      ? items
+      : items.filter((it) => this.#classifyInvItem(it, this.world.worldData.items[it.name]) === this.invFilter);
 
-    const eqRows = EQUIP_SLOT_LABELS
-      .map(([key, label]) => {
-        const it = eqMap[key];
-        const disp = it ? `${it.plus ? `+${it.plus} ` : ''}${it.name}` : '<span style="color:#6d6456">（空）</span>';
-        return `<div class="ll-equip-row"><span>${label}</span><span>${disp}</span></div>`;
-      })
-      .join('');
+    // 選取項優先對應目前檢視清單；若外部指定了 selectedItemId 仍可精準顯示
+    let selItem = items.find((i) => i.id === this.selectedItemId) || null;
+    if (!selItem || (this.invFilter !== 'all' && !filtered.some((i) => i.id === selItem.id))) {
+      selItem = filtered[0] || items[0] || null;
+    }
+    if (selItem) this.selectedItemId = selItem.id;
+    else this.selectedItemId = null;
 
-    const itemCards = p.inventory
+    const minCells = Math.max(24, Math.ceil(filtered.length / 4) * 4);
+    const emptyCellsCount = Math.max(0, minCells - filtered.length);
+
+    const itemSlotsHtml = filtered
       .map((it) => {
         const def = this.world.worldData.items[it.name] || {};
         const iconUrl = this.world.assets.itemIconUrl(def.icon);
-        const sel = this.selectedItemId === it.id ? 'border-color:#f4cd75;' : '';
-        const title = `${it.plus ? `+${it.plus} ` : ''}${it.name}`;
         const isGear = def.kind === 'weapon' || def.kind === 'armor';
         const unid = isGear && it.identified === false;
-        const dmgWarn = it.brokenCount > 0 ? ` · 受損-${it.brokenCount}` : '';
-        const sub = unid
-          ? '未鑑定裝備'
-          : def.kind === 'weapon'
-            ? `傷害 ${def.small}/${def.large}${dmgWarn}`
-            : def.kind === 'armor'
-              ? `AC -${def.ac + (it.plus || 0)}`
-              : `數量 ${it.count}`;
+        const selected = selItem?.id === it.id;
+        const tipTitle = `${it.plus ? `+${it.plus} ` : ''}${it.name}${it.count > 1 ? ` x${it.count}` : ''}`;
         return `
-          <button type="button" class="ll-item-card ${it.equipped ? 'equipped' : ''}" style="${sel}" data-select-item="${esc(it.id)}">
-            <img src="${esc(iconUrl)}" alt="" />
-            <div class="ll-item-meta">
-              <div class="ll-item-name">${esc(title)}</div>
-              <div class="ll-item-sub ${it.brokenCount > 0 ? 'warn' : unid ? 'unid' : ''}">${it.equipped ? '已裝備 · ' : ''}${esc(sub)}</div>
-            </div>
+          <button type="button"
+                  class="ll-inv-slot ${it.equipped ? 'equipped' : ''} ${selected ? 'selected' : ''}"
+                  data-select-item="${esc(it.id)}"
+                  title="${esc(tipTitle)}">
+            ${it.equipped ? '<span class="ll-slot-on">ON</span>' : ''}
+            ${unid ? '<span class="ll-slot-tag unid">未</span>' : it.plus > 0 ? `<span class="ll-slot-tag plus">+${it.plus}</span>` : it.brokenCount > 0 ? `<span class="ll-slot-tag warn">-${it.brokenCount}</span>` : ''}
+            <img src="${esc(iconUrl)}" alt="${esc(it.name)}" />
+            ${it.locked ? '<span class="ll-slot-lock" title="已鎖定">🔒</span>' : ''}
+            ${it.count > 1 ? `<span class="ll-slot-cnt">${it.count > 9999 ? '9999+' : it.count}</span>` : ''}
           </button>
         `;
       })
-      .join('');
+      .join('') + Array.from({ length: emptyCellsCount }, () => '<div class="ll-inv-slot empty" aria-hidden="true"></div>').join('');
 
-    const selItem = p.inventory.find((i) => i.id === this.selectedItemId) || p.inventory[0] || null;
-    if (selItem && !this.selectedItemId) this.selectedItemId = selItem.id;
-    const selDef = selItem ? this.world.worldData.items[selItem.name] : null;
-    const actionLabel = selDef && (selDef.kind === 'weapon' || selDef.kind === 'armor')
-      ? (selItem.equipped ? '卸下裝備' : '穿戴裝備')
-      : '使用道具';
-    const hasIdScroll = p.inventory.some((i) => i.name === '鑑定卷軸' && i.count > 0);
-    const selUnid = selItem && selDef && (selDef.kind === 'weapon' || selDef.kind === 'armor') && selItem.identified === false;
+    const selDef = selItem ? this.world.worldData.items[selItem.name] || {} : null;
+    const selIsGear = selDef && (selDef.kind === 'weapon' || selDef.kind === 'armor');
+    const actionLabel = selIsGear ? (selItem.equipped ? '卸下裝備' : '穿戴裝備') : '使用道具';
+    const hasIdScroll = items.some((i) => i.name === '鑑定卷軸' && i.count > 0);
+    const selUnid = Boolean(selItem && selIsGear && selItem.identified === false);
+    const tooltipLines = selItem ? this.#buildItemTooltipLines(selItem, selDef) : [];
+    const selIconUrl = selDef?.icon != null ? this.world.assets.itemIconUrl(selDef.icon) : '';
+    const weightTone = p.weightPercent >= 82 ? 'danger' : p.weightPercent >= 50 ? 'warn' : 'ok';
 
     const quickAssignBtns = selItem
-      ? QUICKBAR_KEYS.map(
-          (k, idx) => `<button type="button" class="ll-act-btn secondary" data-bind-item-q="${idx}" title="設為 ${k}">${k}</button>`,
-        ).join('')
+      ? QUICKBAR_KEYS.map((k, idx) => {
+          const bound = p.quickbar?.[idx]?.kind === 'item' && p.quickbar[idx].name === selItem.name;
+          return `<button type="button" class="ll-qbind-btn ${bound ? 'bound' : ''}" data-bind-item-q="${idx}" title="設為 ${k}">${k}</button>`;
+        }).join('')
       : '';
 
+    const eqSummaryPills = EQUIP_SLOT_LABELS
+      .map(([key, label]) => {
+        const eqIt = eqMap[key];
+        if (!eqIt) return '';
+        return `<button type="button" class="ll-eq-mini-pill" data-focus-item="${esc(eqIt.id)}" title="${esc(label)}：${esc(eqIt.name)}（點擊檢視）">${esc(label)}：${esc(eqIt.plus ? `+${eqIt.plus} ` : '')}${esc(eqIt.name)}</button>`;
+      })
+      .filter(Boolean)
+      .join('');
+
+    const filterBtns = [
+      ['all', '全', '全部物品'],
+      ['consumable', 'P', '藥水與食物 (P)'],
+      ['gear', '裝', '武器與防具'],
+      ['etc', '卷', '卷軸與材料'],
+    ]
+      .map(
+        ([key, text, title]) =>
+          `<button type="button" class="ll-inv-tool ${this.invFilter === key ? 'active' : ''}" data-inv-filter="${key}" title="${title}">${text}</button>`,
+      )
+      .join('');
+
+    const pendingDiscard = selItem && this.pendingDiscardId === selItem.id;
+
     return `
-      <div class="ll-win wide">
+      <div class="ll-win ll-classic-win wide inv-win">
         <div class="ll-win-head">
-          <h3 class="ll-win-title">裝備與道具欄（金幣 ${p.gold.toLocaleString()} / 負重 ${p.weightPercent}%）</h3>
+          <h3 class="ll-win-title">道具與裝備欄（金幣 ${p.gold.toLocaleString()} · ${items.length} 格）</h3>
           <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
         </div>
         <div class="ll-win-body">
-          <div class="ll-inv-grid">
-            <div class="ll-equip-box">
-              <div class="ll-subhead">角色裝備（AC ${p.ac} / 抗魔 ${p.mr}%）</div>
-              ${eqRows}
+          <div class="ll-inv-classic-wrap">
+            <div class="ll-bag-slate-frame">
+              <div class="ll-bag-frame-top">
+                <span>🎒 背包格陣列（4×6）</span>
+                <span class="ll-gold-tag">🪙 ${p.gold.toLocaleString()}</span>
+              </div>
+              <div class="ll-inv-grid-4col">${itemSlotsHtml}</div>
+              <div class="ll-bag-footer">
+                <div class="ll-bag-filters">${filterBtns}</div>
+                <span class="ll-inv-weight ${weightTone}" title="負重 ${p.weightPercent}%">% ${p.weightPercent}</span>
+                <div class="ll-bag-ops">
+                  <button type="button" class="ll-inv-tool ${selItem?.locked ? 'locked-on' : ''}" data-toggle-lock="${esc(selItem?.id || '')}" title="鎖定／解鎖選取物品" ${selItem ? '' : 'disabled'}>🔒</button>
+                  <button type="button" class="ll-inv-tool danger" data-discard-item="${esc(selItem?.id || '')}" title="丟棄選取物品" ${selItem ? '' : 'disabled'}>🗑</button>
+                </div>
+              </div>
             </div>
-            <div class="ll-bag-box">
-              <div class="ll-subhead">持有物品（點擊選取，雙擊或點按鈕使用）</div>
-              <div class="ll-item-list">${itemCards || '<div style="color:#998">背包內尚無物品</div>'}</div>
+
+            <div class="ll-inv-detail-pane">
               ${selItem ? `
-                <div style="margin-top:10px;padding-top:8px;border-top:1px solid #493822;">
-                  <div style="font-size:12px;color:#f3d284;margin-bottom:6px;">已選取：${esc(selItem.plus ? `+${selItem.plus} ` : '')}${esc(selItem.name)} x${selItem.count}${selItem.brokenCount > 0 ? `（武器受損 -${selItem.brokenCount}，需找多瑪修理）` : ''}${selUnid ? '（未鑑定）' : ''}</div>
-                  <div class="ll-btn-row">
-                    <button type="button" class="ll-act-btn" data-use-selected="${esc(selItem.id)}">${actionLabel}</button>
-                    ${selUnid && hasIdScroll ? `<button type="button" class="ll-act-btn secondary" data-identify-item="${esc(selItem.id)}">鑑定裝備</button>` : ''}
-                    ${quickAssignBtns}
+                <div class="ll-classic-tooltip">
+                  <div class="ll-tip-head">
+                    ${selIconUrl ? `<img src="${esc(selIconUrl)}" alt="" />` : ''}
+                    <div>
+                      <div class="ll-tip-title">${selItem.plus ? `+${selItem.plus} ` : ''}${esc(selItem.name)}${selItem.equipped ? ' 〔裝備中〕' : ''}</div>
+                      <div class="ll-tip-badges">
+                        ${selUnid ? '<span class="ll-tip-badge unid">未鑑定</span>' : ''}
+                        ${selItem.locked ? '<span class="ll-tip-badge lock">已鎖定</span>' : ''}
+                        ${selItem.brokenCount > 0 ? `<span class="ll-tip-badge warn">受損 -${selItem.brokenCount}</span>` : ''}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ll-tip-lines">
+                    ${tooltipLines.map((ln) => `<div class="ll-tip-line ${ln.cls}">${esc(ln.text)}</div>`).join('')}
                   </div>
                 </div>
-              ` : ''}
+                ${pendingDiscard ? `
+                  <div class="ll-discard-confirm">
+                    <span>確定要丟棄「${esc(selItem.name)}${selItem.count > 1 ? ` x${selItem.count}` : ''}」？</span>
+                    <div class="ll-btn-row" style="margin-top:4px;">
+                      <button type="button" class="ll-act-btn danger" data-confirm-discard="${esc(selItem.id)}">確認丟棄</button>
+                      <button type="button" class="ll-act-btn secondary" data-cancel-discard="1">取消</button>
+                    </div>
+                  </div>
+                ` : ''}
+                <div class="ll-btn-row">
+                  <button type="button" class="ll-act-btn" data-use-selected="${esc(selItem.id)}">${actionLabel}</button>
+                  ${selUnid && hasIdScroll ? `<button type="button" class="ll-act-btn secondary" data-identify-item="${esc(selItem.id)}">鑑定裝備</button>` : ''}
+                  <button type="button" class="ll-act-btn secondary" data-open-win="status">紙娃娃</button>
+                </div>
+                <div class="ll-qbind-wrap">
+                  <span class="ll-qbind-label">指派快捷</span>
+                  <div class="ll-qbind-row">${quickAssignBtns}</div>
+                </div>
+              ` : '<div class="ll-classic-tooltip"><div class="ll-tip-line muted">背包內尚無符合分類的物品。</div></div>'}
+
+              <div class="ll-inv-eq-mini">
+                <div class="ll-subhead" style="margin-bottom:4px;">目前穿戴（AC ${p.ac} · 抗魔 ${p.mr}% · 魔攻 ${p.sp || 1}）</div>
+                <div class="ll-eq-mini-list">${eqSummaryPills || '<span style="color:#8b816f;font-size:11px;">尚未穿戴任何裝備</span>'}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -616,40 +834,146 @@ export class GameHud {
   #renderSpellsHtml() {
     const p = this.world.player;
     const allSpells = this.world.worldData.spells || [];
-    const rows = p.spells
+    const learned = p.spells
       .map((sid) => allSpells.find((s) => s.id === sid))
       .filter(Boolean)
-      .map((sp) => {
-        const iconUrl = this.world.assets.spellIconUrl(sp);
-        return `
-          <div class="ll-list-row">
-            <div class="ll-list-left">
-              <img src="${esc(iconUrl)}" alt="" />
-              <div>
-                <div style="font-weight:700;color:#f6dfaa;">${esc(sp.name)} <span style="font-size:11px;color:#9eb5cb;">Lv.${sp.level}</span></div>
-                <div style="font-size:11px;color:#9eb5cb;">消耗 MP ${sp.mp} · 距離 ${sp.range || '自身'}</div>
+      .sort((a, b) => a.level - b.level || a.id - b.id);
+
+    const filtered = this.spellCircle === 'all'
+      ? learned
+      : learned.filter((s) => s.level === Number(this.spellCircle));
+
+    let selSpell = filtered.find((s) => s.id === this.selectedSpellId) || filtered[0] || learned[0] || null;
+    if (selSpell) this.selectedSpellId = selSpell.id;
+    else this.selectedSpellId = null;
+
+    const circleTabs = [
+      ['all', `全 (${learned.length})`],
+      ...[1, 2, 3, 4, 5, 6].map((lv) => {
+        const cnt = learned.filter((s) => s.level === lv).length;
+        return [String(lv), `${lv}階${cnt ? `·${cnt}` : ''}`];
+      }),
+    ]
+      .map(
+        ([k, lbl]) =>
+          `<button type="button" class="ll-spell-tab ${String(this.spellCircle) === k ? 'active' : ''}" data-spell-circle="${k}">${lbl}</button>`,
+      )
+      .join('');
+
+    let mainContent = '';
+    if (this.spellView === 'list') {
+      const rows = filtered
+        .map((sp) => {
+          const iconUrl = this.world.assets.spellIconUrl(sp);
+          const isSel = selSpell?.id === sp.id;
+          return `
+            <div class="ll-list-row ll-spell-list-row ${isSel ? 'selected' : ''}" data-select-spell="${sp.id}">
+              <div class="ll-list-left">
+                <img src="${esc(iconUrl)}" alt="${esc(sp.name)}" />
+                <div>
+                  <div style="font-weight:700;color:#f6dfaa;">${esc(sp.name)} <span style="font-size:11px;color:#9eb5cb;">${sp.level}階</span></div>
+                  <div style="font-size:11px;color:#9eb5cb;">MP ${sp.mp} · 距離 ${sp.range || '自身'}${sp.duration ? ` · ${sp.duration}s` : ''}</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+                <button type="button" class="ll-act-btn" data-cast-spell="${sp.id}">施放</button>
+                ${[4, 5, 6, 7].map((qi, j) => `<button type="button" class="ll-act-btn secondary" data-bind-spell-q="${qi}:${sp.id}" title="綁定至 F${9 + j}">F${9 + j}</button>`).join('')}
               </div>
             </div>
-              <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
-              <button type="button" class="ll-act-btn" data-cast-spell="${sp.id}">施放</button>
-              <button type="button" class="ll-act-btn secondary" data-bind-spell-q="4:${sp.id}" title="綁定至 F9">F9</button>
-              <button type="button" class="ll-act-btn secondary" data-bind-spell-q="5:${sp.id}" title="綁定至 F10">F10</button>
-              <button type="button" class="ll-act-btn secondary" data-bind-spell-q="6:${sp.id}" title="綁定至 F11">F11</button>
-              <button type="button" class="ll-act-btn secondary" data-bind-spell-q="7:${sp.id}" title="綁定至 F12">F12</button>
-            </div>
-          </div>
+          `;
+        })
+        .join('');
+      mainContent = `<div class="ll-spell-list-box">${rows || '<div class="ll-spell-empty">此階尚無習得魔法（可打怪掉落或向吉倫／教師購買魔法書）。</div>'}</div>`;
+    } else {
+      const minSlots = Math.max(20, Math.ceil(filtered.length / 5) * 5);
+      const emptyCount = Math.max(0, minSlots - filtered.length);
+      const cells = filtered
+        .map((sp) => {
+          const iconUrl = this.world.assets.spellIconUrl(sp);
+          const isSel = selSpell?.id === sp.id;
+          return `
+            <button type="button"
+                    class="ll-spell-cell ${isSel ? 'selected' : ''}"
+                    data-select-spell="${sp.id}"
+                    title="${esc(sp.name)}（${sp.level}階 · MP ${sp.mp}）">
+              <span class="ll-spell-lv">${sp.level}</span>
+              <img src="${esc(iconUrl)}" alt="${esc(sp.name)}" />
+              <span class="ll-spell-mp">${sp.mp}</span>
+            </button>
+          `;
+        })
+        .join('') + Array.from({ length: emptyCount }, () => '<div class="ll-spell-cell empty" aria-hidden="true"></div>').join('');
+      mainContent = `<div class="ll-spell-grid-5col">${cells}</div>`;
+    }
+
+    const elemMap = { none: '無屬性', earth: '地屬性', water: '水屬性', fire: '火屬性', wind: '風屬性', laser: '雷射' };
+    const hotkeySockets = [4, 5, 6, 7]
+      .map((qIdx, offset) => {
+        const keyTxt = `F${9 + offset}`;
+        const slot = p.quickbar?.[qIdx];
+        let slotIcon = '';
+        let slotTitle = `${keyTxt} 空插槽`;
+        if (slot?.kind === 'spell') {
+          const spObj = allSpells.find((s) => s.id === slot.id);
+          if (spObj) {
+            slotIcon = this.world.assets.spellIconUrl(spObj);
+            slotTitle = `${keyTxt}：${spObj.name}`;
+          }
+        } else if (slot?.kind === 'item') {
+          const def = this.world.worldData.items[slot.name];
+          if (def) {
+            slotIcon = this.world.assets.itemIconUrl(def.icon);
+            slotTitle = `${keyTxt}：${slot.name}`;
+          }
+        }
+        const bindVal = selSpell ? `${qIdx}:${selSpell.id}` : '';
+        const isItemSlot = slot?.kind === 'item';
+        return `
+          <button type="button"
+                  class="ll-f9-socket ${slot?.kind === 'spell' && slot.id === selSpell?.id ? 'bound' : ''} ${isItemSlot ? 'is-item' : ''}"
+                  ${bindVal ? `data-bind-spell-q="${bindVal}"` : 'disabled'}
+                  title="${esc(slotTitle)}${selSpell ? '（點擊綁定目前選取魔法）' : ''}">
+            ${slotIcon ? `<img src="${esc(slotIcon)}" alt="" />` : ''}
+            <span>${keyTxt}</span>
+          </button>
         `;
       })
       .join('');
 
     return `
-      <div class="ll-win">
+      <div class="ll-win ll-classic-win spell-win">
         <div class="ll-win-head">
-          <h3 class="ll-win-title">魔法書（SP ${p.sp || 1} · 抗魔 ${p.mr}% · MP ${p.mp} / ${p.maxMp}）</h3>
-          <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
+          <h3 class="ll-win-title">魔法書（MP ${p.mp} / ${p.maxMp}）</h3>
+          <div class="ll-win-head-tools">
+            <div class="ll-view-switch">
+              <button type="button" class="ll-view-btn ${this.spellView === 'grid' ? 'active' : ''}" data-spell-view="grid" title="5×4 魔法圖示盤">圖示</button>
+              <button type="button" class="ll-view-btn ${this.spellView === 'list' ? 'active' : ''}" data-spell-view="list" title="條列詳情檢視">條列</button>
+            </div>
+            <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
+          </div>
         </div>
         <div class="ll-win-body">
-          ${rows || '<div style="color:#9eb5cb;">目前尚未習得任何魔法（可打怪拾取或向NPC購買魔法書學習）。</div>'}
+          <div class="ll-spell-tabs">${circleTabs}</div>
+          <div class="ll-spell-slate-wrap">${mainContent}</div>
+          ${this.spellView === 'grid' && filtered.length === 0 ? '<div class="ll-spell-empty-hint">目前尚未習得此階魔法（可打怪掉落或向吉倫學習）</div>' : ''}
+          ${selSpell ? `
+            <div class="ll-spell-selected-bar">
+              <div class="ll-spell-sel-info">
+                <div class="ll-spell-sel-name">${esc(selSpell.name)} <span class="ll-spell-sel-tier">${selSpell.level}階</span></div>
+                <div class="ll-spell-sel-meta">
+                  MP ${selSpell.mp} · 距離 ${selSpell.range || '自身'} · ${elemMap[selSpell.element] || selSpell.element}${selSpell.duration ? ` · 持續 ${selSpell.duration}s` : ''}${selSpell.maxDmg > 0 ? ` · 威力 ${selSpell.minDmg}~${selSpell.maxDmg}` : ''}
+                </div>
+              </div>
+              <button type="button" class="ll-act-btn" data-cast-spell="${selSpell.id}">施放魔法</button>
+            </div>
+          ` : ''}
+          <div class="ll-spell-footer">
+            <div class="ll-spell-stats">
+              <div class="ll-stat-pill-classic"><span>魔攻</span><b>${p.sp || 1}</b></div>
+              <div class="ll-stat-pill-classic"><span>魔防</span><b>${p.mr}%</b></div>
+            </div>
+            <div class="ll-f9-tray">${hotkeySockets}</div>
+          </div>
         </div>
       </div>
     `;
@@ -663,59 +987,86 @@ export class GameHud {
     const eqMap = this.#buildEquipMap(p);
     const buffs = this.world.getBuffList();
 
-    const paperdollHtml = EQUIP_SLOT_LABELS.map(([key, label]) => {
-      const it = eqMap[key];
-      const def = it ? this.world.worldData.items[it.name] : null;
-      const iconUrl = def?.icon != null ? this.world.assets.itemIconUrl(def.icon) : '';
-      return `
-        <button type="button" class="ll-doll-slot ${it ? 'equipped' : ''}" data-open-win="inventory" title="${esc(label)}：${esc(it ? `${it.plus ? `+${it.plus} ` : ''}${it.name}` : '空')}">
-          ${iconUrl ? `<img src="${esc(iconUrl)}" alt="" />` : '<span class="ll-doll-empty">—</span>'}
-          <span class="ll-doll-meta">
-            <span class="ll-doll-label">${label}</span>
-            <span class="ll-doll-name">${esc(it ? `${it.plus ? `+${it.plus} ` : ''}${it.name}` : '未裝備')}</span>
-          </span>
-        </button>
-      `;
-    }).join('');
-
+    const paperdollHtml = this.#renderPaperdollSlotsHtml(eqMap);
     const buffRows = buffs.length
       ? buffs
           .map((bf) => `<span class="ll-chip buff">${esc(bf.label)} ${bf.remainSec}s</span>`)
           .join('')
-      : '<span style="font-size:12px;color:#8c8372;">目前無作用中的增益魔法或藥水</span>';
+      : '<span style="font-size:11px;color:#8c8372;">無作用中的增益狀態</span>';
 
     const kills = p.kills || 0;
-    const q1 = p.quests?.hunterDone ? '已完成（+150 金幣 / 紅水 x5）' : `進行中 (${Math.min(5, kills)}/5 隻)`;
-    const q2 = p.quests?.slayerDone ? '已完成（+500 金幣 / 瞬移卷 x3）' : `進行中 (${Math.min(20, kills)}/20 隻)`;
+    const q1 = p.quests?.hunterDone ? '完成 (+150金/紅水x5)' : `進行中 ${Math.min(5, kills)}/5`;
+    const q2 = p.quests?.slayerDone ? '完成 (+500金/瞬卷x3)' : `進行中 ${Math.min(20, kills)}/20`;
+
+    const fmtStat = (base, eff) => {
+      const v = eff ?? base;
+      const diff = v - base;
+      return diff > 0 ? `${v} <em class="buff-plus">(+${diff})</em>` : String(v);
+    };
 
     return `
-      <div class="ll-win wide">
+      <div class="ll-win ll-classic-win wide status-win">
         <div class="ll-win-head">
-          <h3 class="ll-win-title">角色狀態與裝備紙娃娃 — ${esc(p.name)}</h3>
+          <h3 class="ll-win-title">角色狀態與裝備紙娃娃 — ${esc(p.name)}（${clsName}）</h3>
           <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
         </div>
         <div class="ll-win-body">
           <div class="ll-inv-grid status-layout">
-            <div class="ll-equip-box">
-              <div class="ll-subhead">紙娃娃裝備欄（點擊開啟背包替換）</div>
-              <div class="ll-doll-grid">${paperdollHtml}</div>
-              <div class="ll-subhead" style="margin-top:10px;">說話之島討伐試煉</div>
-              <div class="ll-equip-row"><span>累計擊殺怪物</span><span>${kills} 隻</span></div>
-              <div class="ll-equip-row"><span>初階試煉 (5隻)</span><span>${q1}</span></div>
-              <div class="ll-equip-row"><span>巡守試煉 (20隻)</span><span>${q2}</span></div>
+            <div class="ll-status-slate">
+              <div class="ll-st-exp-row">
+                <span class="ll-st-lbl">等級 &amp; 經驗值</span>
+                <div class="ll-st-box wide"><b>Lv.${p.level}</b><span>${expPct}%</span></div>
+              </div>
+              <div class="ll-st-rows">
+                <div class="ll-st-row"><span class="ll-st-lbl">體力</span><span class="ll-st-box">${p.hp} / ${p.maxHp}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">魔力</span><span class="ll-st-box">${p.mp} / ${p.maxMp}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">防禦</span><span class="ll-st-box">AC ${p.ac}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">負重</span><span class="ll-st-box">${p.weightPercent}%</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">飽度</span><span class="ll-st-box">${p.food ?? 84}%</span></div>
+              </div>
+
+              <div class="ll-st-divider"></div>
+              <div class="ll-st-attrs">
+                <div class="ll-st-row"><span class="ll-st-lbl">力量</span><span class="ll-st-box">${fmtStat(p.stats.str, p.effStr)}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">敏捷</span><span class="ll-st-box">${fmtStat(p.stats.dex, p.effDex)}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">體質</span><span class="ll-st-box">${p.stats.con}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">智力</span><span class="ll-st-box">${p.stats.int}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">精神</span><span class="ll-st-box">${p.stats.wis}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">魅力</span><span class="ll-st-box">${p.stats.cha}</span></div>
+              </div>
+
+              <div class="ll-st-divider"></div>
+              <div class="ll-st-rows">
+                <div class="ll-st-row"><span class="ll-st-lbl">魔法等級</span><span class="ll-st-box">${Math.max(1, Math.floor(p.level / 4))}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">額外魔攻</span><span class="ll-st-box">SP ${p.sp || 1}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">魔防 / 正義</span><span class="ll-st-box">${p.mr}% · ${p.lawful}</span></div>
+              </div>
+
+              <div class="ll-st-divider"></div>
+              <div class="ll-subhead" style="margin-bottom:4px;">屬性抗性</div>
+              <div class="ll-st-elems">
+                <div class="ll-st-elem"><span>地性</span><b>0%</b></div>
+                <div class="ll-st-elem"><span>水性</span><b>0%</b></div>
+                <div class="ll-st-elem"><span>火性</span><b>0%</b></div>
+                <div class="ll-st-elem"><span>風性</span><b>0%</b></div>
+              </div>
             </div>
-            <div class="ll-bag-box">
-              <div class="ll-subhead">基本能力與屬性數值</div>
-              <div class="ll-equip-row"><span>職業 / 等級</span><span>${clsName} · Lv.${p.level} (${expPct}%)</span></div>
-              <div class="ll-equip-row"><span>所屬血盟 / 寵物</span><span>${p.clanName ? `《${esc(p.clanName)}》` : '無血盟'} · ${p.pet ? `${esc(p.pet.name)} Lv.${p.pet.level} (${p.pet.hp}/${p.pet.maxHp})` : '無寵物'}</span></div>
-              <div class="ll-equip-row"><span>體力 / 魔力</span><span>HP ${p.hp}/${p.maxHp} · MP ${p.mp}/${p.maxMp}</span></div>
-              <div class="ll-equip-row"><span>防禦 / 魔攻 / 抗魔</span><span>AC ${p.ac} · SP ${p.sp || 1} · MR ${p.mr}%</span></div>
-              <div class="ll-equip-row"><span>正義 / 飽食度</span><span>${p.lawful} · 飽食 ${p.food ?? 84}%</span></div>
-              <div class="ll-equip-row"><span>能力點數（含增益）</span><span>力${p.effStr ?? p.stats.str} 敏${p.effDex ?? p.stats.dex} 體${p.stats.con} 智${p.stats.int} 精${p.stats.wis} 魅${p.stats.cha}</span></div>
-              <div class="ll-equip-row"><span>金幣 / 負重</span><span>${p.gold.toLocaleString()} Adena · ${p.weightPercent}%</span></div>
-              <div class="ll-equip-row"><span>目前座標</span><span>${esc(MAP_NAMES[p.map] || p.map)} (${p.tx}, ${p.ty})</span></div>
-              <div class="ll-subhead" style="margin-top:10px;">進行中增益效果</div>
-              <div class="ll-stat-chips" style="margin-top:4px;">${buffRows}</div>
+
+            <div class="ll-doll-pane">
+              <div class="ll-subhead" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>人型紙娃娃裝備（點擊開啟背包切換）</span>
+                <span style="font-size:11px;color:#b8aa8f;">${p.clanName ? `《${esc(p.clanName)}》` : '無血盟'}</span>
+              </div>
+              <div class="ll-doll-stage">
+                ${this.#renderPaperdollSvg()}
+                <div class="ll-doll-grid">${paperdollHtml}</div>
+              </div>
+              <div class="ll-status-extra">
+                <div class="ll-equip-row"><span>所在地 / 金幣</span><span>${esc(MAP_NAMES[p.map] || p.map)} (${p.tx},${p.ty}) · ${p.gold.toLocaleString()}</span></div>
+                <div class="ll-equip-row"><span>夥伴 / 討伐</span><span>${p.pet ? `${esc(p.pet.name)} Lv.${p.pet.level}` : '無寵物'} · 殺敵 ${kills}</span></div>
+                <div class="ll-equip-row"><span>初階 / 巡守試煉</span><span>${q1} / ${q2}</span></div>
+                <div class="ll-stat-chips" style="margin-top:6px;">${buffRows}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -1191,10 +1542,7 @@ export class GameHud {
       if (npc.type === 'ClanRegistrar' || npc.name === '盧卡斯') {
         extraBtns.push('<button type="button" class="ll-act-btn" data-npc-mode="clan">創立／管理血盟</button>');
       }
-      if (npc.name === '傑瑞德') {
-      return `<strong>${esc(npc.name)}：</strong>銀騎士的試煉需要面對成群結隊的蛇女。準備好藥水與武器後，點擊下方即可進入傑瑞德的試煉地監（內部出口可傳回銀騎士村莊）。`;
-    }
-    if (npc.name === '多瑪' || npc.name === '丁') {
+      if (npc.name === '多瑪' || npc.name === '丁') {
         extraBtns.push('<button type="button" class="ll-act-btn" data-npc-act="fix">修理受損武器 (300 金幣)</button>');
       }
       if (npc.type === 'Teleport' || npc.name === '傑瑞德') {
@@ -1350,13 +1698,82 @@ export class GameHud {
 
     const openWin = ev.target.closest('[data-open-win]');
     if (openWin) {
+      if (openWin.dataset.preselectItem) this.selectedItemId = openWin.dataset.preselectItem;
       this.toggleModal(openWin.dataset.openWin);
+      return;
+    }
+
+    const invFilterBtn = ev.target.closest('[data-inv-filter]');
+    if (invFilterBtn) {
+      this.invFilter = invFilterBtn.dataset.invFilter || 'all';
+      this.pendingDiscardId = null;
+      this.renderModal();
+      return;
+    }
+
+    const lockBtn = ev.target.closest('[data-toggle-lock]');
+    if (lockBtn && lockBtn.dataset.toggleLock) {
+      const it = this.world.player.inventory.find((i) => i.id === lockBtn.dataset.toggleLock);
+      if (it) {
+        it.locked = !it.locked;
+        this.pendingDiscardId = null;
+        this.world.dirtySave = true;
+        this.world.addLog(`${it.locked ? '已鎖定' : '已解除鎖定'} ${it.name}。`, 'info');
+        this.renderModal();
+        this.sync(true);
+      }
+      return;
+    }
+
+    const discardBtn = ev.target.closest('[data-discard-item]');
+    if (discardBtn && discardBtn.dataset.discardItem) {
+      const it = this.world.player.inventory.find((i) => i.id === discardBtn.dataset.discardItem);
+      if (!it) return;
+      if (it.equipped || it.locked) {
+        this.world.addLog('無法丟棄裝備中或已鎖定的物品，請先卸下／解鎖。', 'warn');
+        this.sync(true);
+        return;
+      }
+      this.pendingDiscardId = this.pendingDiscardId === it.id ? null : it.id;
+      this.renderModal();
+      return;
+    }
+
+    const confirmDiscard = ev.target.closest('[data-confirm-discard]');
+    if (confirmDiscard) {
+      const id = confirmDiscard.dataset.confirmDiscard;
+      const it = this.world.player.inventory.find((i) => i.id === id);
+      if (it && !it.equipped && !it.locked) {
+        const label = `${it.plus ? `+${it.plus} ` : ''}${it.name}${it.count > 1 ? ` x${it.count}` : ''}`;
+        this.world.consumeItem(id, it.count);
+        this.world.addLog(`已丟棄 ${label}。`, 'info');
+        if (this.selectedItemId === id) this.selectedItemId = null;
+      }
+      this.pendingDiscardId = null;
+      this.renderModal();
+      this.sync(true);
+      return;
+    }
+
+    if (ev.target.closest('[data-cancel-discard]')) {
+      this.pendingDiscardId = null;
+      this.renderModal();
+      return;
+    }
+
+    const focusItemBtn = ev.target.closest('[data-focus-item]');
+    if (focusItemBtn) {
+      this.selectedItemId = focusItemBtn.dataset.focusItem;
+      this.pendingDiscardId = null;
+      this.invFilter = 'all';
+      this.renderModal();
       return;
     }
 
     const selItemBtn = ev.target.closest('[data-select-item]');
     if (selItemBtn) {
       const id = selItemBtn.dataset.selectItem;
+      this.pendingDiscardId = null;
       if (this.selectedItemId === id) {
         if (this.#handleUseResult(this.world.useItem(id))) return;
       } else {
@@ -1369,6 +1786,7 @@ export class GameHud {
 
     const useSel = ev.target.closest('[data-use-selected]');
     if (useSel) {
+      this.pendingDiscardId = null;
       if (this.#handleUseResult(this.world.useItem(useSel.dataset.useSelected))) return;
       this.renderModal();
       this.sync(true);
@@ -1377,6 +1795,7 @@ export class GameHud {
 
     const identifyBtn = ev.target.closest('[data-identify-item]');
     if (identifyBtn) {
+      this.pendingDiscardId = null;
       this.world.identifyItem(identifyBtn.dataset.identifyItem);
       this.renderModal();
       this.sync(true);
@@ -1400,8 +1819,23 @@ export class GameHud {
         this.world.player.quickbar[idx] = { kind: 'item', name: it.name };
         this.world.dirtySave = true;
         this.world.addLog(`已將 ${it.name} 指派至快捷鍵 ${QUICKBAR_KEYS[idx]}。`, 'info');
+        this.renderModal();
         this.sync(true);
       }
+      return;
+    }
+
+    const viewBtn = ev.target.closest('[data-spell-view]');
+    if (viewBtn) {
+      this.spellView = viewBtn.dataset.spellView === 'list' ? 'list' : 'grid';
+      this.renderModal();
+      return;
+    }
+
+    const circleBtn = ev.target.closest('[data-spell-circle]');
+    if (circleBtn) {
+      this.spellCircle = circleBtn.dataset.spellCircle || 'all';
+      this.renderModal();
       return;
     }
 
@@ -1410,6 +1844,20 @@ export class GameHud {
       this.world.castSpell(Number(castBtn.dataset.castSpell));
       this.closeModal();
       this.sync(true);
+      return;
+    }
+
+    const selSpellBtn = ev.target.closest('[data-select-spell]');
+    if (selSpellBtn) {
+      const sid = Number(selSpellBtn.dataset.selectSpell);
+      if (this.spellView === 'grid' && this.selectedSpellId === sid) {
+        this.world.castSpell(sid);
+        this.closeModal();
+        this.sync(true);
+        return;
+      }
+      this.selectedSpellId = sid;
+      this.renderModal();
       return;
     }
 
@@ -1423,6 +1871,7 @@ export class GameHud {
         this.world.player.quickbar[idx] = { kind: 'spell', id: sp.id };
         this.world.dirtySave = true;
         this.world.addLog(`已將 ${sp.name} 指派至快捷鍵 ${QUICKBAR_KEYS[idx]}。`, 'info');
+        this.renderModal();
         this.sync(true);
       }
       return;
