@@ -364,6 +364,21 @@ export function createLineageServer({
             slots: result.slots,
           });
         }
+        if (action === 'sync') {
+          const result = await repository.syncCharacter(
+            account,
+            Number(body.slot ?? 1),
+            body.patch ?? body.saveData ?? {},
+          );
+          if (!result.ok) {
+            return sendJson(res, 400, { ok: false, error: result.error });
+          }
+          return sendJson(res, 200, {
+            ok: true,
+            character: result.character,
+            slots: result.slots,
+          });
+        }
         return sendJson(res, 400, { ok: false, error: 'unsupported_action' });
       }
     }

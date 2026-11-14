@@ -1,20 +1,33 @@
 // 286 天堂實境客戶端：底部狀態列、快捷鍵 F5~F12、道具／裝備、法術書、小地圖、內掛設定與 NPC 互動視窗
 import { assetUrl } from '../app.js';
 import {
-  MAP_NAMES,
   CRAFT_RECIPES,
   TEACHER_SPELLS,
   MORPH_FORMS,
   PET_CATALOG,
   STATUE_BLESSINGS,
-  HARBOR_DESTINATIONS,
 } from './world-state.js';
+import {
+  MAP_NAMES,
+  getMapMeta,
+  isSafetyZone,
+  resolveHomeTown,
+  TELEPORT_ACTIONS,
+  TELEPORT_ROUTES_BY_NPC,
+  WORLD_EXPEDITION_ROUTES,
+  HARBOR_DESTINATIONS_BY_MAP,
+  CONTINENT_LANDMARKS,
+} from './world-maps.js';
 
 const CLASS_LABELS = {
   royal: '王族',
   knight: '騎士',
   elf: '妖精',
   mage: '法師',
+  dark: '黑暗妖精',
+  dragon: '龍騎士',
+  illusion: '幻術師',
+  warrior: '戰士',
 };
 
 const QUICKBAR_KEYS = ['F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'];
@@ -32,7 +45,16 @@ const EQUIP_SLOT_LABELS = [
 
 const NPC_DIALOGUE_START = {
   朵琳: 'dorin',
+  凱倫: 'karim',
+  索連: 'karim',
+  高特: 'karim',
+  塔奇: 'karim',
+  諾丁: 'karim',
+  蘇瑞耳: 'karim',
+  克哈丁: 'karim',
+  寶金: 'karim',
   潘朵拉: 'pandora',
+  歐林: 'orim1',
   法林: 'farlin1',
   茱迪思: 'judice1',
   拉達: 'ladar1',
@@ -40,16 +62,31 @@ const NPC_DIALOGUE_START = {
   夢娜: 'mona1',
   莫麗雅: 'moria1',
   丁: 'touma1',
+  盧卡斯: 'teleisland1',
+  史提夫: 'telegludin1',
+  史坦利: 'telekent1',
+  爾瑪: 'telegiran1',
+  特萊: 'telewoods1',
+  麥特: 'telesilver1',
+  保羅: 'teleorcbdg1',
+  丹尼爾: 'daniel1',
+  瑟琳娜: 'inn',
+  羅利雅: 'inn',
+  維萊莎: 'inn',
+  米蘭德: 'miranda1',
+  莫莉: 'inn',
+  '港口主人[說語島]': 'shipevi3',
+  '港口主人[古丁]': 'shipevm1',
 };
 
-const TELEPORT_DESTINATIONS = [
-  { label: '說話之島村莊中央', map: 0, x: 32578, y: 32943, price: 30 },
-  { label: '說話之島東北森林（練功區）', map: 0, x: 32645, y: 32840, price: 50 },
-  { label: '說話之島地監入口外', map: 0, x: 32480, y: 32854, price: 60 },
-  { label: '說話之島地監 1樓（骷髏／食屍鬼）', map: 1, x: 32669, y: 32802, price: 100 },
-  { label: '說話之島地監 2樓（狼人／巴風特試煉）', map: 2, x: 32662, y: 32874, price: 150 },
-  { label: '甘特之家（導師試煉）', map: 3, x: 32675, y: 32814, price: 80 },
-];
+const TOWN_TELEPORTER_ALIAS = {
+  ti: '盧卡斯',
+  gludin: '史提夫',
+  kent: '史坦利',
+  giran: '爾瑪',
+  woods: '特萊',
+  silver: '麥特',
+};
 
 function esc(str) {
   return String(str ?? '')
@@ -141,10 +178,10 @@ export class GameHud {
             <div class="ll-acc-body" data-role="quest-summary"></div>
           </details>
           <details class="ll-acc-item">
-            <summary>▸ 說話之島地監</summary>
+            <summary>▸ 亞丁世界導航</summary>
             <div class="ll-acc-body">
               <button type="button" class="ll-acc-action" data-win="map">開啟世界地圖傳送 / 尋路</button>
-              <button type="button" class="ll-acc-action" data-chat-cmd="/home">使用回卷返回村莊 (/home)</button>
+              <button type="button" class="ll-acc-action" data-chat-cmd="/home">使用回卷返回最近城鎮 (/home)</button>
             </div>
           </details>
           <details class="ll-acc-item">
@@ -622,7 +659,7 @@ export class GameHud {
     const p = this.world.player;
     const expSpan = Math.max(1, p.expNext - p.expPrev);
     const expPct = Math.min(99.99, Math.max(0, ((p.exp - p.expPrev) / expSpan) * 100)).toFixed(2);
-    const clsName = CLASS_LABELS[p.classId] || '冒險者';
+    const clsName = p.className || CLASS_LABELS[p.classId] || '冒險者';
     const eqMap = this.#buildEquipMap(p);
     const buffs = this.world.getBuffList();
 
@@ -718,17 +755,41 @@ export class GameHud {
 
   #renderMapModalHtml() {
     const p = this.world.player;
+    const meta = getMapMeta(p.map);
+    const rules = [
+      `瞬移:${meta.tele ? '可' : '禁'}`,
+      `回卷:${meta.recall ? '可' : '禁'}`,
+      `記點:${meta.mark ? '可' : '禁'}`,
+    ].join(' · ');
     return `
       <div class="ll-win wide">
         <div class="ll-win-head">
-          <h3 class="ll-win-title">世界地圖 — ${esc(MAP_NAMES[p.map] || '說話之島')} (${p.tx}, ${p.ty})</h3>
+          <h3 class="ll-win-title">世界地圖 — ${esc(MAP_NAMES[p.map] || meta.name)} (${p.tx}, ${p.ty})</h3>
           <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
         </div>
         <div class="ll-win-body">
           <div style="font-size:12px;color:#b8aa90;margin-bottom:8px;">
-            綠點：玩家位置 · 金點：村莊 NPC · 青點：地圖傳送點 · 紅點：怪物分布（點擊地圖可直接尋路前往）
+            綠點：玩家位置 · 金點：村莊 NPC／地標 · 青點：地圖傳送點 · 紅點：怪物／地監（${esc(rules)} · 點擊雷達可直接尋路）
           </div>
           <canvas class="ll-minimap-canvas" width="480" height="340" data-role="minimap-canvas"></canvas>
+          <div style="margin-top:10px;">
+            <div style="font-size:12px;font-weight:700;color:#f3d284;margin-bottom:6px;">
+              亞丁世界傳送總覽（說話之島 ＋ 亞丁大陸 7 城鎮 ＋ 經典地監）
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px;">
+              ${WORLD_EXPEDITION_ROUTES.map(
+                (r, idx) => `
+                <div class="ll-list-row" style="margin:0;">
+                  <div>
+                    <div style="font-weight:700;font-size:12px;">[${esc(r.group)}] ${esc(r.label)}</div>
+                    <div style="font-size:11px;color:#9eb5cb;">${esc(r.lv)} · (${r.x}, ${r.y})</div>
+                  </div>
+                  <button type="button" class="ll-act-btn" data-world-warp="${idx}">前往 (${r.price}G)</button>
+                </div>
+              `,
+              ).join('')}
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -818,11 +879,75 @@ export class GameHud {
 
   #drawMinimapCanvas() {
     const canvas = this.elements.modalLayer.querySelector('[data-role="minimap-canvas"]');
+    const p = this.world.player;
     this.#paintRadarCanvas(canvas, 120, {
       step: 2,
       walkColor: '#253547',
       onPicked: () => this.closeModal(),
     });
+    if (canvas && p.map === 4) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const minX = 32460;
+      const maxX = 33640;
+      const minY = 32180;
+      const maxY = 33600;
+      const boxW = 116;
+      const boxH = 116;
+      const boxX = w - boxW - 8;
+      const boxY = 8;
+      ctx.save();
+      ctx.fillStyle = 'rgba(7, 12, 18, 0.86)';
+      ctx.strokeStyle = 'rgba(138, 108, 59, 0.9)';
+      ctx.lineWidth = 1;
+      ctx.fillRect(boxX, boxY, boxW, boxH);
+      ctx.strokeRect(boxX, boxY, boxW, boxH);
+      ctx.font = '9px sans-serif';
+      for (const lm of CONTINENT_LANDMARKS) {
+        const lx = boxX + 8 + ((lm.x - minX) / (maxX - minX)) * (boxW - 16);
+        const ly = boxY + 8 + ((lm.y - minY) / (maxY - minY)) * (boxH - 16);
+        ctx.fillStyle = lm.color;
+        ctx.beginPath();
+        ctx.arc(lx, ly, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+        if (lm.color === '#facc15') {
+          ctx.fillStyle = '#e5dcc8';
+          ctx.fillText(lm.label.slice(0, 2), lx + 3, ly + 3);
+        }
+      }
+      const mx = boxX + 8 + ((p.tx - minX) / (maxX - minX)) * (boxW - 16);
+      const my = boxY + 8 + ((p.ty - minY) / (maxY - minY)) * (boxH - 16);
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.arc(mx, my, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  #resolveTeleportDestinations(npc) {
+    if (npc && TELEPORT_ROUTES_BY_NPC[npc.name]) {
+      return TELEPORT_ROUTES_BY_NPC[npc.name];
+    }
+    if (npc?.name === '保羅' || npc?.name === '丹尼爾') {
+      return [
+        TELEPORT_ACTIONS['gludio-orcfortress'],
+        TELEPORT_ACTIONS['orcfortress-gludio'],
+      ].filter(Boolean);
+    }
+    if (npc) {
+      const home = resolveHomeTown(npc.map, npc.x, npc.y);
+      const alias = TOWN_TELEPORTER_ALIAS[home?.id];
+      if (alias && TELEPORT_ROUTES_BY_NPC[alias]) {
+        return TELEPORT_ROUTES_BY_NPC[alias];
+      }
+    }
+    return TELEPORT_ROUTES_BY_NPC['盧卡斯'] || WORLD_EXPEDITION_ROUTES;
+  }
+
+  #resolveHarborDestinations() {
+    const m = Number(this.world.player.map);
+    return HARBOR_DESTINATIONS_BY_MAP[m] || HARBOR_DESTINATIONS_BY_MAP[0] || [];
   }
 
   #renderNpcModalHtml() {
@@ -893,18 +1018,21 @@ export class GameHud {
           .join('') || '<div style="color:#998;">目前無項目可操作。</div>'}
       `;
     } else if (mode === 'teleport') {
+      const tpRoutes = this.#resolveTeleportDestinations(npc);
       bodyHtml = `
         <div class="ll-npc-html">
-          <strong>${esc(npc.name)}：</strong>願諸神祝福你的旅途！你想前往說話之島的哪個區域？
+          <strong>${esc(npc.name)}：</strong>願諸神祝福你的旅途！你想前往亞丁世界的哪個區域？
         </div>
-        ${TELEPORT_DESTINATIONS.map(
-          (dest, idx) => `
+        ${tpRoutes
+          .map(
+            (dest, idx) => `
           <div class="ll-list-row">
-            <span>${esc(dest.label)}</span>
+            <span>${esc(dest.label)} <span style="font-size:11px;color:#9eb5cb;">(${esc(MAP_NAMES[dest.map] || `地圖 ${dest.map}`)})</span></span>
             <button type="button" class="ll-act-btn" data-tp-idx="${idx}">傳送 (${dest.price} 金幣)</button>
           </div>
         `,
-        ).join('')}
+          )
+          .join('')}
         ${npc.name === '盧卡斯' ? '<div class="ll-btn-row" style="margin-top:10px;"><button type="button" class="ll-act-btn secondary" data-npc-mode="clan">血盟創立／管理</button></div>' : ''}
       `;
     } else if (mode === 'pet') {
@@ -952,18 +1080,21 @@ export class GameHud {
         ${peers.length ? peers.map((rp) => `<div class="ll-list-row"><span>${rp.clanName ? `《${esc(rp.clanName)}》` : ''}${esc(rp.charName || rp.name || '冒險者')}${rp.level ? ` (Lv.${rp.level})` : ''}</span><span style="color:#93c5fd;">(${rp.tx}, ${rp.ty})</span></div>`).join('') : '<div style="font-size:12px;color:#998;">目前附近沒有其他同圖在線玩家。</div>'}
       `;
     } else if (mode === 'harbor') {
+      const harborRoutes = this.#resolveHarborDestinations();
       bodyHtml = `
         <div class="ll-npc-html">
-          <strong>${esc(npc.name)}：</strong>海風正順！想要搭乘渡船前往說話之島的哪一處碼頭？
+          <strong>${esc(npc.name)}：</strong>海風正順！想要搭乘渡船前往哪一處港口或渡口？
         </div>
-        ${HARBOR_DESTINATIONS.map(
-          (dest, idx) => `
+        ${harborRoutes
+          .map(
+            (dest, idx) => `
           <div class="ll-list-row">
-            <span>${esc(dest.label)} (${dest.x}, ${dest.y})</span>
+            <span>${esc(dest.label)} <span style="font-size:11px;color:#9eb5cb;">(${esc(MAP_NAMES[dest.map] || `地圖 ${dest.map}`)} · ${dest.x}, ${dest.y})</span></span>
             <button type="button" class="ll-act-btn" data-harbor-idx="${idx}">乘船出發 (${dest.price} 金幣)</button>
           </div>
         `,
-        ).join('')}
+          )
+          .join('')}
       `;
     } else if (mode === 'craft') {
       const recipes = CRAFT_RECIPES.map((r, idx) => ({ r, idx })).filter(({ r }) => r.npc === npc.name);
@@ -1060,11 +1191,18 @@ export class GameHud {
       if (npc.type === 'ClanRegistrar' || npc.name === '盧卡斯') {
         extraBtns.push('<button type="button" class="ll-act-btn" data-npc-mode="clan">創立／管理血盟</button>');
       }
-      if (npc.name === '多瑪' || npc.name === '丁') {
+      if (npc.name === '傑瑞德') {
+      return `<strong>${esc(npc.name)}：</strong>銀騎士的試煉需要面對成群結隊的蛇女。準備好藥水與武器後，點擊下方即可進入傑瑞德的試煉地監（內部出口可傳回銀騎士村莊）。`;
+    }
+    if (npc.name === '多瑪' || npc.name === '丁') {
         extraBtns.push('<button type="button" class="ll-act-btn" data-npc-act="fix">修理受損武器 (300 金幣)</button>');
       }
-      if (npc.name.includes('港口主人')) {
-        extraBtns.push('<button type="button" class="ll-act-btn" data-npc-mode="harbor">搭乘說話之島渡船</button>');
+      if (npc.type === 'Teleport' || npc.name === '傑瑞德') {
+        const label = npc.name === '傑瑞德' ? '進入傑瑞德的試煉地監' : '開啟傳送地點清單';
+        extraBtns.push(`<button type="button" class="ll-act-btn" data-npc-mode="teleport">${label}</button>`);
+      }
+      if (npc.name.includes('港口主人') || npc.name.includes('水手') || npc.name.includes('船長')) {
+        extraBtns.push('<button type="button" class="ll-act-btn" data-npc-mode="harbor">搭乘跨海／沿岸渡船</button>');
       }
       if (STATUE_BLESSINGS[npc.name]) {
         extraBtns.push('<button type="button" class="ll-act-btn" data-npc-act="statue-pray">向英雄雕像祈禱庇佑</button>');
@@ -1090,8 +1228,9 @@ export class GameHud {
   }
 
   #buildFallbackDialogue(npc) {
+    const areaName = MAP_NAMES[npc.map] || '亞丁世界';
     if (npc.type === 'Guard') {
-      return `<strong>${esc(npc.name)}：</strong>說話之島村莊由我們守護！請放心在城鎮內補給與整備，出村狩獵前別忘了攜帶紅色藥水與傳送回家卷軸。`;
+      return `<strong>${esc(npc.name)}：</strong>${esc(areaName)}城鎮由我們守護！請放心在安全區內補給與整備，出發冒險前別忘了攜帶紅色藥水與傳送回家卷軸。`;
     }
     if (npc.type === 'Blesser555') {
       return `<strong>${esc(npc.name)}：</strong>年輕的冒險者啊，只要點擊下方祝福按鈕，我就能為你恢復體力與魔力，並賜予加速與保護罩！`;
@@ -1102,11 +1241,14 @@ export class GameHud {
     if (npc.type === 'ClanRegistrar' || npc.name === '盧卡斯') {
       return `<strong>${esc(npc.name)}：</strong>建立血盟是邁向亞丁城主的第一步，凝聚戰友的徽記與血盟傳送之光吧。`;
     }
+    if (npc.name === '傑瑞德') {
+      return `<strong>${esc(npc.name)}：</strong>銀騎士的試煉需要面對成群結隊的蛇女。準備好藥水與武器後，點擊下方即可進入傑瑞德的試煉地監（內部出口可傳回銀騎士村莊）。`;
+    }
     if (npc.name === '多瑪' || npc.name === '丁') {
       return `<strong>${esc(npc.name)}：</strong>擊打岩石魔怪或硬甲怪物時刀刃很容易受損，若武器捲刃，我可以為你鍛打修復！`;
     }
-    if (npc.name.includes('港口主人')) {
-      return `<strong>${esc(npc.name)}：</strong>歡迎來到說話之島港口，我可以送你前往北島荒野與地監西岸渡口。`;
+    if (npc.name.includes('港口主人') || npc.name.includes('水手') || npc.name.includes('船長')) {
+      return `<strong>${esc(npc.name)}：</strong>歡迎來到${esc(areaName)}港口，我可以為你安排往返說話之島與古魯丁港口或附近沿岸渡口的船班。`;
     }
     if (STATUE_BLESSINGS[npc.name]) {
       return `<strong>${esc(npc.name)}：</strong>古老的英雄意志在此閃耀，虔誠祈禱即可獲得免費戰鬥加護。`;
@@ -1114,7 +1256,7 @@ export class GameHud {
     if (npc.name.includes('木人')) {
       return `<strong>木人：</strong>點擊攻擊即可進行近戰／弓箭打擊練習。村外還有高侖、半獸人與骷髏等著你挑戰。`;
     }
-    return `<strong>${esc(npc.name)}：</strong>你好，來自亞丁大陸的旅人。說話之島處處充滿冒險氣息，需要協助請隨時開口。`;
+    return `<strong>${esc(npc.name)}：</strong>你好，來自遠方的旅人。${esc(areaName)}處處充滿冒險氣息，需要協助請隨時開口。`;
   }
 
   #renderAutoModalHtml() {
@@ -1159,10 +1301,12 @@ export class GameHud {
 
   #renderSystemModalHtml() {
     const muted = this.world.audio.muted;
+    const p = this.world.player;
+    const homeTown = resolveHomeTown(p.map, p.tx, p.ty);
     return `
       <div class="ll-win">
         <div class="ll-win-head">
-          <h3 class="ll-win-title">系統選單 — 天堂 1.63 說話之島</h3>
+          <h3 class="ll-win-title">系統選單 — 天堂 1.63 亞丁實境</h3>
           <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
         </div>
         <div class="ll-win-body">
@@ -1175,7 +1319,7 @@ export class GameHud {
             <button type="button" class="ll-act-btn" data-sys-act="save">儲存角色資料</button>
           </div>
           <div class="ll-list-row">
-            <span>緊急脫離卡點（傳送回說話之島村莊）</span>
+            <span>緊急脫離卡點（傳送回 ${esc(homeTown.label)}）</span>
             <button type="button" class="ll-act-btn secondary" data-sys-act="home">傳回村莊</button>
           </div>
           <div class="ll-list-row">
@@ -1320,6 +1464,36 @@ export class GameHud {
         this.world.repairWeapons();
       } else if (act === 'statue-pray') {
         this.world.prayAtStatue(this.npcSession.npc);
+      } else if (act === 'teleportURL') {
+        this.npcSession.mode = 'teleport';
+      } else if (act.startsWith('teleport ')) {
+        const tpKey = act.slice(9).trim();
+        const dest = TELEPORT_ACTIONS[tpKey];
+        if (dest) {
+          if (this.world.player.gold < dest.price) {
+            this.world.addLog(`金幣不足 ${dest.price}，無法傳送前往 ${dest.label}。`, 'warn');
+          } else {
+            this.world.player.gold -= dest.price;
+            this.world.teleportTo(dest.map, dest.x, dest.y, 4);
+            this.world.addLog(`傳送前往 ${dest.label}。`, 'cyan');
+            this.closeModal();
+            this.sync(true);
+            return;
+          }
+        } else {
+          this.npcSession.mode = 'teleport';
+        }
+      } else if (act === 'entership') {
+        this.npcSession.mode = 'harbor';
+      } else if (act === 'deposit-elven') {
+        this.npcSession.mode = 'deposit';
+      } else if (act === 'retrieve-elven') {
+        this.npcSession.mode = 'withdraw';
+      } else if (act === 'buyspell' || act === 'skillspell') {
+        this.npcSession.mode = 'teach';
+      } else if (act === 'cancel' || act === 'close') {
+        this.closeModal();
+        return;
       } else if (act.startsWith('request ') && this.npcSession.npc.type === 'Craft') {
         this.npcSession.mode = 'craft';
       } else {
@@ -1387,7 +1561,8 @@ export class GameHud {
 
     const harborBtn = ev.target.closest('[data-harbor-idx]');
     if (harborBtn && this.npcSession) {
-      const dest = HARBOR_DESTINATIONS[Number(harborBtn.dataset.harborIdx)];
+      const harborRoutes = this.#resolveHarborDestinations();
+      const dest = harborRoutes[Number(harborBtn.dataset.harborIdx)];
       if (dest) {
         if (this.world.player.gold < dest.price) {
           this.world.addLog(`船資不足 ${dest.price} 金幣，無法登船。`, 'warn');
@@ -1448,13 +1623,32 @@ export class GameHud {
 
     const tpBtn = ev.target.closest('[data-tp-idx]');
     if (tpBtn) {
-      const dest = TELEPORT_DESTINATIONS[Number(tpBtn.dataset.tpIdx)];
+      const tpRoutes = this.#resolveTeleportDestinations(this.npcSession?.npc);
+      const dest = tpRoutes[Number(tpBtn.dataset.tpIdx)];
       if (dest) {
         if (this.world.player.gold < dest.price) {
           this.world.addLog(`金幣不足 ${dest.price}，無法傳送。`, 'warn');
         } else {
           this.world.player.gold -= dest.price;
           this.world.teleportTo(dest.map, dest.x, dest.y, 4);
+          this.world.addLog(`傳送前往 ${dest.label}。`, 'cyan');
+          this.closeModal();
+        }
+        this.sync(true);
+      }
+      return;
+    }
+
+    const worldWarpBtn = ev.target.closest('[data-world-warp]');
+    if (worldWarpBtn) {
+      const dest = WORLD_EXPEDITION_ROUTES[Number(worldWarpBtn.dataset.worldWarp)];
+      if (dest) {
+        if (this.world.player.gold < dest.price) {
+          this.world.addLog(`金幣不足 ${dest.price}，無法啟程前往 ${dest.label}。`, 'warn');
+        } else {
+          this.world.player.gold -= dest.price;
+          this.world.teleportTo(dest.map, dest.x, dest.y, 4);
+          this.world.addLog(`世界傳送抵達 [${dest.group}] ${dest.label}。`, 'cyan');
           this.closeModal();
         }
         this.sync(true);
@@ -1486,8 +1680,12 @@ export class GameHud {
         this.world.saveWorld(true);
         this.world.addLog('已完成角色存檔。', 'gold');
       } else if (act === 'home') {
-        this.world.teleportTo(0, 32578, 32943, 4);
+        const p = this.world.player;
+        const homeTown = resolveHomeTown(p.map, p.tx, p.ty);
+        this.world.teleportTo(homeTown.map, homeTown.x, homeTown.y, 4);
+        this.world.addLog(`緊急脫離卡點，已傳回 ${homeTown.label}。`, 'info');
         this.closeModal();
+        this.sync(true);
       } else if (act === 'lobby') {
         this.world.dirtySave = true;
         this.world.saveWorld(true);
@@ -1574,12 +1772,10 @@ export class GameHud {
     el.mapName.textContent = MAP_NAMES[p.map] || `地圖 ${p.map}`;
     el.coords.textContent = `${p.tx}, ${p.ty}`;
 
-    const isSafetyZone =
-      p.map === 3 ||
-      (p.map === 0 && p.tx >= 32550 && p.tx <= 32615 && p.ty >= 32915 && p.ty <= 32975);
+    const inSafetyZone = isSafetyZone(p.map, p.tx, p.ty, this.world.isoMap);
     if (el.zoneBadge) {
-      el.zoneBadge.textContent = isSafetyZone ? '安全區域' : '一般區域';
-      el.zoneBadge.className = `ll-zone-badge ${isSafetyZone ? 'safety' : 'combat'}`;
+      el.zoneBadge.textContent = inSafetyZone ? '安全區域' : '一般區域';
+      el.zoneBadge.className = `ll-zone-badge ${inSafetyZone ? 'safety' : 'combat'}`;
     }
 
     if (targetMob) {
@@ -1626,7 +1822,7 @@ export class GameHud {
     el.hudAutoBtn?.classList.toggle('active', Boolean(p.autoConfig.enabled));
     if (el.autoLabel) el.autoLabel.textContent = p.autoConfig.enabled ? '狩獵中' : '內掛';
 
-    const clsLabel = CLASS_LABELS[p.classId] || '勇者';
+    const clsLabel = p.className || CLASS_LABELS[p.classId] || '勇者';
     if (el.charLevel) el.charLevel.textContent = String(p.level);
     el.charTitle.textContent = p.clanName ? `《${p.clanName}》${p.name}` : p.name;
     el.charTitle.title = `${p.name} · ${clsLabel}${p.clanName ? ` · 血盟：${p.clanName}` : ''}`;

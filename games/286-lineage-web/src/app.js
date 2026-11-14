@@ -4,6 +4,7 @@
 import { LineageGameEngine } from './game/engine.js';
 import {
   createCachedWorker,
+  decompressGzipJsonBase64,
   getPackCacheStats,
   loadChunkJson,
   loadPackIndex,
@@ -347,33 +348,79 @@ const localStore = {
   },
 };
 
+const LOCAL_ACCOUNTS_STORAGE_KEY = 'll286:__local_accounts__';
+const LOCAL_SESSIONS_STORAGE_KEY = 'll286:__local_sessions__';
+const LOCAL_SLOTS_STORAGE_KEY = 'll286:__local_slots__';
+
+function loadLocalStoreFromStorage() {
+  try {
+    const rawAccounts = localStorage.getItem(LOCAL_ACCOUNTS_STORAGE_KEY);
+    if (rawAccounts) {
+      const parsed = JSON.parse(rawAccounts);
+      if (parsed && typeof parsed === 'object') {
+        for (const [k, v] of Object.entries(parsed)) {
+          if (v && typeof v === 'object') localStore.accounts.set(k, v);
+        }
+      }
+    }
+    const rawSessions = localStorage.getItem(LOCAL_SESSIONS_STORAGE_KEY);
+    if (rawSessions) {
+      const parsed = JSON.parse(rawSessions);
+      if (parsed && typeof parsed === 'object') {
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof v === 'string') localStore.sessions.set(k, v);
+        }
+      }
+    }
+    const rawSlots = localStorage.getItem(LOCAL_SLOTS_STORAGE_KEY);
+    if (rawSlots) {
+      const parsed = JSON.parse(rawSlots);
+      if (parsed && typeof parsed === 'object') {
+        for (const [k, arr] of Object.entries(parsed)) {
+          if (!Array.isArray(arr)) continue;
+          const cleaned = Array.from({ length: 8 }, (_, idx) => {
+            const c = arr[idx] ?? null;
+            if (idx === 0 && c && c.pledge === '說話之島守衛隊' && c.classId === 'knight') {
+              return null;
+            }
+            return c;
+          });
+          localStore.slotsByAccount.set(k, cleaned);
+        }
+      }
+    }
+  } catch {
+    // 忽略隱私模式或讀取錯誤
+  }
+}
+
+function saveLocalStoreToStorage() {
+  try {
+    localStorage.setItem(
+      LOCAL_ACCOUNTS_STORAGE_KEY,
+      JSON.stringify(Object.fromEntries(localStore.accounts.entries())),
+    );
+    localStorage.setItem(
+      LOCAL_SESSIONS_STORAGE_KEY,
+      JSON.stringify(Object.fromEntries(localStore.sessions.entries())),
+    );
+    localStorage.setItem(
+      LOCAL_SLOTS_STORAGE_KEY,
+      JSON.stringify(Object.fromEntries(localStore.slotsByAccount.entries())),
+    );
+  } catch {
+    // 忽略容量限制或隱私模式
+  }
+}
+
+loadLocalStoreFromStorage();
+
 function ensureLocalSlots(accountKey) {
   const key = (accountKey || 'guest').toLowerCase();
   if (!localStore.slotsByAccount.has(key)) {
     const slots = Array.from({ length: 8 }, () => null);
-    slots[0] = {
-      slot: 1,
-      name: `${key.slice(0, 8)}騎士`,
-      classId: 'knight',
-      className: '騎士',
-      gender: 'm',
-      level: 12,
-      alignment: 3200,
-      alignmentLabel: '守序 (Lawful)',
-      pledge: '說話之島守衛隊',
-      classicMode: true,
-      stats: { str: 18, dex: 12, con: 16, wis: 9, cha: 12, int: 8 },
-      hp: 168,
-      maxHp: 168,
-      mp: 18,
-      maxMp: 18,
-      ac: -6,
-      adena: 12500,
-      eggs: 500,
-      inventory: buildStarterInventory('knight'),
-      createdAt: new Date().toISOString(),
-    };
     localStore.slotsByAccount.set(key, slots);
+    saveLocalStoreToStorage();
   }
   return localStore.slotsByAccount.get(key);
 }
@@ -436,6 +483,7 @@ async function localApiCall(endpoint, method = 'GET', body = null, headers = {})
     if (acct.isHeld) return { status: 403, data: { ok: false, error: 'account_held' } };
     const sid = `sid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     localStore.sessions.set(sid, acct.username);
+    saveLocalStoreToStorage();
     return {
       status: 200,
       data: {
@@ -448,50 +496,72 @@ async function localApiCall(endpoint, method = 'GET', body = null, headers = {})
 
   if (pathPart === 'characters') {
     const sid = headers['x-game-session'] || '';
-    const accountKey = localStore.sessions.get(sid) || 'guest';
+    const accountKey = (localStore.sessions.get(sid) || state.username || 'guest').toLowerCase();
     const slots = ensureLocalSlots(accountKey);
     if (method === 'GET') {
       return { status: 200, data: { ok: true, account: accountKey, maxSlots: 8, slots: [...slots] } };
     }
     const action = body?.action || 'create';
     const slotIdx = Number(body?.slot || 1) - 1;
+    if (!Number.isInteger(slotIdx) || slotIdx < 0 || slotIdx >= 8) {
+      return { status: 400, data: { ok: false, error: 'invalid_slot' } };
+    }
     if (action === 'create') {
       if (slots[slotIdx]) return { status: 400, data: { ok: false, error: 'slot_occupied' } };
+      const trimmedName = String(body?.name || '').trim();
+      if (trimmedName.length < 2 || trimmedName.length > 12) {
+        return { status: 400, data: { ok: false, error: 'invalid_name' } };
+      }
+      for (const [, existingSlots] of localStore.slotsByAccount.entries()) {
+        if (existingSlots.some((c) => c && c.name.toLowerCase() === trimmedName.toLowerCase())) {
+          return { status: 400, data: { ok: false, error: 'name_taken' } };
+        }
+      }
       const def = getClassDef(body?.classId || 'royal');
       const bonus = body?.bonusStats || { str: 0, dex: 0, con: 0, wis: 0, cha: 0, int: 0 };
-      const stats = {
-        str: def.base.str + (bonus.str || 0),
-        dex: def.base.dex + (bonus.dex || 0),
-        con: def.base.con + (bonus.con || 0),
-        wis: def.base.wis + (bonus.wis || 0),
-        cha: def.base.cha + (bonus.cha || 0),
-        int: def.base.int + (bonus.int || 0),
-      };
+      let totalAllocated = 0;
+      const stats = {};
+      for (const k of STAT_KEYS) {
+        const b = Number(bonus[k] ?? 0);
+        if (!Number.isInteger(b) || b < 0) {
+          return { status: 400, data: { ok: false, error: 'invalid_bonus_points' } };
+        }
+        totalAllocated += b;
+        stats[k] = def.base[k] + b;
+        if (stats[k] > CREATION_STAT_CAP) {
+          return { status: 400, data: { ok: false, error: 'stat_exceeds_cap' } };
+        }
+      }
+      if (totalAllocated !== def.base.pts) {
+        return { status: 400, data: { ok: false, error: 'points_unallocated' } };
+      }
       const maxHp = def.baseHp + Math.max(0, stats.con - 10) * 2;
       const maxMp = def.baseMp + Math.max(0, stats.wis - 10) * 2;
       const created = {
         slot: slotIdx + 1,
-        name: String(body?.name || '新角色').trim(),
+        name: trimmedName,
         classId: def.classId,
         className: def.name,
         gender: body?.gender === 'f' ? 'f' : 'm',
         level: 1,
+        exp: 0,
         alignment: 0,
         alignmentLabel: '中立 (Neutral)',
         pledge: '無血盟',
-        classicMode: Boolean(body?.classicMode),
+        classicMode: Boolean(body?.classicMode ?? true),
         stats,
         hp: maxHp,
         maxHp,
         mp: maxMp,
         maxMp,
-        ac: def.baseAc - Math.floor(Math.max(0, stats.dex - 10) / 3),
+        ac: 10 - Math.floor(stats.dex / 4),
         adena: 1200,
         eggs: 100,
         inventory: buildStarterInventory(def.classId),
         createdAt: new Date().toISOString(),
       };
       slots[slotIdx] = created;
+      saveLocalStoreToStorage();
       return { status: 200, data: { ok: true, character: created, slots: [...slots] } };
     }
     if (action === 'enter') {
@@ -513,36 +583,119 @@ async function localApiCall(endpoint, method = 'GET', body = null, headers = {})
         return { status: 400, data: { ok: false, error: 'confirm_name_mismatch' } };
       }
       slots[slotIdx] = null;
+      saveLocalStoreToStorage();
       return { status: 200, data: { ok: true, slots: [...slots] } };
     }
     if (action === 'import') {
       if (slots[slotIdx]) return { status: 400, data: { ok: false, error: 'slot_occupied' } };
       const raw = body?.saveData || {};
-      const def = getClassDef(raw.classId || 'knight');
+      const ws = raw.worldSave && typeof raw.worldSave === 'object' ? raw.worldSave : null;
+      const def = getClassDef(raw.classId || ws?.classId || 'knight');
+      const importedName =
+        typeof raw.name === 'string' && raw.name.trim().length >= 2
+          ? raw.name.trim().slice(0, 12)
+          : `匯入${def.name}${slotIdx + 1}`;
+      for (const [, existingSlots] of localStore.slotsByAccount.entries()) {
+        if (existingSlots.some((c) => c && c.name.toLowerCase() === importedName.toLowerCase())) {
+          return { status: 400, data: { ok: false, error: 'name_taken' } };
+        }
+      }
+      const rawStats = raw.stats || ws?.stats || null;
+      const stats = rawStats
+        ? {
+            str: Number(rawStats.str ?? def.base.str),
+            dex: Number(rawStats.dex ?? def.base.dex),
+            con: Number(rawStats.con ?? def.base.con),
+            wis: Number(rawStats.wis ?? def.base.wis),
+            cha: Number(rawStats.cha ?? def.base.cha),
+            int: Number(rawStats.int ?? def.base.int),
+          }
+        : {
+            str: def.base.str,
+            dex: def.base.dex,
+            con: def.base.con,
+            wis: def.base.wis,
+            cha: def.base.cha,
+            int: def.base.int,
+          };
+      const rawLv = Number(raw.level ?? ws?.level ?? 1);
+      const level = Number.isFinite(rawLv) && rawLv >= 1 ? Math.min(99, Math.floor(rawLv)) : 1;
+      const defaultMaxHp = def.baseHp + Math.max(0, stats.con - 10) * 2 + (level - 1) * 12;
+      const defaultMaxMp = def.baseMp + Math.max(0, stats.wis - 10) * 2 + (level - 1) * 3;
+      const maxHp = Math.max(1, Math.floor(Number(raw.maxHp ?? ws?.maxHp ?? defaultMaxHp)));
+      const hp = Math.max(1, Math.min(maxHp, Math.floor(Number(raw.hp ?? ws?.hp ?? maxHp))));
+      const maxMp = Math.max(0, Math.floor(Number(raw.maxMp ?? ws?.maxMp ?? defaultMaxMp)));
+      const mp = Math.max(0, Math.min(maxMp, Math.floor(Number(raw.mp ?? ws?.mp ?? maxMp))));
+      const ac = Number.isFinite(Number(raw.ac ?? ws?.ac))
+        ? Math.floor(Number(raw.ac ?? ws?.ac))
+        : 10 - Math.floor(stats.dex / 4);
+      const adena = Math.max(0, Math.floor(Number(raw.adena ?? raw.gold ?? ws?.gold ?? 1200)));
+      const alignment = Math.floor(Number(raw.alignment ?? raw.lawful ?? ws?.lawful ?? 0));
+      const pledgeRaw = raw.pledge ?? raw.clanName ?? ws?.clanName;
+      const pledge =
+        typeof pledgeRaw === 'string' && pledgeRaw.trim() ? pledgeRaw.trim().slice(0, 24) : '無血盟';
       const imported = {
         slot: slotIdx + 1,
-        name: String(raw.name || `匯入${def.name}${slotIdx + 1}`).slice(0, 12),
+        name: importedName,
         classId: def.classId,
         className: def.name,
         gender: raw.gender === 'f' ? 'f' : 'm',
-        level: Number(raw.level || 15),
-        alignment: 5000,
-        alignmentLabel: '守序 (Lawful)',
-        pledge: '說語之島遠征軍',
+        level,
+        exp: Math.max(0, Math.floor(Number(raw.exp ?? ws?.exp ?? 0))),
+        alignment,
+        alignmentLabel:
+          alignment >= 500
+            ? '守序 (Lawful)'
+            : alignment < 0
+              ? '邪惡 (Chaotic)'
+              : '中立 (Neutral)',
+        pledge,
         classicMode: Boolean(raw.classicMode ?? true),
-        stats: raw.stats || { ...def.base },
-        hp: 210,
-        maxHp: 210,
-        mp: 45,
-        maxMp: 45,
-        ac: -8,
-        adena: 25000,
-        eggs: 300,
-        inventory: buildStarterInventory(def.classId),
-        createdAt: new Date().toISOString(),
+        stats,
+        hp,
+        maxHp,
+        mp,
+        maxMp,
+        ac,
+        adena,
+        eggs: Number(raw.eggs ?? 100),
+        inventory: Array.isArray(raw.inventory) ? raw.inventory : buildStarterInventory(def.classId),
+        worldSave: ws || null,
+        createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
       };
       slots[slotIdx] = imported;
+      saveLocalStoreToStorage();
       return { status: 200, data: { ok: true, character: imported, slots: [...slots] } };
+    }
+    if (action === 'sync') {
+      const char = slots[slotIdx];
+      if (!char) return { status: 404, data: { ok: false, error: 'slot_empty' } };
+      const patch = body?.patch || body?.saveData || {};
+      if (patch.level != null) char.level = Number(patch.level);
+      if (patch.exp != null) char.exp = Number(patch.exp);
+      if (patch.hp != null) char.hp = Number(patch.hp);
+      if (patch.maxHp != null) char.maxHp = Number(patch.maxHp);
+      if (patch.mp != null) char.mp = Number(patch.mp);
+      if (patch.maxMp != null) char.maxMp = Number(patch.maxMp);
+      if (patch.ac != null) char.ac = Number(patch.ac);
+      if (patch.gold != null || patch.adena != null) {
+        char.adena = Number(patch.adena ?? patch.gold);
+      }
+      if (patch.lawful != null || patch.alignment != null) {
+        char.alignment = Number(patch.alignment ?? patch.lawful);
+      }
+      if (patch.clanName != null || patch.pledge != null) {
+        const pName = String(patch.pledge ?? patch.clanName ?? '').trim();
+        char.pledge = pName || '無血盟';
+      }
+      if (patch.stats && typeof patch.stats === 'object') {
+        char.stats = { ...char.stats, ...patch.stats };
+      }
+      if (patch.worldSave && typeof patch.worldSave === 'object') {
+        char.worldSave = patch.worldSave;
+      }
+      saveLocalStoreToStorage();
+      return { status: 200, data: { ok: true, character: char, slots: [...slots] } };
     }
   }
 
@@ -742,9 +895,16 @@ export async function apiRequest(endpoint, options = {}) {
 
 const ERROR_MESSAGES = {
   missing_session: '請先登入帳號',
+  expired_or_invalid_session: '登入狀態已過期，請重新登入',
   account_not_found: '找不到這個帳號，請先註冊',
+  invalid_slot: '角色欄位編號無效',
   slot_occupied: '此角色欄位已被佔用',
   slot_empty: '此欄位沒有角色',
+  invalid_name: '角色名稱需為 2~12 個字元',
+  name_taken: '此角色名稱已被其他冒險者使用，請更換名稱',
+  invalid_class: '無效的職業選擇',
+  invalid_bonus_points: '能力點數分配格式無效',
+  stat_exceeds_cap: '單項能力值不可超過創角上限 (20)',
   confirm_name_mismatch: '輸入的角色名稱與目標角色不一致',
   points_unallocated: '請先將所有獎勵點數分配完畢',
   username_taken: '帳號已被註冊，請改按登入或更換名稱',
@@ -780,9 +940,10 @@ const state = {
   activeCharacter: null,
   charBusy: false,
   stageNotice: '',
-  modalMode: null, // delete | import | classic
+  modalMode: null, // delete | import | export | classic
   confirmName: '',
   importText: '',
+  exportText: '',
   localModalError: '',
   createClassId: 'royal',
   createGender: 'm',
@@ -1121,6 +1282,23 @@ function renderLobbyStage() {
           `
               : ''
           }
+          ${
+            state.modalMode === 'export' && selectedChar
+              ? `
+            <div class="ll-stage-modal-backdrop" role="dialog" aria-label="匯出角色進度">
+              <div class="ll-stage-modal">
+                <h3 style="margin-top:0;color:#f2d77f">匯出欄位 ${state.selectedSlot}「${escapeHtml(selectedChar.name)}」進度</h3>
+                <textarea id="export-json-textarea" aria-label="匯出存檔 JSON 內容" rows="6" readonly style="width:100%;margin-bottom:10px">${escapeHtml(state.exportText)}</textarea>
+                ${state.localModalError ? `<p style="color:#a7f3d0;font-size:12px">${escapeHtml(state.localModalError)}</p>` : ''}
+                <div class="row" style="justify-content:flex-end">
+                  <button id="modal-cancel-btn" type="button" class="btn secondary">關閉</button>
+                  <button id="modal-copy-export-btn" type="button" class="btn">複製存檔 JSON</button>
+                </div>
+              </div>
+            </div>
+          `
+              : ''
+          }
         </div>
       </section>
     `;
@@ -1180,13 +1358,13 @@ function renderLobbyStage() {
             <input type="checkbox" id="create-classic-toggle" ${state.createClassicMode ? 'checked' : ''} />
             <span>經典模式</span>
           </label>
-          <button id="btn-start" class="creation-start-button" type="button" ${ptsLeft > 0 || !state.createCharName.trim() || state.charBusy ? 'disabled' : ''}>
+          <button id="btn-start" class="creation-start-button" type="button" ${ptsLeft > 0 || state.createCharName.trim().length < 2 || state.charBusy ? 'disabled' : ''}>
             開始遊戲
           </button>
           <button id="creation-back-button" type="button">返回</button>
           <div id="creation-name-control">
             <label for="create-char-name">角色名稱</label>
-            <input id="create-char-name" aria-label="角色名稱" maxlength="20" value="${escapeHtml(state.createCharName)}" placeholder="輸入角色名稱" />
+            <input id="create-char-name" aria-label="角色名稱" maxlength="12" value="${escapeHtml(state.createCharName)}" placeholder="輸入 2~12 字角色名稱" />
           </div>
           ${
             state.stageNotice
@@ -1863,25 +2041,125 @@ function gameFrameWindow() {
   return null;
 }
 
+function readMatchingLocalSlotSave(slot, char, username = state.username) {
+  if (!char) return null;
+  const key = `${gameStorePrefix(username)}world_slot_${slot}`;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (typeof parsed.charName === 'string' && parsed.charName && parsed.charName !== char.name) {
+      return null;
+    }
+    if (parsed.createdAt && char.createdAt && parsed.createdAt !== char.createdAt) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function mergeCharacterWithLocalSave(char, username = state.username) {
+  if (!char) return null;
+  const localSave = readMatchingLocalSlotSave(char.slot, char, username);
+  const save = localSave || (char.worldSave && typeof char.worldSave === 'object' ? char.worldSave : null);
+  if (!save) return { ...char };
+  const merged = { ...char };
+  if (Number.isFinite(Number(save.level)) && Number(save.level) >= 1) {
+    merged.level = Math.floor(Number(save.level));
+  }
+  if (Number.isFinite(Number(save.exp)) && Number(save.exp) >= 0) {
+    merged.exp = Math.floor(Number(save.exp));
+  }
+  if (Number.isFinite(Number(save.maxHp)) && Number(save.maxHp) >= 1) {
+    merged.maxHp = Math.floor(Number(save.maxHp));
+  }
+  if (Number.isFinite(Number(save.hp)) && Number(save.hp) >= 1) {
+    merged.hp = Math.min(merged.maxHp || 9999, Math.floor(Number(save.hp)));
+  }
+  if (Number.isFinite(Number(save.maxMp)) && Number(save.maxMp) >= 0) {
+    merged.maxMp = Math.floor(Number(save.maxMp));
+  }
+  if (Number.isFinite(Number(save.mp)) && Number(save.mp) >= 0) {
+    merged.mp = Math.min(merged.maxMp || 9999, Math.floor(Number(save.mp)));
+  }
+  if (Number.isFinite(Number(save.ac))) {
+    merged.ac = Math.floor(Number(save.ac));
+  }
+  if (Number.isFinite(Number(save.gold))) {
+    merged.adena = Math.max(0, Math.floor(Number(save.gold)));
+    merged.gold = merged.adena;
+  }
+  if (Number.isFinite(Number(save.lawful))) {
+    merged.alignment = Math.floor(Number(save.lawful));
+  }
+  if (typeof save.clanName === 'string') {
+    merged.pledge = save.clanName.trim() || '無血盟';
+  }
+  if (save.stats && typeof save.stats === 'object') {
+    merged.stats = { ...merged.stats, ...save.stats };
+  }
+  merged.worldSave = save;
+  return merged;
+}
+
+let lastBackendCharSyncAt = 0;
+let pendingBackendCharPatch = null;
+
+function pushCharacterSyncToBackend(patch, immediate = false) {
+  if (!patch || !patch.slot) return;
+  pendingBackendCharPatch = patch;
+  const now = Date.now();
+  if (!immediate && now - lastBackendCharSyncAt < 4000) return;
+  lastBackendCharSyncAt = now;
+  const toSend = pendingBackendCharPatch;
+  pendingBackendCharPatch = null;
+  void apiRequest('characters', {
+    method: 'POST',
+    headers: { 'x-game-session': state.sessionId || 'local' },
+    body: { action: 'sync', slot: toSend.slot, patch: toSend },
+  }).catch(() => {
+    // 忽略背景同步失敗
+  });
+}
+
 function leaveGameToSelect() {
+  if (pendingBackendCharPatch) {
+    pushCharacterSyncToBackend(pendingBackendCharPatch, true);
+  }
   state.stage = 'select';
   state.activeCharacter = null;
   renderApp();
 }
 
-function syncCharacterSlotFromGame(patch) {
+function syncCharacterSlotFromGame(patch, immediate = false) {
   if (!patch) return;
   const applyPatch = (target) => {
     if (!target) return;
     target.level = patch.level ?? target.level;
     target.exp = patch.exp ?? target.exp;
     target.gold = patch.gold ?? target.gold;
-    target.adena = patch.gold ?? target.adena;
+    target.adena = patch.adena ?? patch.gold ?? target.adena;
     target.hp = patch.hp ?? target.hp;
     target.maxHp = patch.maxHp ?? target.maxHp;
     target.mp = patch.mp ?? target.mp;
     target.maxMp = patch.maxMp ?? target.maxMp;
     target.ac = patch.ac ?? target.ac;
+    if (patch.alignment != null || patch.lawful != null) {
+      target.alignment = patch.alignment ?? patch.lawful;
+    }
+    if (patch.pledge != null || patch.clanName != null) {
+      const pName = String(patch.pledge ?? patch.clanName ?? '').trim();
+      target.pledge = pName || '無血盟';
+    }
+    if (patch.stats && typeof patch.stats === 'object') {
+      target.stats = { ...target.stats, ...patch.stats };
+    }
+    if (patch.worldSave && typeof patch.worldSave === 'object') {
+      target.worldSave = patch.worldSave;
+    }
   };
   if (state.activeCharacter && Number(state.activeCharacter.slot) === Number(patch.slot)) {
     applyPatch(state.activeCharacter);
@@ -1894,14 +2172,33 @@ function syncCharacterSlotFromGame(patch) {
   const localSlots = localStore.slotsByAccount.get(accountKey);
   if (localSlots && slotIdx >= 0 && slotIdx < localSlots.length && localSlots[slotIdx]) {
     applyPatch(localSlots[slotIdx]);
+    saveLocalStoreToStorage();
   }
+  pushCharacterSyncToBackend(patch, immediate);
+}
+
+async function inflateWorldDataFields(data) {
+  if (!data || data._inflated) return data;
+  const [collision, redrawLayers, dialogues] = await Promise.all([
+    data.collision ? Promise.resolve(data.collision) : decompressGzipJsonBase64(data.collisionGz),
+    data.redrawLayers ? Promise.resolve(data.redrawLayers) : decompressGzipJsonBase64(data.redrawLayersGz),
+    data.dialogues ? Promise.resolve(data.dialogues) : decompressGzipJsonBase64(data.dialoguesGz),
+  ]);
+  if (collision) data.collision = collision;
+  if (redrawLayers) data.redrawLayers = redrawLayers;
+  if (dialogues) data.dialogues = dialogues;
+  data._inflated = true;
+  return data;
 }
 
 async function resolveWorldData() {
-  if (window.__LINEAGE_WORLD_DATA__) return window.__LINEAGE_WORLD_DATA__;
+  if (window.__LINEAGE_WORLD_DATA__) {
+    return inflateWorldDataFields(window.__LINEAGE_WORLD_DATA__);
+  }
   const res = await fetch('./src/data/talking-island.json', { cache: 'no-cache' });
-  if (!res.ok) throw new Error(`HTTP ${res.status} 無法載入說話之島世界資料`);
+  if (!res.ok) throw new Error(`HTTP ${res.status} 無法載入天堂世界資料`);
   const data = await res.json();
+  await inflateWorldDataFields(data);
   window.__LINEAGE_WORLD_DATA__ = data;
   return data;
 }
@@ -1924,6 +2221,7 @@ async function mountGameFrame(ch) {
     const normalizedChar = {
       ...ch,
       classId: effectiveClassId,
+      className: ch.className || getClassDef(ch.classId).name,
       sex: ch.gender === 'f' ? 1 : Number(ch.sex || 0),
       str: ch.stats?.str ?? ch.str,
       con: ch.stats?.con ?? ch.con,
@@ -1934,7 +2232,22 @@ async function mountGameFrame(ch) {
     };
 
     const slotSaveKey = `${gameStorePrefix()}world_slot_${ch.slot ?? 0}`;
-    const hasExistingSave = Boolean(localStorage.getItem(slotSaveKey));
+    const matchingLocalSave = readMatchingLocalSlotSave(ch.slot, ch);
+    if (!matchingLocalSave) {
+      try {
+        if (localStorage.getItem(slotSaveKey)) {
+          localStorage.removeItem(slotSaveKey);
+        }
+        if (ch.worldSave && typeof ch.worldSave === 'object') {
+          localStorage.setItem(slotSaveKey, JSON.stringify(ch.worldSave));
+        }
+      } catch {
+        // 忽略 localStorage 存取錯誤
+      }
+    }
+    const hasExistingSave = Boolean(
+      matchingLocalSave || (ch.worldSave && typeof ch.worldSave === 'object'),
+    );
 
     const engine = new LineageGameEngine({
       mountEl: hostEl,
@@ -2311,6 +2624,15 @@ async function handleAuthAction(action) {
   return data.sessionId;
 }
 
+function buildDefaultCharName(classId, slot) {
+  const def = getClassDef(classId);
+  const rawUser = String(state.username || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '');
+  const prefix = rawUser ? rawUser.slice(0, 6) : '';
+  return `${prefix}${def.name}${slot}`.slice(0, 12);
+}
+
 async function loadCharactersAndOpenSelect(overrideSid) {
   const sid = overrideSid || state.sessionId;
   if (!sid) {
@@ -2330,7 +2652,10 @@ async function loadCharactersAndOpenSelect(overrideSid) {
     renderApp();
     return;
   }
-  const padded = Array.from({ length: 8 }, (_, idx) => data.slots?.[idx] ?? null);
+  const padded = Array.from({ length: 8 }, (_, idx) => {
+    const rawChar = data.slots?.[idx] ?? null;
+    return rawChar ? mergeCharacterWithLocalSave(rawChar) : null;
+  });
   state.slots = padded;
   const firstFilled = padded.findIndex((c) => c !== null);
   const initialSlot = firstFilled >= 0 ? firstFilled + 1 : 1;
@@ -2507,7 +2832,7 @@ function bindGlobalEvents() {
       state.createClassId = 'royal';
       state.createGender = 'm';
       state.createAlloc = { str: 0, dex: 0, con: 0, wis: 0, cha: 0, int: 0 };
-      state.createCharName = `王族${state.selectedSlot}`;
+      state.createCharName = buildDefaultCharName('royal', state.selectedSlot);
       state.stageNotice = '';
       state.stage = 'create';
       renderApp();
@@ -2520,11 +2845,68 @@ function bindGlobalEvents() {
         body: { action: 'enter', slot: state.selectedSlot },
       });
       if (status < 400 && data.ok) {
-        state.activeCharacter = data.character;
+        state.activeCharacter = mergeCharacterWithLocalSave(data.character);
         state.stage = 'game';
         state.realtimeLog = `已進入 ${data.worldSpawn.mapName} (${data.worldSpawn.x}, ${data.worldSpawn.y})`;
         renderApp();
+      } else {
+        state.stageNotice = formatError(data?.error, status);
+        renderApp();
       }
+      return;
+    }
+    if (btn.id === 'load-btn-export') {
+      const selectedChar = state.slots[state.selectedSlot - 1];
+      if (!selectedChar) return;
+      const merged = mergeCharacterWithLocalSave(selectedChar);
+      const exportPayload = {
+        name: merged.name,
+        classId: merged.classId,
+        className: merged.className,
+        gender: merged.gender,
+        level: merged.level,
+        exp: merged.exp ?? 0,
+        alignment: merged.alignment ?? 0,
+        pledge: merged.pledge ?? '無血盟',
+        classicMode: Boolean(merged.classicMode),
+        stats: merged.stats,
+        hp: merged.hp,
+        maxHp: merged.maxHp,
+        mp: merged.mp,
+        maxMp: merged.maxMp,
+        ac: merged.ac,
+        adena: merged.adena ?? merged.gold ?? 1200,
+        inventory: merged.inventory,
+        worldSave: merged.worldSave || null,
+        createdAt: merged.createdAt,
+      };
+      state.exportText = JSON.stringify(exportPayload, null, 2);
+      state.modalMode = 'export';
+      state.localModalError = '';
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(state.exportText).then(
+          () => {
+            state.localModalError = '已自動複製存檔 JSON 至剪貼簿';
+            renderApp();
+          },
+          () => {},
+        );
+      }
+      renderApp();
+      return;
+    }
+    if (btn.id === 'modal-copy-export-btn') {
+      if (navigator.clipboard?.writeText && state.exportText) {
+        try {
+          await navigator.clipboard.writeText(state.exportText);
+          state.localModalError = '已複製存檔 JSON 至剪貼簿！';
+        } catch {
+          state.localModalError = '請手動選取上方文字框複製';
+        }
+      } else {
+        state.localModalError = '請手動選取上方文字框複製';
+      }
+      renderApp();
       return;
     }
     if (btn.id === 'load-btn-delete') {
@@ -2561,9 +2943,15 @@ function bindGlobalEvents() {
       });
       if (status < 400 && data.ok) {
         clearGameSlot(state.selectedSlot);
-        state.slots = Array.from({ length: 8 }, (_, idx) => data.slots?.[idx] ?? null);
+        state.slots = Array.from({ length: 8 }, (_, idx) => {
+          const rawChar = data.slots?.[idx] ?? null;
+          return rawChar ? mergeCharacterWithLocalSave(rawChar) : null;
+        });
         state.modalMode = null;
         state.stageNotice = `欄位 ${state.selectedSlot} 角色已刪除`;
+        renderApp();
+      } else {
+        state.localModalError = formatError(data?.error, status);
         renderApp();
       }
       return;
@@ -2577,9 +2965,27 @@ function bindGlobalEvents() {
           body: { action: 'import', slot: state.selectedSlot, saveData: parsed },
         });
         if (status < 400 && data.ok) {
-          state.slots = Array.from({ length: 8 }, (_, idx) => data.slots?.[idx] ?? null);
+          clearGameSlot(data.character.slot);
+          const ws = data.character.worldSave || (parsed && typeof parsed.worldSave === 'object' ? parsed.worldSave : null);
+          if (ws) {
+            try {
+              localStorage.setItem(
+                `${gameStorePrefix()}world_slot_${data.character.slot}`,
+                JSON.stringify({ ...ws, charName: data.character.name, createdAt: data.character.createdAt }),
+              );
+            } catch {
+              // 忽略 localStorage 寫入錯誤
+            }
+          }
+          state.slots = Array.from({ length: 8 }, (_, idx) => {
+            const rawChar = data.slots?.[idx] ?? null;
+            return rawChar ? mergeCharacterWithLocalSave(rawChar) : null;
+          });
           state.modalMode = null;
           state.stageNotice = `已匯入角色「${data.character.name}」`;
+          renderApp();
+        } else {
+          state.localModalError = formatError(data?.error, status);
           renderApp();
         }
       } catch {
@@ -2603,10 +3009,9 @@ function bindGlobalEvents() {
     }
     if (btn.hasAttribute('data-class-id')) {
       const nextId = btn.getAttribute('data-class-id');
-      const nextDef = getClassDef(nextId);
       state.createClassId = nextId;
       state.createAlloc = { str: 0, dex: 0, con: 0, wis: 0, cha: 0, int: 0 };
-      state.createCharName = `${nextDef.name}${state.createTargetSlot}`;
+      state.createCharName = buildDefaultCharName(nextId, state.createTargetSlot);
       renderApp();
       return;
     }
@@ -2655,7 +3060,11 @@ function bindGlobalEvents() {
         },
       });
       if (status < 400 && data.ok) {
-        state.slots = Array.from({ length: 8 }, (_, idx) => data.slots?.[idx] ?? null);
+        clearGameSlot(data.character.slot);
+        state.slots = Array.from({ length: 8 }, (_, idx) => {
+          const rawChar = data.slots?.[idx] ?? null;
+          return rawChar ? mergeCharacterWithLocalSave(rawChar) : null;
+        });
         state.selectedSlot = data.character.slot;
         state.selectPage = data.character.slot > 4 ? 1 : 0;
         state.stageNotice = `已創立角色「${data.character.name}」`;
@@ -3064,6 +3473,13 @@ export function bootLineageWebApp() {
       window.location.hash = `#${route}`;
       state.route = route;
       renderApp();
+      if (route === '/lobby' && (state.swStatusText.includes('檢查中') || state.swStatusText.includes('0 /'))) {
+        void getPackCacheStats().then((cacheStats) => {
+          state.swStatusText = `CacheStorage 已快取 ${cacheStats.cachedPacks} / ${cacheStats.totalPacks} 包 (${(cacheStats.cachedBytes / 1048576).toFixed(2)} MB)`;
+          const elStat = document.querySelector('[data-testid="sw-status-text"]');
+          if (elStat) elStat.textContent = state.swStatusText;
+        });
+      }
     },
     pingWorld: () => pingWorld(),
     gameWindow: () => gameFrameWindow(),

@@ -333,7 +333,7 @@ describe('286 lineage-web HTTP API & Pack Slicing integration tests', () => {
     const charsData = await charsRes.json();
     assert.equal(charsData.ok, true);
     assert.equal(charsData.slots.length, 8);
-    assert.ok(charsData.slots[0]?.name);
+    assert.equal(charsData.slots.every((s) => s === null), true);
 
     const createCharRes = await invokeHandler(lineage, '/api/lineage/characters', {
       method: 'POST',
@@ -355,6 +355,25 @@ describe('286 lineage-web HTTP API & Pack Slicing integration tests', () => {
     const createdChar = await createCharRes.json();
     assert.equal(createdChar.ok, true);
     assert.equal(createdChar.character.name, '亞丁王族286');
+    assert.equal(createdChar.character.level, 1);
+
+    const syncCharRes = await invokeHandler(lineage, '/api/lineage/characters', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-game-session': sessionId,
+      },
+      body: {
+        action: 'sync',
+        slot: 2,
+        patch: { level: 3, exp: 420, gold: 2500, hp: 50, maxHp: 50, clanName: '亞丁王室' },
+      },
+    });
+    assert.equal(syncCharRes.status, 200);
+    const syncedChar = await syncCharRes.json();
+    assert.equal(syncedChar.ok, true);
+    assert.equal(syncedChar.character.level, 3);
+    assert.equal(syncedChar.character.pledge, '亞丁王室');
 
     const enterRes = await invokeHandler(lineage, '/api/lineage/characters', {
       method: 'POST',
@@ -365,7 +384,9 @@ describe('286 lineage-web HTTP API & Pack Slicing integration tests', () => {
       body: { action: 'enter', slot: 2 },
     });
     assert.equal(enterRes.status, 200);
-    assert.equal((await enterRes.json()).character.name, '亞丁王族286');
+    const entered = await enterRes.json();
+    assert.equal(entered.character.name, '亞丁王族286');
+    assert.equal(entered.character.level, 3);
 
     const delRes = await invokeHandler(lineage, '/api/lineage/characters', {
       method: 'POST',

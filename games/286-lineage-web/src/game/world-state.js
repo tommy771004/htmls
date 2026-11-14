@@ -1,12 +1,13 @@
-// 286 天堂實境客戶端：說話之島世界模擬、角色屬性、戰鬥掉落、法術、商店與倉庫存檔
+// 286 天堂實境客戶端：全 64 張地圖世界模擬、角色屬性、戰鬥掉落、法術、商店與倉庫存檔
 import { tileToWorld, tileDistance, headingBetween, HEADING_DELTAS } from './map-iso.js';
+import {
+  MAP_NAMES,
+  getMapMeta,
+  isSafetyZone,
+  resolveHomeTown,
+} from './world-maps.js';
 
-export const MAP_NAMES = {
-  0: '說話之島',
-  1: '說話之島地監 1樓',
-  2: '說話之島地監 2樓',
-  3: '甘特之家',
-};
+export { MAP_NAMES };
 
 const QUICKBAR_DEFAULT_BY_CLASS = {
   royal: [
@@ -146,12 +147,6 @@ export const STATUE_BLESSINGS = {
   吉魔的雕像: { key: 'wisdom', sec: 900, fx: 190, title: '大法師智識庇佑', msg: '獲得吉魔雕像祝福：SP +2 與魔力回復提升！' },
 };
 
-export const HARBOR_DESTINATIONS = [
-  { label: '說話之島村莊東岸碼頭', map: 0, x: 32633, y: 32969, price: 20 },
-  { label: '北島荒野沙灘營地', map: 0, x: 32640, y: 32742, price: 60 },
-  { label: '地監海岸西岸渡口', map: 0, x: 32476, y: 32842, price: 60 },
-];
-
 export const SKELETON_ENCHANT_MAP = {
   對骷骨之劍強化的卷軸: { kind: 'weapon', types: ['sword', 'dagger', 'tohandsword', 'axe', 'spear'], label: '近戰武器' },
   對骷骨之杖強化的卷軸: { kind: 'weapon', types: ['staff', 'wand'], label: '魔杖' },
@@ -216,9 +211,27 @@ export class LineageWorld {
     let saved = null;
     try {
       const raw = localStorage.getItem(this.saveKey);
-      if (raw) saved = JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const nameMismatch =
+          parsed &&
+          typeof parsed.charName === 'string' &&
+          parsed.charName &&
+          parsed.charName !== char.name;
+        const createdAtMismatch =
+          parsed &&
+          parsed.createdAt &&
+          char.createdAt &&
+          parsed.createdAt !== char.createdAt;
+        if (!nameMismatch && !createdAtMismatch) {
+          saved = parsed;
+        }
+      }
     } catch {
       saved = null;
+    }
+    if (!saved && char.worldSave && typeof char.worldSave === 'object') {
+      saved = char.worldSave;
     }
 
     const clsId = char.classId || 'royal';
@@ -241,12 +254,13 @@ export class LineageWorld {
       id: 'me',
       name: char.name || '無名勇者',
       classId: clsId,
+      className: char.className || null,
       sex: Number(char.sex || 0),
       gfx,
       level: Number(saved?.level ?? char.level ?? 1),
       exp: Number(saved?.exp ?? char.exp ?? 0),
-      gold: Number(saved?.gold ?? char.gold ?? 500),
-      lawful: Number(saved?.lawful ?? 0),
+      gold: Number(saved?.gold ?? char.gold ?? char.adena ?? 1000),
+      lawful: Number(saved?.lawful ?? char.alignment ?? 0),
       food: clamp(Number(saved?.food ?? 84), 0, 100),
       kills: Number(saved?.kills ?? 0),
       quests: saved?.quests || { hunterDone: false, slayerDone: false },
@@ -272,7 +286,9 @@ export class LineageWorld {
       lastAttackAt: 0,
       lastSpellAt: 0,
       lastPotionAt: 0,
-      clanName: saved?.clanName || '',
+      clanName:
+        saved?.clanName ??
+        (char.pledge && char.pledge !== '無血盟' ? char.pledge : ''),
       polyGfx: saved?.polyGfx || null,
       polyName: saved?.polyName || '',
       polyBonus: saved?.polyBonus || null,
@@ -311,7 +327,11 @@ export class LineageWorld {
       mr: 10,
     };
 
-    if (![0, 1, 2, 3].includes(player.map) || !this.isoMap.isWalkableTile(player.tx, player.ty, player.map)) {
+    const validMaps =
+      Array.isArray(this.worldData.mapIds) && this.worldData.mapIds.length > 0
+        ? this.worldData.mapIds
+        : [0, 1, 2, 3, 4];
+    if (!validMaps.includes(player.map) || !this.isoMap.isWalkableTile(player.tx, player.ty, player.map)) {
       player.map = clsCfg.spawn.map || 0;
       player.tx = clsCfg.spawn.x || 32578;
       player.ty = clsCfg.spawn.y || 32943;
@@ -540,47 +560,51 @@ export class LineageWorld {
     this.dirtySave = false;
     this.lastSaveAt = now;
     const p = this.player;
+    const worldSavePayload = {
+      charName: p.name,
+      classId: this.lobbyChar?.classId || p.classId,
+      className: p.className || this.lobbyChar?.className || null,
+      createdAt: this.lobbyChar?.createdAt || null,
+      updatedAt: Date.now(),
+      level: p.level,
+      exp: p.exp,
+      gold: p.gold,
+      lawful: p.lawful,
+      food: p.food,
+      kills: p.kills,
+      quests: p.quests,
+      stats: p.stats,
+      hp: p.hp,
+      maxHp: p.maxHp,
+      mp: p.mp,
+      maxMp: p.maxMp,
+      ac: p.ac,
+      map: p.map,
+      tx: p.tx,
+      ty: p.ty,
+      clanName: p.clanName || '',
+      polyGfx: p.polyGfx || null,
+      polyName: p.polyName || '',
+      polyBonus: p.polyBonus || null,
+      pet: p.pet
+        ? {
+            id: p.pet.id,
+            name: p.pet.name,
+            gfx: p.pet.gfx,
+            level: p.pet.level,
+            hp: p.pet.hp,
+            maxHp: p.pet.maxHp,
+            exp: p.pet.exp,
+            dmg: p.pet.dmg,
+          }
+        : null,
+      spells: p.spells,
+      inventory: p.inventory,
+      quickbar: p.quickbar,
+      autoConfig: p.autoConfig,
+    };
     try {
-      localStorage.setItem(
-        this.saveKey,
-        JSON.stringify({
-          level: p.level,
-          exp: p.exp,
-          gold: p.gold,
-          lawful: p.lawful,
-          food: p.food,
-          kills: p.kills,
-          quests: p.quests,
-          stats: p.stats,
-          hp: p.hp,
-          maxHp: p.maxHp,
-          mp: p.mp,
-          maxMp: p.maxMp,
-          map: p.map,
-          tx: p.tx,
-          ty: p.ty,
-          clanName: p.clanName || '',
-          polyGfx: p.polyGfx || null,
-          polyName: p.polyName || '',
-          polyBonus: p.polyBonus || null,
-          pet: p.pet
-            ? {
-                id: p.pet.id,
-                name: p.pet.name,
-                gfx: p.pet.gfx,
-                level: p.pet.level,
-                hp: p.pet.hp,
-                maxHp: p.pet.maxHp,
-                exp: p.pet.exp,
-                dmg: p.pet.dmg,
-              }
-            : null,
-          spells: p.spells,
-          inventory: p.inventory,
-          quickbar: p.quickbar,
-          autoConfig: p.autoConfig,
-        }),
-      );
+      localStorage.setItem(this.saveKey, JSON.stringify(worldSavePayload));
       localStorage.setItem(this.storagePrefix, JSON.stringify(this.warehouse));
     } catch {
       // 配額已滿略過
@@ -591,6 +615,12 @@ export class LineageWorld {
         level: p.level,
         exp: p.exp,
         gold: p.gold,
+        adena: p.gold,
+        lawful: p.lawful,
+        alignment: p.lawful,
+        clanName: p.clanName || '',
+        pledge: p.clanName || '無血盟',
+        stats: p.stats,
         hp: p.hp,
         maxHp: p.maxHp,
         mp: p.mp,
@@ -599,6 +629,7 @@ export class LineageWorld {
         map: p.map,
         x: p.tx,
         y: p.ty,
+        worldSave: worldSavePayload,
       });
     }
   }
@@ -634,13 +665,17 @@ export class LineageWorld {
       return { ok: true, cmd: 'auto' };
     }
     if (cmd === '/home') {
-      const scroll = p.inventory.find((i) => i.name === '傳送回家的卷軸' && i.count > 0);
-      if (scroll) return this.useItem(scroll.id);
-      const distHome = tileDistance(p.tx, p.ty, 32578, 32943);
-      if (p.map === 0 && distHome <= 36) {
-        this.teleportTo(0, 32578, 32943, 4);
+      const town = resolveHomeTown(p.map, p.tx, p.ty);
+      if (isSafetyZone(p.map, p.tx, p.ty, this.isoMap)) {
+        this.teleportTo(town.map, town.x, town.y, 4);
         return { ok: true, cmd: 'home' };
       }
+      if (!getMapMeta(p.map).recall) {
+        this.addLog(`目前所在的【${MAP_NAMES[p.map] || p.map}】禁止使用回卷返村！`, 'warn');
+        return { ok: false };
+      }
+      const scroll = p.inventory.find((i) => i.name === '傳送回家的卷軸' && i.count > 0);
+      if (scroll) return this.useItem(scroll.id);
       this.addLog('背包中沒有傳送回家的卷軸，無法從野外返回。', 'warn');
       return { ok: false };
     }
@@ -709,7 +744,9 @@ export class LineageWorld {
         worldY: wp.y,
         animState: 'idle',
       });
-      this.sprites.preloadActor(n.renderGfx);
+      if (tileDistance(n.x, n.y, this.player.tx, this.player.ty) <= 45) {
+        this.sprites.preloadActor(n.renderGfx);
+      }
     }
 
     const occupied = new Set(this.npcs.map((n) => `${n.x},${n.y}`));
@@ -726,20 +763,71 @@ export class LineageWorld {
     }
   }
 
-  #findFreeWalkableTile(cx, cy, radius, mapId, occupied) {
-    const tries = Math.max(4, radius * 2);
+  #findRandomMapTile(mapId, occupied, options = {}) {
+    const pool = this.isoMap.getWalkableTiles(mapId);
+    if (!pool.length) return null;
+    const avoidSafe = Boolean(options?.avoidSafetyZone);
+    const usable = (cand) =>
+      !occupied?.has(`${cand.x},${cand.y}`) &&
+      !(avoidSafe && isSafetyZone(mapId, cand.x, cand.y, this.isoMap));
+    for (let i = 0; i < 32; i += 1) {
+      const cand = pool[randInt(0, pool.length - 1)];
+      if (usable(cand)) return cand;
+    }
+    for (const cand of pool) {
+      if (usable(cand)) return cand;
+    }
+    if (avoidSafe) {
+      const nonSafe = pool.find((cand) => !isSafetyZone(mapId, cand.x, cand.y, this.isoMap));
+      if (nonSafe) return nonSafe;
+    }
+    return pool[0];
+  }
+
+  #findFreeWalkableTile(cx, cy, radius, mapId, occupied, options = {}) {
+    if (!cx && !cy) {
+      return this.#findRandomMapTile(mapId, occupied, options);
+    }
+    const avoidSafe = Boolean(options?.avoidSafetyZone);
+    const canUse = (tx, ty) =>
+      this.isoMap.isWalkableTile(tx, ty, mapId) &&
+      !occupied?.has(`${tx},${ty}`) &&
+      !(avoidSafe && isSafetyZone(mapId, tx, ty, this.isoMap));
+    const tries = Math.max(6, radius * 3);
     for (let i = 0; i < tries; i += 1) {
       const tx = cx + (i === 0 ? 0 : randInt(-radius, radius));
       const ty = cy + (i === 0 ? 0 : randInt(-radius, radius));
-      if (!this.isoMap.isWalkableTile(tx, ty, mapId)) continue;
-      if (occupied?.has(`${tx},${ty}`)) continue;
-      return { x: tx, y: ty };
+      if (canUse(tx, ty)) return { x: tx, y: ty };
     }
+    if (options?.allowOutwardFallback) {
+      for (let r = 1; r <= 36; r += 1) {
+        for (let oy = -r; oy <= r; oy += 1) {
+          for (let ox = -r; ox <= r; ox += 1) {
+            if (Math.max(Math.abs(ox), Math.abs(oy)) !== r) continue;
+            if (canUse(cx + ox, cy + oy)) return { x: cx + ox, y: cy + oy };
+          }
+        }
+      }
+    }
+    if (avoidSafe && isSafetyZone(mapId, cx, cy, this.isoMap)) return null;
     return this.isoMap.isWalkableTile(cx, cy, mapId) ? { x: cx, y: cy } : null;
   }
 
   #spawnMobFromDef(sp, mobDef, occupied = null) {
-    const pos = this.#findFreeWalkableTile(sp.x, sp.y, Math.max(1, Math.min(sp.size, 8)), sp.map, occupied);
+    const spawnOpts = sp.villageAnimal
+      ? { avoidSafetyZone: false }
+      : { avoidSafetyZone: true, allowOutwardFallback: true };
+    const pos =
+      sp.random || (!sp.x && !sp.y)
+        ? this.#findRandomMapTile(sp.map, occupied, spawnOpts)
+        : this.#findFreeWalkableTile(
+            sp.x,
+            sp.y,
+            Math.max(1, Math.min(sp.size, 8)),
+            sp.map,
+            occupied,
+            spawnOpts,
+          );
     if (!pos) return null;
     if (occupied) occupied.add(`${pos.x},${pos.y}`);
     const wp = tileToWorld(pos.x, pos.y);
@@ -748,6 +836,8 @@ export class LineageWorld {
       id: `mob-${this.nextUid++}`,
       spawnId: sp.id,
       spawn: sp,
+      homeX: pos.x,
+      homeY: pos.y,
       name: mobDef.name,
       gfx: mobDef.gfx,
       level: mobDef.level,
@@ -789,7 +879,9 @@ export class LineageWorld {
     let destX = Number(tx);
     let destY = Number(ty);
     if (!this.isoMap.isWalkableTile(destX, destY, targetMap)) {
-      const alt = this.#findFreeWalkableTile(destX, destY, 4, targetMap);
+      const alt =
+        this.#findFreeWalkableTile(destX, destY, 6, targetMap) ||
+        this.#findRandomMapTile(targetMap, null);
       if (alt) {
         destX = alt.x;
         destY = alt.y;
@@ -1173,12 +1265,17 @@ export class LineageWorld {
     }
 
     if (item.name === '瞬間移動的卷軸') {
-      const cand = this.#findFreeWalkableTile(
-        p.tx + randInt(-18, 18),
-        p.ty + randInt(-18, 18),
-        8,
-        p.map,
-      );
+      if (!getMapMeta(p.map).tele) {
+        this.addLog(`【${MAP_NAMES[p.map] || p.map}】周圍的魔力干擾了空間，無法使用瞬間移動！`, 'warn');
+        return { ok: false };
+      }
+      const cand =
+        this.#findFreeWalkableTile(
+          p.tx + randInt(-18, 18),
+          p.ty + randInt(-18, 18),
+          8,
+          p.map,
+        ) || this.#findRandomMapTile(p.map, null);
       if (cand) {
         this.consumeItem(item.id, 1);
         this.teleportTo(p.map, cand.x, cand.y, p.heading);
@@ -1187,8 +1284,13 @@ export class LineageWorld {
     }
 
     if (item.name === '傳送回家的卷軸') {
+      if (!getMapMeta(p.map).recall) {
+        this.addLog(`【${MAP_NAMES[p.map] || p.map}】無法使用傳送回家的卷軸！`, 'warn');
+        return { ok: false };
+      }
+      const town = resolveHomeTown(p.map, p.tx, p.ty);
       this.consumeItem(item.id, 1);
-      this.teleportTo(0, 32578, 32943, 4);
+      this.teleportTo(town.map, town.x, town.y, 4);
       return { ok: true };
     }
 
@@ -1197,9 +1299,14 @@ export class LineageWorld {
         this.addLog('尚未加入血盟，請先找血盟執行人盧卡斯創立或加入血盟。', 'warn');
         return { ok: false };
       }
+      if (!getMapMeta(p.map).recall) {
+        this.addLog(`【${MAP_NAMES[p.map] || p.map}】無法使用血盟傳送卷軸！`, 'warn');
+        return { ok: false };
+      }
+      const town = resolveHomeTown(p.map, p.tx, p.ty);
       this.consumeItem(item.id, 1);
-      this.teleportTo(0, 32583, 32928, 4);
-      this.addLog(`使用血盟傳送卷軸返回《${p.clanName}》說話之島集結點！`, 'gold');
+      this.teleportTo(town.map, town.x, town.y, 4);
+      this.addLog(`使用血盟傳送卷軸返回《${p.clanName}》${town.label}集結點！`, 'gold');
       return { ok: true };
     }
 
@@ -1296,6 +1403,10 @@ export class LineageWorld {
     }
 
     if (spell.name === '指定傳送') {
+      if (!getMapMeta(p.map).tele) {
+        this.addLog(`【${MAP_NAMES[p.map] || p.map}】無法施放指定傳送魔法！`, 'warn');
+        return false;
+      }
       const cand = this.#findFreeWalkableTile(
         p.tx + randInt(-14, 14),
         p.ty + randInt(-14, 14),
@@ -2360,6 +2471,7 @@ export class LineageWorld {
     }
 
     const p = this.player;
+    const playerInSafety = isSafetyZone(p.map, p.tx, p.ty, this.isoMap);
     const occupied = new Set([`${p.tx},${p.ty}`, ...this.npcs.map((n) => `${n.x},${n.y}`)]);
     for (const m of this.mobs) {
       if (m.hp > 0) occupied.add(`${m.tx},${m.ty}`);
@@ -2397,14 +2509,21 @@ export class LineageWorld {
         mob.animState = 'idle';
       }
 
+      const guardTown = !mob.spawn?.villageAnimal;
       const distToPlayer = tileDistance(mob.tx, mob.ty, p.tx, p.ty);
-      if (mob.aggressive && distToPlayer <= 6 && p.hp > 0) {
+      if (playerInSafety) {
+        mob.aggroTarget = false;
+      }
+      if (distToPlayer > 36 && !mob.aggroTarget) {
+        continue;
+      }
+      if (mob.aggressive && !playerInSafety && distToPlayer <= 6 && p.hp > 0) {
         mob.aggroTarget = true;
       } else if (distToPlayer > 12) {
         mob.aggroTarget = false;
       }
 
-      if (mob.aggroTarget && p.hp > 0) {
+      if (mob.aggroTarget && !playerInSafety && p.hp > 0) {
         if (distToPlayer <= mob.range) {
           if (now - mob.lastActAt >= Math.round(1250 / slowFactor)) {
             mob.lastActAt = now;
@@ -2457,7 +2576,8 @@ export class LineageWorld {
         const nx = mob.tx + dx;
         const ny = mob.ty + dy;
         if (
-          tileDistance(nx, ny, mob.spawn.x, mob.spawn.y) <= Math.max(3, Math.min(mob.spawn.size, 8)) &&
+          !(guardTown && isSafetyZone(mob.map, nx, ny, this.isoMap)) &&
+          tileDistance(nx, ny, mob.homeX ?? mob.spawn.x, mob.homeY ?? mob.spawn.y) <= Math.max(3, Math.min(mob.spawn.size || 6, 8)) &&
           !occupied.has(`${nx},${ny}`) &&
           this.isoMap.canStep(mob.tx, mob.ty, dx, dy, mob.map)
         ) {
@@ -2477,9 +2597,11 @@ export class LineageWorld {
   #bestStepToward(mob, tx, ty, occupied) {
     let best = null;
     let bestD = tileDistance(mob.tx, mob.ty, tx, ty);
+    const guardTown = !mob.spawn?.villageAnimal;
     for (const [dx, dy] of HEADING_DELTAS) {
       const nx = mob.tx + dx;
       const ny = mob.ty + dy;
+      if (guardTown && isSafetyZone(mob.map, nx, ny, this.isoMap)) continue;
       if (occupied.has(`${nx},${ny}`)) continue;
       if (!this.isoMap.canStep(mob.tx, mob.ty, dx, dy, mob.map)) continue;
       const d = Math.hypot(nx - tx, ny - ty);
@@ -2493,6 +2615,7 @@ export class LineageWorld {
 
   #applyMobAttackToPlayer(mob, now) {
     const p = this.player;
+    if (isSafetyZone(p.map, p.tx, p.ty, this.isoMap)) return;
     const isSpell = mob.attackMode === 'spell';
     if (isSpell) {
       this.spawnEffect(p.tx, p.ty, mob.castEffectId || 167);
@@ -2562,11 +2685,12 @@ export class LineageWorld {
 
     p.hp = Math.max(Math.ceil(p.maxHp * 0.5), 10);
     p.mp = Math.max(Math.ceil(p.maxMp * 0.5), 2);
-    this.teleportTo(0, 32578, 32943, 4);
-    this.spawnEffect(32578, 32943, '169');
+    const town = resolveHomeTown(p.map, p.tx, p.ty);
+    this.teleportTo(town.map, town.x, town.y, 4);
+    this.spawnEffect(town.x, town.y, '169');
     this.recomputePlayerStats();
     this.addLog(
-      `你的體力歸零倒下了（${cause}）…已由說話之島神殿復活返村${penalty > 0 ? `，損失 ${penalty} 經驗值` : '（新手保護免扣經驗值）'}！`,
+      `你的體力歸零倒下了（${cause}）…已由${town.label}神殿復活返村${penalty > 0 ? `，損失 ${penalty} 經驗值` : '（新手保護免扣經驗值）'}！`,
       'danger',
     );
     this.saveWorld(true);

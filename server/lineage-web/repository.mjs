@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { neon } from '@neondatabase/serverless';
 import {
+  applyCharacterSyncPatch,
   buildImportedCharacter,
   buildNewCharacter,
   buildSeedKnight,
@@ -13,6 +14,7 @@ import {
   getAccountCharacterSlots,
   importCharacterToSlot,
   parseSlotIndex,
+  syncCharacterInSlot,
 } from './core.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -469,6 +471,10 @@ export class InMemoryRealmRepository {
   async deleteCharacter(account, slot, confirmName) {
     return deleteCharacterInSlot(account.key, slot, confirmName);
   }
+
+  async syncCharacter(account, slot, patch) {
+    return syncCharacterInSlot(account.key, slot, patch);
+  }
 }
 
 const SCHEMA_SQL_PATH = join(__dirname, 'schema.sql');
@@ -514,14 +520,22 @@ export class NeonRealmRepository extends InMemoryRealmRepository {
   }
 
   // 第一次查詢前確認資料表存在；缺 character_slots（最後加入的表）就整份套用 schema.sql（全是 IF NOT EXISTS）
+  // 同時清除早期自動塞入的第 1 槽 Lv.12 預設測試騎士（血盟固定為「說話之島守衛隊」）
   ensureSchema() {
     if (!this.schemaReady) {
       this.schemaReady = (async () => {
         const rows = await this.sql`SELECT to_regclass('public.character_slots') AS t`;
-        if (rows[0]?.t) return;
-        for (const stmt of splitSchemaStatements(readFileSync(SCHEMA_SQL_PATH, 'utf8'))) {
-          await this.sql.query(stmt);
+        if (!rows[0]?.t) {
+          for (const stmt of splitSchemaStatements(readFileSync(SCHEMA_SQL_PATH, 'utf8'))) {
+            await this.sql.query(stmt);
+          }
         }
+        await this.sql`
+          DELETE FROM character_slots
+          WHERE slot = 1
+            AND data->>'pledge' = '說話之島守衛隊'
+            AND data->>'classId' = 'knight'
+        `;
       })().catch((err) => {
         this.schemaReady = null;
         throw err;
@@ -540,7 +554,6 @@ export class NeonRealmRepository extends InMemoryRealmRepository {
     `;
     if (!rows[0]) throw new Error('Username already exists');
     const account = toAccount(rows[0]);
-    await this.seedStarterKnight(account);
     return account;
   }
 
@@ -752,6 +765,27 @@ export class NeonRealmRepository extends InMemoryRealmRepository {
       return { ok: false, error: exists.length > 0 ? 'confirm_name_mismatch' : 'slot_empty' };
     }
     return { ok: true, slots: await this.getCharacterSlots(account) };
+  }
+
+  async syncCharacter(account, slot, patch) {
+    const slotIndex = parseSlotIndex(slot);
+    if (slotIndex < 0) return { ok: false, error: 'invalid_slot' };
+    await this.ensureSchema();
+    const existingRows = await this.sql`
+      SELECT data FROM character_slots WHERE account_id = ${account.id} AND slot = ${slotIndex + 1} LIMIT 1
+    `;
+    if (!existingRows[0]) return { ok: false, error: 'slot_empty' };
+    const existing =
+      typeof existingRows[0].data === 'string'
+        ? JSON.parse(existingRows[0].data)
+        : existingRows[0].data;
+    const updated = applyCharacterSyncPatch({ ...existing, slot: slotIndex + 1 }, patch);
+    await this.sql`
+      UPDATE character_slots
+      SET data = ${JSON.stringify(updated)}::jsonb
+      WHERE account_id = ${account.id} AND slot = ${slotIndex + 1}
+    `;
+    return { ok: true, character: updated, slots: await this.getCharacterSlots(account) };
   }
 }
 

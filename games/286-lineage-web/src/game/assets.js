@@ -1,5 +1,6 @@
 // 286 天堂實境客戶端：資源載入、.bin 整包 CacheStorage 快取、.json.gz 地圖區塊解壓與音效控制
 import { assetUrl } from '../app.js';
+import { zoneOfPlayer } from './world-maps.js';
 
 const ASSET_CACHE_NAME = 'lineage-286-assets-v1';
 const MANIFEST_TTL_MS = 5 * 60 * 1000;
@@ -154,7 +155,7 @@ export async function loadPackIndex() {
           const parsed = JSON.parse(new TextDecoder().decode(buf));
           const built = buildManifestIndex(parsed);
           if (built) {
-            void writeCacheBytes('manifest', 'art-assets.json', buf, 'application/json', 'public, max-age=300');
+            await writeCacheBytes('manifest', 'art-assets.json', buf, 'application/json', 'public, max-age=300');
             return built;
           }
         }
@@ -229,6 +230,18 @@ async function decompressGzipBytes(bytes) {
   if (typeof DecompressionStream !== 'function') return null;
   const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
   return new Response(stream).text();
+}
+
+/**
+ * 將內嵌於世界資料的 base64 gzip JSON 字串還原為物件，維持世界檔輕量且可離線載入。
+ */
+export async function decompressGzipJsonBase64(b64) {
+  if (!b64) return null;
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+  const text = await decompressGzipBytes(bytes);
+  return text ? JSON.parse(text) : null;
 }
 
 /**
@@ -565,15 +578,9 @@ const TRACK_BGM_VOLUME = {
 /** 進遊戲就先載入的常用音效（拾取、喝水、裝備、揮擊、升級） */
 const PRELOAD_SFX = [103, 104, 105, 246, 247, 248, 249, '/level-up-v1/517.wav'];
 
-/** 與 HUD 的安全區判定一致：甘特之家整張圖，以及說話之島村莊範圍 */
-export function zoneOf(player) {
-  if (!player) return 'field';
-  if (player.map === 1 || player.map === 2) return 'dungeon';
-  if (player.map === 3) return 'town';
-  if (player.map === 0 && player.tx >= 32550 && player.tx <= 32615 && player.ty >= 32915 && player.ty <= 32975) {
-    return 'town';
-  }
-  return 'field';
+/** 與 HUD 的安全區判定一致：全 64 張地圖（城鎮、旅館、內城與甘特之屋均視為安全／城鎮區） */
+export function zoneOf(player, isoMap = null) {
+  return zoneOfPlayer(player, isoMap);
 }
 
 let animSoundsPromise = null;
@@ -686,7 +693,7 @@ export class GameAudioManager {
 
   /** 目前區域該放的曲目（engine 開場與點擊恢復播放時用） */
   bgmFor(world) {
-    return ZONE_BGM[zoneOf(world?.player)] || ZONE_BGM.field;
+    return ZONE_BGM[zoneOf(world?.player, world?.isoMap)] || ZONE_BGM.field;
   }
 
   #targetBgmVolume(relPath = this.currentBgm) {
@@ -998,7 +1005,7 @@ export class GameAudioManager {
     const p = world?.player;
     if (!p) return;
 
-    const zone = zoneOf(p);
+    const zone = zoneOf(p, world?.isoMap);
     if (zone !== this.zoneCandidate) {
       this.zoneCandidate = zone;
       this.zoneSince = now;

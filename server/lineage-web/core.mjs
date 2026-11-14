@@ -674,10 +674,8 @@ function getSlotsMap() {
   return globalStore.__realmCharacterSlots;
 }
 
-function createInitialSlots(accountKey) {
-  const slots = Array.from({ length: 8 }, () => null);
-  slots[0] = buildSeedKnight(accountKey);
-  return slots;
+function createInitialSlots() {
+  return Array.from({ length: 8 }, () => null);
 }
 
 /** 新帳號送的 Lv.12 騎士（第 1 槽）。name 可覆寫，給資料庫模式在撞名時改名。 */
@@ -877,13 +875,19 @@ export function importCharacterToSlot(accountKey, slot, rawSave) {
     return { ok: false, error: 'slot_occupied' };
   }
 
-  const imported = buildImportedCharacter(slotIndex, rawSave);
+  const imported = buildImportedCharacter(slotIndex, rawSave ?? {});
+  for (const [, existingSlots] of map.entries()) {
+    if (existingSlots.some((c) => c && c.name.toLowerCase() === imported.name.toLowerCase())) {
+      return { ok: false, error: 'name_taken' };
+    }
+  }
   slots[slotIndex] = imported;
   return { ok: true, character: { ...imported }, slots: getAccountCharacterSlots(key) };
 }
 
 /** 由匯入的存檔產生角色資料（不檢查槽位與名字）。 */
-export function buildImportedCharacter(slotIndex, rawSave) {
+export function buildImportedCharacter(slotIndex, rawSave = {}) {
+  const ws = rawSave.worldSave && typeof rawSave.worldSave === 'object' ? rawSave.worldSave : null;
   const classId =
     rawSave.classId && CHARACTER_CLASSES[rawSave.classId] ? rawSave.classId : 'knight';
   const classDef = CHARACTER_CLASSES[classId];
@@ -891,6 +895,44 @@ export function buildImportedCharacter(slotIndex, rawSave) {
     typeof rawSave.name === 'string' && rawSave.name.trim().length >= 2
       ? rawSave.name.trim().slice(0, 12)
       : `匯入${classDef.name}${slotIndex + 1}`;
+  const rawStats = rawSave.stats || ws?.stats || null;
+  const stats = rawStats
+    ? {
+        str: Number(rawStats.str ?? classDef.baseStats.str),
+        dex: Number(rawStats.dex ?? classDef.baseStats.dex),
+        con: Number(rawStats.con ?? classDef.baseStats.con),
+        wis: Number(rawStats.wis ?? classDef.baseStats.wis),
+        cha: Number(rawStats.cha ?? classDef.baseStats.cha),
+        int: Number(rawStats.int ?? classDef.baseStats.int),
+      }
+    : { ...classDef.baseStats };
+  const rawLv = Number(rawSave.level ?? ws?.level ?? 1);
+  const level = Number.isFinite(rawLv) && rawLv >= 1 ? Math.min(99, Math.floor(rawLv)) : 1;
+  const defaultMaxHp = classDef.baseHp + Math.max(0, stats.con - 10) * 2 + (level - 1) * 12;
+  const defaultMaxMp = classDef.baseMp + Math.max(0, stats.wis - 10) + (level - 1) * 3;
+  const maxHp = Math.max(1, Math.floor(Number(rawSave.maxHp ?? ws?.maxHp ?? defaultMaxHp)));
+  const hp = Math.max(1, Math.min(maxHp, Math.floor(Number(rawSave.hp ?? ws?.hp ?? maxHp))));
+  const maxMp = Math.max(0, Math.floor(Number(rawSave.maxMp ?? ws?.maxMp ?? defaultMaxMp)));
+  const mp = Math.max(0, Math.min(maxMp, Math.floor(Number(rawSave.mp ?? ws?.mp ?? maxMp))));
+  const ac = Number.isFinite(Number(rawSave.ac ?? ws?.ac))
+    ? Math.floor(Number(rawSave.ac ?? ws?.ac))
+    : 10 - Math.floor(stats.dex / 4);
+  const adena = Math.max(
+    0,
+    Math.floor(Number(rawSave.adena ?? rawSave.gold ?? ws?.gold ?? classDef.startingAdena)),
+  );
+  const alignment = Math.floor(Number(rawSave.alignment ?? rawSave.lawful ?? ws?.lawful ?? 0));
+  const alignmentLabel =
+    alignment >= 500
+      ? '守序 (Lawful)'
+      : alignment < 0
+        ? '邪惡 (Chaotic)'
+        : '中立 (Neutral)';
+  const pledge =
+    typeof (rawSave.pledge ?? rawSave.clanName ?? ws?.clanName) === 'string' &&
+    String(rawSave.pledge ?? rawSave.clanName ?? ws?.clanName).trim()
+      ? String(rawSave.pledge ?? rawSave.clanName ?? ws?.clanName).trim().slice(0, 24)
+      : '無血盟';
 
   return {
     slot: slotIndex + 1,
@@ -898,34 +940,112 @@ export function buildImportedCharacter(slotIndex, rawSave) {
     classId: classDef.id,
     className: classDef.name,
     gender: rawSave.gender === 'f' ? 'f' : 'm',
-    level:
-      typeof rawSave.level === 'number' && rawSave.level >= 1
-        ? Math.min(99, Math.floor(rawSave.level))
-        : 15,
-    alignment: 5000,
-    alignmentLabel: '守序 (Lawful)',
-    pledge: '說語之島遠征軍',
+    level,
+    exp: Math.max(0, Math.floor(Number(rawSave.exp ?? ws?.exp ?? 0))),
+    alignment,
+    alignmentLabel,
+    pledge,
     classicMode: Boolean(rawSave.classicMode ?? true),
-    stats: rawSave.stats
-      ? {
-          str: Number(rawSave.stats.str ?? classDef.baseStats.str),
-          dex: Number(rawSave.stats.dex ?? classDef.baseStats.dex),
-          con: Number(rawSave.stats.con ?? classDef.baseStats.con),
-          wis: Number(rawSave.stats.wis ?? classDef.baseStats.wis),
-          cha: Number(rawSave.stats.cha ?? classDef.baseStats.cha),
-          int: Number(rawSave.stats.int ?? classDef.baseStats.int),
-        }
-      : { ...classDef.baseStats },
-    hp: 210,
-    maxHp: 210,
-    mp: 45,
-    maxMp: 45,
-    ac: -8,
-    adena: 25000,
-    eggs: 300,
-    inventory: [...classDef.startingWeapons, ...classDef.startingItems],
-    createdAt: new Date().toISOString(),
+    stats,
+    hp,
+    maxHp,
+    mp,
+    maxMp,
+    ac,
+    adena,
+    eggs: Math.max(0, Math.floor(Number(rawSave.eggs ?? 100))),
+    inventory: Array.isArray(rawSave.inventory)
+      ? rawSave.inventory
+      : [...classDef.startingWeapons, ...classDef.startingItems],
+    worldSave: ws || null,
+    createdAt:
+      typeof rawSave.createdAt === 'string' && rawSave.createdAt
+        ? rawSave.createdAt
+        : new Date().toISOString(),
   };
+}
+
+/** 將遊戲進行中的角色狀態（等級、經驗、HP/MP、AC、金幣、血盟、worldSave）合併回角色槽。 */
+export function applyCharacterSyncPatch(existing, patch = {}) {
+  if (!existing || typeof existing !== 'object') return null;
+  if (!patch || typeof patch !== 'object') return { ...existing };
+  const next = { ...existing };
+  if (Number.isFinite(Number(patch.level)) && Number(patch.level) >= 1) {
+    next.level = Math.min(99, Math.floor(Number(patch.level)));
+  }
+  if (Number.isFinite(Number(patch.exp)) && Number(patch.exp) >= 0) {
+    next.exp = Math.floor(Number(patch.exp));
+  }
+  if (Number.isFinite(Number(patch.maxHp)) && Number(patch.maxHp) >= 1) {
+    next.maxHp = Math.floor(Number(patch.maxHp));
+  }
+  if (Number.isFinite(Number(patch.hp)) && Number(patch.hp) >= 0) {
+    next.hp = Math.min(next.maxHp || 9999, Math.max(1, Math.floor(Number(patch.hp))));
+  }
+  if (Number.isFinite(Number(patch.maxMp)) && Number(patch.maxMp) >= 0) {
+    next.maxMp = Math.floor(Number(patch.maxMp));
+  }
+  if (Number.isFinite(Number(patch.mp)) && Number(patch.mp) >= 0) {
+    next.mp = Math.min(next.maxMp ?? 9999, Math.max(0, Math.floor(Number(patch.mp))));
+  }
+  if (Number.isFinite(Number(patch.ac))) {
+    next.ac = Math.floor(Number(patch.ac));
+  }
+  const nextGold = patch.gold ?? patch.adena;
+  if (Number.isFinite(Number(nextGold)) && Number(nextGold) >= 0) {
+    next.adena = Math.floor(Number(nextGold));
+    next.gold = next.adena;
+  }
+  const nextAlign = patch.lawful ?? patch.alignment;
+  if (Number.isFinite(Number(nextAlign))) {
+    next.alignment = Math.floor(Number(nextAlign));
+    next.alignmentLabel =
+      next.alignment >= 500
+        ? '守序 (Lawful)'
+        : next.alignment < 0
+          ? '邪惡 (Chaotic)'
+          : '中立 (Neutral)';
+  }
+  const nextClan = patch.clanName ?? patch.pledge;
+  if (typeof nextClan === 'string') {
+    const trimmedClan = nextClan.trim().slice(0, 24);
+    next.pledge = trimmedClan || '無血盟';
+  }
+  if (patch.stats && typeof patch.stats === 'object') {
+    next.stats = {
+      str: Number(patch.stats.str ?? next.stats?.str ?? 10),
+      dex: Number(patch.stats.dex ?? next.stats?.dex ?? 10),
+      con: Number(patch.stats.con ?? next.stats?.con ?? 10),
+      wis: Number(patch.stats.wis ?? next.stats?.wis ?? 10),
+      cha: Number(patch.stats.cha ?? next.stats?.cha ?? 10),
+      int: Number(patch.stats.int ?? next.stats?.int ?? 10),
+    };
+  }
+  if (patch.worldSave && typeof patch.worldSave === 'object') {
+    next.worldSave = patch.worldSave;
+  }
+  next.updatedAt = new Date().toISOString();
+  return next;
+}
+
+export function syncCharacterInSlot(accountKey, slot, patch) {
+  const key = (accountKey || 'guest').trim().toLowerCase();
+  const map = getSlotsMap();
+  if (!map.has(key)) {
+    map.set(key, createInitialSlots(key));
+  }
+  const slots = map.get(key);
+  const slotIndex = parseSlotIndex(slot);
+  if (slotIndex < 0) {
+    return { ok: false, error: 'invalid_slot' };
+  }
+  const existing = slots[slotIndex];
+  if (!existing) {
+    return { ok: false, error: 'slot_empty' };
+  }
+  const updated = applyCharacterSyncPatch(existing, patch);
+  slots[slotIndex] = updated;
+  return { ok: true, character: { ...updated }, slots: getAccountCharacterSlots(key) };
 }
 
 export function resetRealmGameStore() {

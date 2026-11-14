@@ -295,18 +295,16 @@ try {
   await page.waitForTimeout(150);
 
   // (a) 驗證 4:3 登入舞台與動畫影格載入
-  await page.waitForFunction(
+  const loginImgHandle = await page.waitForFunction(
     () => {
+      const bg = document.getElementById('login-bg-image');
       const img = document.getElementById('login-anim-image');
-      return Boolean(img && img.complete && img.naturalWidth > 0);
+      return Boolean(bg && bg.complete && bg.naturalWidth > 0 && img && img.complete && img.naturalWidth > 0);
     },
     null,
     { timeout: 6000 }
   );
-  const loginImgOk = await page.evaluate(() => {
-    const img = document.getElementById('login-anim-image');
-    return Boolean(img && img.complete && img.naturalWidth > 0);
-  });
+  const loginImgOk = await loginImgHandle.jsonValue();
   assert(loginImgOk, 'Login animation frame image should load with naturalWidth > 0');
 
   await page.fill('#login-username', 'adventurer01');
@@ -316,6 +314,18 @@ try {
 
   let st = await page.evaluate(() => window.__lineage.getState());
   assert(st.stage === 'select', `Expected stage 'select' after login, got '${st.stage}'`);
+  assert(
+    st.charactersCount === 0,
+    `Newly registered account must have 0 characters (no default test character), got ${st.charactersCount}`
+  );
+
+  // 先在 slot 2 塞入一筆舊角色殘留的 Lv.12 localStorage 存檔，驗證創角後不會誤讀舊存檔而變成非 Lv.1
+  await page.evaluate(() => {
+    localStorage.setItem(
+      'll286:adventurer01:world_slot_2',
+      JSON.stringify({ charName: '殘留測試角色', level: 12, exp: 32000, hp: 168, maxHp: 168 })
+    );
+  });
 
   // (b) 選取空槽位 (Slot 2) 進入 8 職業創角畫面
   await page.click('[data-slot="2"]');
@@ -342,7 +352,9 @@ try {
 
   st = await page.evaluate(() => window.__lineage.getState());
   assert(st.stage === 'select', `Expected stage 'select' after character creation, got '${st.stage}'`);
-  assert(st.charactersCount >= 2, `Expected at least 2 characters after creation, got ${st.charactersCount}`);
+  assert(st.charactersCount === 1, `Expected 1 character after creation, got ${st.charactersCount}`);
+  const selectLvText = await page.textContent('#load-info-lv');
+  assert(selectLvText?.trim() === '1', `Newly created character in select screen must be Lv.1, got '${selectLvText}'`);
 
   // (c) 進入說話之島：原生 1.63 等距天堂實境客戶端，角色與倉庫存檔隔離在 ll286:<user>: 前綴下
   await page.evaluate(() => localStorage.setItem('lineage_idle_save_2', 'USER-OWN-284-SAVE'));
@@ -392,6 +404,10 @@ try {
     };
   }, enterSlot);
   assert(inGame.visible, 'Native isometric game root and canvas should be visible');
+  assert(
+    inGame.snap.level === 1,
+    `Newly created character entering game must start at Lv.1, got Lv.${inGame.snap.level}`
+  );
   assert(inGame.nonDarkPixels > 200, `Canvas appears blank near center (${inGame.nonDarkPixels} lit pixels)`);
   assert(inGame.snap.npcsCount > 5, `Expected village NPCs on Talking Island, got ${inGame.snap.npcsCount}`);
   assert(inGame.snap.mobsCount > 10, `Expected Talking Island monsters, got ${inGame.snap.mobsCount}`);
@@ -531,13 +547,21 @@ try {
   st = await page.evaluate(() => window.__lineage.getState());
   assert(st.gameFrame.mode === 'load', `Re-entry should load the 286 world save, got ${st.gameFrame.mode}`);
 
-  // 重新整理頁面、重新登入後，同一角色的遊戲進度要還在（不可被重建成新角色）。
+  // 驗證匯入角色至 Slot 1，並測試重新整理頁面、重新登入後同一角色的遊戲進度完整保留（不可被重建成新角色）。
   await page.click('[data-win="system"]');
   await page.waitForTimeout(120);
   await page.click('[data-sys-act="lobby"]');
   await page.waitForTimeout(300);
   await page.click('[data-slot="1"]');
   await page.waitForTimeout(80);
+  await page.click('#load-btn-import');
+  await page.waitForTimeout(80);
+  await page.fill(
+    '#import-json-textarea',
+    JSON.stringify({ name: '遠征騎士', classId: 'knight', level: 12, adena: 12500 })
+  );
+  await page.click('#modal-confirm-import-btn');
+  await page.waitForTimeout(200);
   await page.click('#load-btn-enter');
   await page.waitForFunction(() => window.__lineage.getState().gameFrame?.status === 'ready', null, {
     timeout: 30000,
@@ -1024,6 +1048,116 @@ try {
     `Battle BGM switch/volume normalization failed: ${JSON.stringify(bgmCheck)}`
   );
 
+  // 驗證全 64 張地圖接通（世界地圖跨大陸傳送、古魯丁安全區、奇岩地監隨機刷怪、回卷最近城鎮、禁瞬移地圖、風木 2F 穿牆修正）
+  const worldMapInit = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    w.player.gold += 5000;
+    eng.hud.closeModal();
+    eng.hud.toggleModal('map');
+    return {
+      mapCount: Array.isArray(w.worldData.mapIds) ? w.worldData.mapIds.length : 0,
+      collisionCount: Object.keys(w.worldData.collision || {}).length,
+      dialogueCount: Object.keys(w.worldData.dialogues || {}).length,
+      warpBtns: document.querySelectorAll('[data-world-warp]').length,
+      hasGludinBtn: Boolean(document.querySelector('[data-world-warp="3"]')),
+    };
+  });
+  assert(
+    worldMapInit.mapCount === 64 &&
+      worldMapInit.collisionCount >= 677 &&
+      worldMapInit.dialogueCount >= 900 &&
+      worldMapInit.warpBtns >= 15 &&
+      worldMapInit.hasGludinBtn,
+    `Full 64-map world data or World Map modal check failed: ${JSON.stringify(worldMapInit)}`
+  );
+  await page.click('[data-world-warp="3"]'); // 前往亞丁大陸 古魯丁城鎮 (map 4)
+  await page.waitForTimeout(350);
+
+  const mainlandRes = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const mapBadge = document.querySelector('[data-role="map-name"]')?.textContent || '';
+    const zoneBadge = document.querySelector('[data-role="zone-badge"]')?.textContent || '';
+    const steve = w.npcs.find((n) => n.name === '史提夫') || w.npcs.find((n) => n.type === 'Teleport');
+    if (steve) eng.hud.openNpc(steve);
+    const tpCount = document.querySelectorAll('[data-tp-idx]').length;
+    eng.hud.closeModal();
+
+    // 在奇岩城附近使用回卷應返回奇岩城而非說話之島
+    w.teleportTo(4, 33380, 32790, 4);
+    w.addItemToInventory('傳送回家的卷軸', 1);
+    const homeScroll = w.player.inventory.find((i) => i.name === '傳送回家的卷軸');
+    const recallRes = homeScroll ? w.useItem(homeScroll.id) : null;
+    const afterRecall = { map: w.player.map, tx: w.player.tx, ty: w.player.ty, ok: recallRes?.ok };
+
+    // 奇岩地監 1樓 (map 53)：原檔 spawns 為隨機 (0,0)，應自動落於可行走格且不為 (0,0)
+    w.teleportTo(53, 32808, 32732, 4);
+    const giranDgMobs = w.mobs.filter((m) => m.hp > 0);
+    const giranDgNonZero = giranDgMobs.filter((m) => m.tx !== 0 || m.ty !== 0).length;
+
+    // 冒險洞窟 2樓 (map 2) 規則 tele=false：使用瞬間移動的卷軸應被阻擋且座標不變
+    w.teleportTo(2, 32662, 32874, 4);
+    const beforeBlockedTp = { tx: w.player.tx, ty: w.player.ty };
+    w.addItemToInventory('瞬間移動的卷軸', 1);
+    const tpScroll = w.player.inventory.find((i) => i.name === '瞬間移動的卷軸');
+    const blockedTpRes = tpScroll ? w.useItem(tpScroll.id) : null;
+    const afterBlockedTp = {
+      map: w.player.map,
+      tx: w.player.tx,
+      ty: w.player.ty,
+      blockedOk: blockedTpRes?.ok === false,
+    };
+
+    // 風木城地監 2樓 (map 24) 通道穿牆修正驗證
+    const patchV = w.isoMap.getCollisionBytes(32769, 32785, 24);
+    const patchH = w.isoMap.getCollisionBytes(32749, 32769, 24);
+
+    // 測完返回說話之島中央維持後續測試一致性
+    w.teleportTo(0, 32578, 32943, 4);
+    eng.hud.sync(true);
+
+    return {
+      mapBadge,
+      zoneBadge,
+      steveName: steve?.name || null,
+      tpCount,
+      afterRecall,
+      giranDgMobsCount: giranDgMobs.length,
+      giranDgNonZero,
+      beforeBlockedTp,
+      afterBlockedTp,
+      patchVOk: patchV ? (patchV[0] & 1) === 0 : false,
+      patchHOk: patchH ? (patchH[1] & 1) === 0 : false,
+    };
+  });
+  assert(
+    mainlandRes.mapBadge === '亞丁大陸' && mainlandRes.zoneBadge === '安全區域' && mainlandRes.tpCount >= 4,
+    `Mainland Gludin arrival or teleporter check failed: ${JSON.stringify(mainlandRes)}`
+  );
+  assert(
+    mainlandRes.afterRecall.ok === true &&
+      mainlandRes.afterRecall.map === 4 &&
+      Math.abs(mainlandRes.afterRecall.tx - 33437) < 20 &&
+      Math.abs(mainlandRes.afterRecall.ty - 32795) < 20,
+    `Home scroll near Giran should return to Giran instead of TI: ${JSON.stringify(mainlandRes.afterRecall)}`
+  );
+  assert(
+    mainlandRes.giranDgMobsCount > 0 && mainlandRes.giranDgNonZero === mainlandRes.giranDgMobsCount,
+    `Giran Dungeon 1F (map 53) random spawns failed: ${JSON.stringify(mainlandRes)}`
+  );
+  assert(
+    mainlandRes.afterBlockedTp.blockedOk === true &&
+      mainlandRes.afterBlockedTp.map === 2 &&
+      mainlandRes.afterBlockedTp.tx === mainlandRes.beforeBlockedTp.tx &&
+      mainlandRes.afterBlockedTp.ty === mainlandRes.beforeBlockedTp.ty,
+    `Map 2 (tele=false) should block teleport scroll: ${JSON.stringify(mainlandRes)}`
+  );
+  assert(
+    mainlandRes.patchVOk && mainlandRes.patchHOk,
+    `Map 24 doorway collision patch failed: ${JSON.stringify(mainlandRes)}`
+  );
+
   await page.evaluate(() => window.__lineage.pingWorld());
   await page.waitForTimeout(200);
   st = await page.evaluate(() => window.__lineage.getState());
@@ -1081,14 +1215,30 @@ try {
   await revisitPage.goto(pageUrl, { waitUntil: 'load' });
   await revisitPage.waitForFunction(() => window.__lineage && window.__lineage.ready === true, null, { timeout: 15000 });
   await revisitPage.evaluate(() => window.__lineage.navigate('/lobby'));
-  await revisitPage.waitForFunction(
-    () => {
-      const el = document.querySelector('[data-testid="sw-status-text"]');
-      return Boolean(el && el.textContent && el.textContent.includes('已快取') && !el.textContent.includes('0 /'));
-    },
-    null,
-    { timeout: 10000 }
-  );
+  try {
+    await revisitPage.waitForFunction(
+      () => {
+        const el = document.querySelector('[data-testid="sw-status-text"]');
+        return Boolean(el && el.textContent && el.textContent.includes('已快取') && !el.textContent.includes('已快取 0 /'));
+      },
+      null,
+      { timeout: 10000 }
+    );
+  } catch (err) {
+    const diag = await revisitPage.evaluate(async () => {
+      const c = await caches.open('lineage-286-assets-v1');
+      const keys = (await c.keys()).map((r) => r.url);
+      return {
+        swText: document.querySelector('[data-testid="sw-status-text"]')?.textContent || null,
+        route: window.__lineage?.getState?.()?.route,
+        stage: window.__lineage?.getState?.()?.stage,
+        assetSummary: window.__lineage?.getState?.()?.assetSummary,
+        cacheKeysCount: keys.length,
+        hasManifestKey: keys.some((u) => u.includes('art-assets.json')),
+      };
+    });
+    throw new Error(`revisit sw-status-text timeout: ${err.message} | diag=${JSON.stringify(diag)}`);
+  }
   await revisitPage.waitForFunction(() => Boolean(window.__lastMapChunkData), null, { timeout: 10000 });
   const revisitSwText = await revisitPage.textContent('[data-testid="sw-status-text"]');
   const revisitDuplicatePacks = revisitReqs.filter((u) => u.endsWith('/art-assets.json') || u.includes('/packs/'));

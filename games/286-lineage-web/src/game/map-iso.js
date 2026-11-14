@@ -84,6 +84,7 @@ export class LineageIsoMap {
     }
     this.renderedChunks = new Map(); // `${mapId}/${hex}` -> { status, groundCanvas, objects }
     this.passCache = new Map();
+    this.walkableTileCache = new Map();
   }
 
   hasChunk(mapId, hex) {
@@ -105,7 +106,46 @@ export class LineageIsoMap {
     const lx = ((tx % 64) + 64) % 64;
     const ly = ((ty % 64) + 64) % 64;
     const idx = ly * 128 + lx * 2;
-    return [buf[idx] || 0, buf[idx + 1] || 0];
+    let b0 = buf[idx] || 0;
+    let b1 = buf[idx + 1] || 0;
+    // 原版風木城地監 2 樓 (map 24) 通道穿牆修正
+    if (Number(mapId) === 24) {
+      if (tx === 32769 && (ty === 32785 || ty === 32786)) b0 &= ~1;
+      if ((tx === 32749 || tx === 32750 || tx === 32784 || tx === 32785) && ty === 32769) b1 &= ~1;
+    }
+    return [b0, b1];
+  }
+
+  /**
+   * 惰性掃描並快取指定地圖所有可行走格，供無固定座標的地監隨機刷怪與隨機傳送使用。
+   */
+  getWalkableTiles(mapId) {
+    const m = Number(mapId);
+    let cached = this.walkableTileCache.get(m);
+    if (cached) return cached;
+
+    cached = [];
+    const prefix = `${m}/`;
+    for (const key of Object.keys(this.rawCollision)) {
+      if (!key.startsWith(prefix)) continue;
+      const hex = key.slice(prefix.length);
+      if (hex.length !== 8) continue;
+      const cx = parseInt(hex.slice(0, 4), 16);
+      const cy = parseInt(hex.slice(4, 8), 16);
+      const baseX = (cx - MAP_ORIGIN_X) * CHUNK_TILES;
+      const baseY = (cy - MAP_ORIGIN_X) * CHUNK_TILES;
+      for (let ly = 0; ly < CHUNK_TILES; ly += 1) {
+        const ty = baseY + ly;
+        for (let lx = 0; lx < CHUNK_TILES; lx += 1) {
+          const tx = baseX + lx;
+          if (this.isWalkableTile(tx, ty, m)) {
+            cached.push({ x: tx, y: ty });
+          }
+        }
+      }
+    }
+    this.walkableTileCache.set(m, cached);
+    return cached;
   }
 
   canStepCardinal(tx, ty, dx, dy, mapId) {
@@ -140,6 +180,12 @@ export class LineageIsoMap {
       this.canStepCardinal(tx, ty, 0, 1, mapId) ||
       this.canStepCardinal(tx, ty, 0, -1, mapId)
     );
+  }
+
+  /** 回傳該座標的 Lineage 原始安全區旗標（collision bit 0x04） */
+  hasSafetyBit(tx, ty, mapId) {
+    const [b0, b1] = this.getCollisionBytes(tx, ty, mapId);
+    return (b0 & 4) !== 0 || (b1 & 4) !== 0;
   }
 
   /**
