@@ -611,10 +611,17 @@ async function fetchAudioBytes(relPath) {
   }
 }
 
+const AUDIO_PREFS_KEY = 'll286:audio_prefs_v1';
+
 export class GameAudioManager {
   constructor(assets) {
     this.assets = assets;
-    this.muted = false;
+    const savedPrefs = this.#loadAudioPrefs();
+    this.muted = Boolean(savedPrefs.muted);
+    this.sfxOn = savedPrefs.sfxOn !== false;
+    this.sfxVol = Number.isFinite(Number(savedPrefs.sfxVol)) ? Math.max(0, Math.min(100, Math.round(Number(savedPrefs.sfxVol)))) : 50;
+    this.bgmOn = savedPrefs.bgmOn !== false;
+    this.bgmVol = Number.isFinite(Number(savedPrefs.bgmVol)) ? Math.max(0, Math.min(100, Math.round(Number(savedPrefs.bgmVol)))) : 50;
     this.bgmAudio = null;
     this.currentBgm = '';
     this.bgmVolume = 0.24;
@@ -654,6 +661,50 @@ export class GameAudioManager {
     for (const snd of PRELOAD_SFX) void this.loadBuffer(this.soundPath(snd));
   }
 
+  #loadAudioPrefs() {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(AUDIO_PREFS_KEY) : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch {
+      // 忽略
+    }
+    return { sfxOn: true, sfxVol: 50, bgmOn: true, bgmVol: 50, muted: false };
+  }
+
+  #saveAudioPrefs() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(
+          AUDIO_PREFS_KEY,
+          JSON.stringify({
+            sfxOn: this.sfxOn,
+            sfxVol: this.sfxVol,
+            bgmOn: this.bgmOn,
+            bgmVol: this.bgmVol,
+            muted: this.muted,
+          }),
+        );
+      }
+    } catch {
+      // 忽略
+    }
+  }
+
+  #isSfxActive() {
+    return !this.muted && this.sfxOn && this.sfxVol > 0;
+  }
+
+  #isBgmActive() {
+    return !this.muted && this.bgmOn && this.bgmVol > 0;
+  }
+
+  #targetSfxGain() {
+    return this.#isSfxActive() ? Math.max(0, Math.min(2, this.sfxVol / 50)) : 0;
+  }
+
   /** 第一次使用時建立 AudioContext；在使用者手勢內呼叫可解除瀏覽器的自動播放限制 */
   ensureContext() {
     if (!this.ctx) {
@@ -662,7 +713,7 @@ export class GameAudioManager {
       try {
         this.ctx = new Ctor();
         this.sfxBus = this.ctx.createGain();
-        this.sfxBus.gain.value = this.muted ? 0 : 1;
+        this.sfxBus.gain.value = this.#targetSfxGain();
         this.sfxBus.connect(this.ctx.destination);
       } catch {
         this.ctx = null;
@@ -673,22 +724,74 @@ export class GameAudioManager {
     return this.ctx;
   }
 
-  setMuted(muted) {
-    this.muted = Boolean(muted);
-    if (this.sfxBus) this.sfxBus.gain.value = this.muted ? 0 : 1;
+  #applyBgmMuteAndVolume(snapVolume = false) {
+    const active = this.#isBgmActive();
     for (const audio of this.bgmEls.values()) {
-      audio.muted = this.muted;
-      if (this.muted && audio._fadeTimer) {
-        clearInterval(audio._fadeTimer);
-        this.fadeTimers.delete(audio._fadeTimer);
-        audio._fadeTimer = null;
-        audio._fadingOut = false;
-        audio.pause();
+      audio.muted = !active;
+      if (!active) {
+        if (audio._fadeTimer) {
+          clearInterval(audio._fadeTimer);
+          this.fadeTimers.delete(audio._fadeTimer);
+          audio._fadeTimer = null;
+          audio._fadingOut = false;
+        }
+        audio.volume = 0;
+        if (!audio.paused) audio.pause();
       }
     }
-    if (!this.muted && this.bgmAudio && this.bgmAudio.paused && this.currentBgm) {
-      this.#playAudioExclusive(this.bgmAudio, this.currentBgm, this.bgmSeq);
+    if (active && this.bgmAudio) {
+      if (snapVolume && this.bgmAudio._fadeTimer) {
+        clearInterval(this.bgmAudio._fadeTimer);
+        this.fadeTimers.delete(this.bgmAudio._fadeTimer);
+        this.bgmAudio._fadeTimer = null;
+        this.bgmAudio._fadingOut = false;
+      }
+      if (!this.bgmAudio._fadeTimer) {
+        this.bgmAudio.volume = this.#targetBgmVolume(this.currentBgm);
+      }
+      if (this.bgmAudio.paused && this.currentBgm) {
+        this.#playAudioExclusive(this.bgmAudio, this.currentBgm, this.bgmSeq);
+      }
     }
+  }
+
+  setSfxOn(on) {
+    this.sfxOn = Boolean(on);
+    if (this.sfxOn && this.muted) this.muted = false;
+    if (this.sfxBus) this.sfxBus.gain.value = this.#targetSfxGain();
+    this.#saveAudioPrefs();
+    if (this.#isSfxActive()) {
+      this.ensureContext();
+      this.playSound(104, 0.25);
+    }
+  }
+
+  setSfxVol(val) {
+    const v = Math.max(0, Math.min(100, Math.round(Number(val) || 0)));
+    this.sfxVol = v;
+    if (this.sfxBus) this.sfxBus.gain.value = this.#targetSfxGain();
+    this.#saveAudioPrefs();
+  }
+
+  setBgmOn(on) {
+    this.bgmOn = Boolean(on);
+    if (this.bgmOn && this.muted) this.muted = false;
+    this.#saveAudioPrefs();
+    this.#applyBgmMuteAndVolume(true);
+  }
+
+  setBgmVol(val) {
+    const v = Math.max(0, Math.min(100, Math.round(Number(val) || 0)));
+    this.bgmVol = v;
+    this.#saveAudioPrefs();
+    this.#applyBgmMuteAndVolume(true);
+  }
+
+  setMuted(muted) {
+    this.muted = Boolean(muted);
+    if (this.sfxBus) this.sfxBus.gain.value = this.#targetSfxGain();
+    this.#saveAudioPrefs();
+    this.#applyBgmMuteAndVolume(true);
   }
 
   /** 目前區域該放的曲目（engine 開場與點擊恢復播放時用） */
@@ -698,7 +801,8 @@ export class GameAudioManager {
 
   #targetBgmVolume(relPath = this.currentBgm) {
     const base = TRACK_BGM_VOLUME[relPath] ?? this.bgmVolume;
-    return Math.max(0, Math.min(1, base * this.duckGain));
+    const scale = this.#isBgmActive() ? this.bgmVol / 50 : 0;
+    return Math.max(0, Math.min(1, base * scale * this.duckGain));
   }
 
   #stopAllBgmExcept(keepPath = null) {
@@ -719,12 +823,12 @@ export class GameAudioManager {
   }
 
   #playAudioExclusive(audio, relPath, seq) {
-    if (this.muted || this.currentBgm !== relPath || this.bgmSeq !== seq) return;
+    if (!this.#isBgmActive() || this.currentBgm !== relPath || this.bgmSeq !== seq) return;
     this.#stopAllBgmExcept(relPath);
     const pr = audio.play();
     if (pr && typeof pr.then === 'function') {
       pr.then(() => {
-        if (this.muted || this.currentBgm !== relPath || this.bgmSeq !== seq) {
+        if (!this.#isBgmActive() || this.currentBgm !== relPath || this.bgmSeq !== seq) {
           audio.pause();
         }
       }).catch(() => {});
@@ -732,7 +836,7 @@ export class GameAudioManager {
   }
 
   #duckBgm() {
-    if (this.muted || !this.bgmAudio) return;
+    if (!this.#isBgmActive() || !this.bgmAudio) return;
     this.duckGain = 0.65;
     if (!this.bgmAudio._fadeTimer) {
       this.bgmAudio.volume = this.#targetBgmVolume(this.currentBgm);
@@ -777,7 +881,7 @@ export class GameAudioManager {
 
   unlock(world) {
     this.ensureContext();
-    if (this.muted) return;
+    if (!this.#isBgmActive()) return;
     const want = this.desiredBgm(world);
     if (!this.currentBgm || this.currentBgm !== want) {
       this.playBgm(want);
@@ -788,9 +892,10 @@ export class GameAudioManager {
 
   playBgm(relPath = ZONE_BGM.field, { fadeMs = 0, restart = false } = {}) {
     this.ensureContext();
+    const bgmActive = this.#isBgmActive();
     if (this.currentBgm === relPath && this.bgmAudio && !this.bgmAudio._fadingOut) {
       this.#stopAllBgmExcept(relPath);
-      if (!this.muted && this.bgmAudio.paused) {
+      if (bgmActive && this.bgmAudio.paused) {
         this.#playAudioExclusive(this.bgmAudio, relPath, this.bgmSeq);
       }
       return;
@@ -800,7 +905,7 @@ export class GameAudioManager {
     const seq = this.bgmSeq;
     const old = this.bgmAudio;
     const oldKey = old ? [...this.bgmEls.entries()].find(([, el]) => el === old)?.[0] || null : null;
-    this.#stopAllBgmExcept(old && fadeMs > 0 && !old.paused && !this.muted ? oldKey : null);
+    this.#stopAllBgmExcept(old && fadeMs > 0 && !old.paused && bgmActive ? oldKey : null);
     this.currentBgm = relPath;
 
     const startNext = () => {
@@ -826,12 +931,12 @@ export class GameAudioManager {
             // 尚未載入時無法設定，略過
           }
         }
-        audio.muted = this.muted;
+        audio.muted = !this.#isBgmActive();
         const targetFn = () => this.#targetBgmVolume(relPath);
         audio.volume = fadeMs > 0 ? 0 : targetFn();
         this.bgmAudio = audio;
         this.#playAudioExclusive(audio, relPath, seq);
-        if (fadeMs > 0 && !this.muted) {
+        if (fadeMs > 0 && this.#isBgmActive()) {
           this.#fade(audio, 0, targetFn, fadeMs);
         }
       } catch {
@@ -839,7 +944,7 @@ export class GameAudioManager {
       }
     };
 
-    if (old && old !== this.bgmEls.get(relPath) && fadeMs > 0 && !old.paused && !this.muted) {
+    if (old && old !== this.bgmEls.get(relPath) && fadeMs > 0 && !old.paused && bgmActive) {
       old._fadingOut = true;
       const outMs = Math.min(280, Math.max(120, Math.round(fadeMs * 0.35)));
       this.#fade(old, old.volume, 0, outMs, () => {
@@ -910,7 +1015,7 @@ export class GameAudioManager {
   }
 
   playSound(idOrPath, volume = 0.38) {
-    if (this.muted || !idOrPath) return;
+    if (!this.#isSfxActive() || !idOrPath) return;
     const relPath = this.soundPath(idOrPath);
     if (!relPath) return;
     const now = performance.now();
@@ -920,7 +1025,7 @@ export class GameAudioManager {
     if (!ctx) return;
     this.loadBuffer(relPath).then((buf) => {
       // 第一次要從分包取檔：超過 0.5 秒才到就不補放，免得音效和畫面脫節
-      if (!buf || this.muted || performance.now() - now > 500 || this.activeVoices >= 10) {
+      if (!buf || !this.#isSfxActive() || performance.now() - now > 500 || this.activeVoices >= 10) {
         if (buf) this.stats.dropped += 1;
         return;
       }

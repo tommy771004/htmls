@@ -71,6 +71,64 @@ export const HEADING_DELTAS = [
   [-1, -1],
 ];
 
+const OBSTACLE_LABELS = {
+  building: '建築物',
+  fence: '圍牆／柵欄',
+  scenery: '樹石障礙物',
+  wall: '牆壁／地形邊界',
+  portal: '傳送點',
+  safety: '安全區邊界',
+  npc: 'NPC',
+  void: '地圖邊界',
+  unreachable: '無法到達',
+};
+
+/** 輕量二元最小堆，加速大範圍 A* 繞牆尋路 */
+class MinHeap {
+  constructor() {
+    this.items = [];
+  }
+  get length() {
+    return this.items.length;
+  }
+  push(node) {
+    const a = this.items;
+    a.push(node);
+    let i = a.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (a[p].f <= a[i].f) break;
+      const tmp = a[p];
+      a[p] = a[i];
+      a[i] = tmp;
+      i = p;
+    }
+  }
+  pop() {
+    const a = this.items;
+    const top = a[0];
+    const last = a.pop();
+    if (a.length > 0) {
+      a[0] = last;
+      let i = 0;
+      const n = a.length;
+      while (true) {
+        let smallest = i;
+        const l = (i << 1) + 1;
+        const r = l + 1;
+        if (l < n && a[l].f < a[smallest].f) smallest = l;
+        if (r < n && a[r].f < a[smallest].f) smallest = r;
+        if (smallest === i) break;
+        const tmp = a[i];
+        a[i] = a[smallest];
+        a[smallest] = tmp;
+        i = smallest;
+      }
+    }
+    return top;
+  }
+}
+
 export class LineageIsoMap {
   constructor(worldData, assets) {
     this.worldData = worldData;
@@ -83,8 +141,10 @@ export class LineageIsoMap {
       this.retainedSetByMap.set(Number(mId), new Set(list.map((row) => row[0])));
     }
     this.renderedChunks = new Map(); // `${mapId}/${hex}` -> { status, groundCanvas, objects }
+    this.chunkObjectMeta = new Map(); // `${mapId}/${hex}` -> { baseTiles: Map<"tx,ty", category> }
     this.passCache = new Map();
     this.walkableTileCache = new Map();
+    this.blockedNeighborCache = new Map();
   }
 
   hasChunk(mapId, hex) {
@@ -190,13 +250,180 @@ export class LineageIsoMap {
   }
 
   /**
-   * 尋路至目標格（或若目標被阻擋則自動找最近可走鄰格），使用帶啟發式的 A* 搜尋。
+   * 查詢指定地磚是否為建築物／圍牆／景物之地面佔位底層（排除屋頂懸挑）。
    */
-  findPath(sx, sy, gx, gy, mapId, blockedSet = null, maxNodes = 900) {
-    if (sx === gx && sy === gy) return [];
+  getStructureCategoryAt(tx, ty, mapId) {
+    const hex = chunkHexKey(tx, ty);
+    const meta = this.chunkObjectMeta.get(`${mapId}/${hex}`);
+    return meta?.baseTiles?.get(`${tx},${ty}`) || null;
+  }
+
+  /**
+   * 計算指定地磚周邊 8 格受牆壁或地形碰撞阻擋的鄰格數量（快取）。
+   */
+  countBlockedNeighbors(tx, ty, mapId) {
+    const key = `${mapId}:${tx},${ty}`;
+    const cached = this.blockedNeighborCache.get(key);
+    if (cached !== undefined) return cached;
+    let count = 0;
+    for (const [dx, dy] of HEADING_DELTAS) {
+      if (!this.canStep(tx, ty, dx, dy, mapId)) count += 1;
+    }
+    this.blockedNeighborCache.set(key, count);
+    return count;
+  }
+
+  /**
+   * 檢測單一地磚是否為靜態障礙物（牆壁、建築物、圍牆、景物、傳送點、安全區或 NPC；明確排除怪物）。
+   */
+  inspectTileObstacle(tx, ty, mapId, options = {}) {
+    const key = `${tx},${ty}`;
+    if (options.portalSet?.has(key)) {
+      return { blocked: true, kind: 'portal', label: OBSTACLE_LABELS.portal, tx, ty };
+    }
+    if (options.avoidSafety && this.hasSafetyBit(tx, ty, mapId)) {
+      return { blocked: true, kind: 'safety', label: OBSTACLE_LABELS.safety, tx, ty };
+    }
+    if (options.staticBlockedSet?.has(key)) {
+      return { blocked: true, kind: 'npc', label: OBSTACLE_LABELS.npc, tx, ty };
+    }
+    const bytes = this.getCollisionBytes(tx, ty, mapId);
+    if (!bytes) {
+      return { blocked: true, kind: 'void', label: OBSTACLE_LABELS.void, tx, ty };
+    }
+    if (!this.isWalkableTile(tx, ty, mapId)) {
+      const cat = this.getStructureCategoryAt(tx, ty, mapId);
+      const kind = cat && OBSTACLE_LABELS[cat] ? cat : 'wall';
+      return { blocked: true, kind, label: OBSTACLE_LABELS[kind], tx, ty };
+    }
+    return null;
+  }
+
+  /**
+   * 檢測由 (tx, ty) 往 (dx, dy) 移動一步時是否碰觸靜態障礙（明確排除怪物）。
+   */
+  inspectStepObstacle(tx, ty, dx, dy, mapId, options = {}) {
+    const nx = tx + dx;
+    const ny = ty + dy;
+    const tileObs = this.inspectTileObstacle(nx, ny, mapId, options);
+    if (tileObs) return tileObs;
+    if (!this.canStep(tx, ty, dx, dy, mapId)) {
+      const cat = this.getStructureCategoryAt(nx, ny, mapId) || this.getStructureCategoryAt(tx, ty, mapId);
+      const kind = cat && OBSTACLE_LABELS[cat] ? cat : 'wall';
+      return { blocked: true, kind, label: OBSTACLE_LABELS[kind], tx: nx, ty: ny };
+    }
+    return null;
+  }
+
+  /**
+   * 沿直線格追蹤尋找第一個靜態阻擋（牆壁／建築／圍牆／NPC／傳送點等，不將怪物視為障礙）。
+   */
+  #findLineBlocker(sx, sy, gx, gy, mapId, options = {}) {
+    if (sx === gx && sy === gy) return null;
+    let cx = sx;
+    let cy = sy;
+    const dx = Math.abs(gx - sx);
+    const dy = Math.abs(gy - sy);
+    const ix = Math.sign(gx - sx);
+    const iy = Math.sign(gy - sy);
+    let err = dx - dy;
+    const maxSteps = dx + dy + 6;
+    for (let s = 0; s < maxSteps; s += 1) {
+      if (cx === gx && cy === gy) return null;
+      let nx = cx;
+      let ny = cy;
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        nx += ix;
+      }
+      if (e2 < dx) {
+        err += dx;
+        ny += iy;
+      }
+      const stepDx = nx - cx;
+      const stepDy = ny - cy;
+      if (!this.canStep(cx, cy, stepDx, stepDy, mapId)) {
+        const obs = this.inspectStepObstacle(cx, cy, stepDx, stepDy, mapId, options);
+        return obs || { blocked: true, kind: 'wall', label: OBSTACLE_LABELS.wall, tx: nx, ty: ny };
+      }
+      if (nx !== gx || ny !== gy) {
+        const tileObs = this.inspectTileObstacle(nx, ny, mapId, options);
+        if (tileObs) return tileObs;
+      }
+      cx = nx;
+      cy = ny;
+    }
+    return null;
+  }
+
+  /**
+   * 判斷兩點之間是否存在靜態視線與無牆通道（檢查碰撞牆體／建築與靜態佔位，不將怪物視為障礙）。
+   */
+  hasStaticLineOfSight(sx, sy, gx, gy, mapId, options = {}) {
+    return !this.#findLineBlocker(sx, sy, gx, gy, mapId, options);
+  }
+
+  /**
+   * 沿既定路徑前瞻檢視未來數步是否將碰觸靜態障礙（牆壁、建築、圍牆、傳送點、NPC 等；不含怪物）。
+   */
+  detectObstacleAhead(tx, ty, path, mapId, lookahead = 4, options = {}) {
+    if (!path?.length) return null;
+    let cx = tx;
+    let cy = ty;
+    const limit = Math.min(path.length, lookahead);
+    for (let i = 0; i < limit; i += 1) {
+      const step = path[i];
+      const dx = step.x - cx;
+      const dy = step.y - cy;
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+        const tileObs = this.inspectTileObstacle(step.x, step.y, mapId, options);
+        if (tileObs) return { index: i, ...tileObs };
+      } else if (dx || dy) {
+        const obs = this.inspectStepObstacle(cx, cy, dx, dy, mapId, options);
+        if (obs) return { index: i, ...obs };
+      }
+      cx = step.x;
+      cy = step.y;
+    }
+    return null;
+  }
+
+  /**
+   * 細粒度 A* 尋路，使用 MinHeap 並回傳完整可達性、成本與靜態障礙歸因（不將怪物當作不可通行牆壁）。
+   */
+  findPathDetailed(sx, sy, gx, gy, mapId, options = {}) {
+    const {
+      blockedSet = null,
+      softBlockedSet = null,
+      softPenalty = 6,
+      wallMarginCost = 0,
+      goalRange = 0,
+      requireLos = false,
+      maxNodes = 2400,
+      allowPartial = true,
+      portalSet = null,
+      avoidSafety = false,
+    } = options;
+
+    const inspectOpts = { staticBlockedSet: blockedSet, portalSet, avoidSafety };
+    if (goalRange <= 0 && sx === gx && sy === gy) {
+      return { path: [], reached: true, partial: false, expanded: 0, cost: 0, reason: null, blocker: null };
+    }
+    if (
+      goalRange > 0 &&
+      tileDistance(sx, sy, gx, gy) <= goalRange &&
+      (!requireLos || this.hasStaticLineOfSight(sx, sy, gx, gy, mapId, { staticBlockedSet: blockedSet }))
+    ) {
+      return { path: [], reached: true, partial: false, expanded: 0, cost: 0, reason: null, blocker: null };
+    }
+
     let targetX = gx;
     let targetY = gy;
-    if (!this.isWalkableTile(targetX, targetY, mapId) || blockedSet?.has(`${targetX},${targetY}`)) {
+    let goalBlocker = null;
+
+    if (goalRange <= 0 && (!this.isWalkableTile(targetX, targetY, mapId) || blockedSet?.has(`${targetX},${targetY}`))) {
+      goalBlocker = this.inspectTileObstacle(targetX, targetY, mapId, inspectOpts);
       let best = null;
       let bestD = 1e9;
       for (let r = 1; r <= 3 && !best; r += 1) {
@@ -214,7 +441,10 @@ export class LineageIsoMap {
           }
         }
       }
-      if (!best) return [];
+      if (!best) {
+        const blocker = goalBlocker || { kind: 'unreachable', label: OBSTACLE_LABELS.unreachable, tx: gx, ty: gy };
+        return { path: [], reached: false, partial: false, expanded: 0, cost: 0, reason: blocker.kind, blocker };
+      }
       targetX = best.x;
       targetY = best.y;
     }
@@ -225,26 +455,52 @@ export class LineageIsoMap {
     const gScore = new Map([[startKey, 0]]);
     const parent = new Map();
     const closed = new Set();
-    const open = [{ x: sx, y: sy, key: startKey, f: tileDistance(sx, sy, targetX, targetY) }];
+    const open = new MinHeap();
+    const initH = Math.max(0, tileDistance(sx, sy, targetX, targetY) - goalRange);
+    open.push({ x: sx, y: sy, key: startKey, f: initH });
 
     let closestNode = { x: sx, y: sy, key: startKey, d: tileDistance(sx, sy, targetX, targetY) };
     let expanded = 0;
 
     while (open.length && expanded < maxNodes) {
-      let bestIdx = 0;
-      for (let i = 1; i < open.length; i += 1) {
-        if (open[i].f < open[bestIdx].f) bestIdx = i;
-      }
-      const cur = open.splice(bestIdx, 1)[0];
-      if (cur.key === goalKey) {
-        return this.#reconstructPath(parent, startKey, cur.key);
-      }
+      const cur = open.pop();
       if (closed.has(cur.key)) continue;
+
+      if (goalRange > 0) {
+        const curDist = tileDistance(cur.x, cur.y, gx, gy);
+        if (
+          curDist <= goalRange &&
+          cur.key !== goalKey &&
+          !blockedSet?.has(cur.key) &&
+          (!requireLos || this.hasStaticLineOfSight(cur.x, cur.y, gx, gy, mapId, { staticBlockedSet: blockedSet }))
+        ) {
+          return {
+            path: this.#reconstructPath(parent, startKey, cur.key),
+            reached: true,
+            partial: false,
+            expanded,
+            cost: gScore.get(cur.key) || 0,
+            reason: null,
+            blocker: null,
+          };
+        }
+      } else if (cur.key === goalKey) {
+        return {
+          path: this.#reconstructPath(parent, startKey, cur.key),
+          reached: true,
+          partial: false,
+          expanded,
+          cost: gScore.get(cur.key) || 0,
+          reason: null,
+          blocker: null,
+        };
+      }
+
       closed.add(cur.key);
       expanded += 1;
 
       const curD = tileDistance(cur.x, cur.y, targetX, targetY);
-      if (curD < closestNode.d) closestNode = { ...cur, d: curD };
+      if (curD < closestNode.d) closestNode = { x: cur.x, y: cur.y, key: cur.key, d: curD };
 
       const curG = gScore.get(cur.key) || 0;
       for (const [dx, dy] of HEADING_DELTAS) {
@@ -254,21 +510,58 @@ export class LineageIsoMap {
         const nKey = encode(nx, ny);
         if (closed.has(nKey)) continue;
         if (blockedSet?.has(nKey) && nKey !== goalKey) continue;
-        const stepCost = dx && dy ? 1.414 : 1;
+        let stepCost = dx && dy ? 1.414 : 1;
+        if (softBlockedSet?.has(nKey) && nKey !== goalKey) {
+          stepCost += softPenalty;
+        }
+        if (wallMarginCost > 0 && nKey !== goalKey) {
+          stepCost += this.countBlockedNeighbors(nx, ny, mapId) * wallMarginCost;
+        }
         const nextG = curG + stepCost;
         if (nextG < (gScore.get(nKey) ?? 1e9)) {
           gScore.set(nKey, nextG);
           parent.set(nKey, { prev: cur.key, x: nx, y: ny });
-          const h = Math.max(Math.abs(nx - targetX), Math.abs(ny - targetY));
-          open.push({ x: nx, y: ny, key: nKey, f: nextG + h * 1.15 });
+          const rawH = Math.max(Math.abs(nx - targetX), Math.abs(ny - targetY));
+          const h = goalRange > 0 ? Math.max(0, rawH - goalRange) : rawH;
+          open.push({ x: nx, y: ny, key: nKey, f: nextG + h * 1.12 });
         }
       }
     }
 
-    if (closestNode.key !== startKey) {
-      return this.#reconstructPath(parent, startKey, closestNode.key);
+    const fallbackBlocker =
+      goalBlocker ||
+      this.inspectTileObstacle(targetX, targetY, mapId, inspectOpts) ||
+      this.#findLineBlocker(closestNode.x, closestNode.y, targetX, targetY, mapId, inspectOpts) ||
+      { kind: 'unreachable', label: OBSTACLE_LABELS.unreachable, tx: targetX, ty: targetY };
+
+    if (allowPartial && closestNode.key !== startKey) {
+      const partialPath = this.#reconstructPath(parent, startKey, closestNode.key);
+      return {
+        path: partialPath,
+        reached: false,
+        partial: partialPath.length > 0,
+        expanded,
+        cost: gScore.get(closestNode.key) || 0,
+        reason: fallbackBlocker.kind,
+        blocker: fallbackBlocker,
+      };
     }
-    return [];
+    return {
+      path: [],
+      reached: false,
+      partial: false,
+      expanded,
+      cost: 0,
+      reason: fallbackBlocker.kind,
+      blocker: fallbackBlocker,
+    };
+  }
+
+  /**
+   * 尋路至目標格（或若目標被阻擋則自動找最近可走鄰格），使用帶啟發式的 A* 搜尋。
+   */
+  findPath(sx, sy, gx, gy, mapId, blockedSet = null, maxNodes = 900) {
+    return this.findPathDetailed(sx, sy, gx, gy, mapId, { blockedSet, maxNodes }).path;
   }
 
   #reconstructPath(parent, startKey, endKey) {
@@ -397,6 +690,8 @@ export class LineageIsoMap {
 
       const objLoadJobs = [];
       const builtObjs = [];
+      const baseTiles = new Map();
+      const catPriority = { building: 3, fence: 2, scenery: 1 };
 
       for (const [gid, pieces] of groups.entries()) {
         const sgid = String(gid);
@@ -432,18 +727,23 @@ export class LineageIsoMap {
 
         let redrawPath = null;
         let occludes = false;
+        let category = 'scenery';
         if (houseMap[sgid]) {
           redrawPath = `/lineage163/village-houses-v3/${houseMap[sgid]}`;
           occludes = true;
+          category = 'building';
         } else if (fenceMap[sgid]) {
           redrawPath = `/lineage163/fences-trees-v1/${fenceMap[sgid]}`;
           occludes = maxPy - minPy >= 64;
+          category = 'fence';
         } else if (sceneryMap[sgid]) {
           redrawPath = `/lineage163/scenery-redraw-v1/${sceneryMap[sgid]}`;
           occludes = maxPy - minPy >= 64;
+          category = 'scenery';
         } else if (villageMap[sgid]) {
           redrawPath = `/lineage163/village-redraw-v3/${villageMap[sgid]}`;
           occludes = maxPy - minPy >= 64;
+          category = 'building';
         }
 
         const w = Math.max(24, maxPx - minPx);
@@ -452,6 +752,19 @@ export class LineageIsoMap {
         const worldY = rec.baseWorldY + minPy;
         const isGroundFlat = h <= 36 && maxZ <= 8;
         const sortY = isGroundFlat ? -1e9 : rec.baseWorldY + baseFootY;
+
+        if (!isGroundFlat) {
+          for (const o of pieces) {
+            if (o[2] <= minZ + 6) {
+              const lx = Math.floor(o[0] / 2);
+              const tKey = `${chunk.x + lx},${chunk.y + o[1]}`;
+              const prevCat = baseTiles.get(tKey);
+              if (!prevCat || (catPriority[category] || 0) > (catPriority[prevCat] || 0)) {
+                baseTiles.set(tKey, category);
+              }
+            }
+          }
+        }
 
         const objEntry = {
           gid,
@@ -478,6 +791,7 @@ export class LineageIsoMap {
         builtObjs.push(objEntry);
       }
 
+      this.chunkObjectMeta.set(key, { baseTiles });
       await Promise.all(objLoadJobs);
       if (this.assets.disposed) return;
       rec.objects = builtObjs;

@@ -2,11 +2,14 @@
 import { assetUrl } from '../app.js';
 import {
   CRAFT_RECIPES,
+  DEFAULT_AUTO_CONFIG,
   TEACHER_SPELLS,
   MORPH_FORMS,
   PET_CATALOG,
   STATUE_BLESSINGS,
 } from './world-state.js';
+import { AUTO_PRESETS } from './auto-hunt.js';
+import { computeDerivedAbilities } from './ability-tables.js';
 import {
   MAP_NAMES,
   getMapMeta,
@@ -127,11 +130,17 @@ export class GameHud {
     this.selectedItemId = null;
     this.invFilter = 'all'; // 'all' | 'consumable' | 'gear' | 'etc'
     this.pendingDiscardId = null;
+    this.pendingEnchant = null;
+    this._lastRenderedModal = null;
+    this._resetModalScroll = false;
     this.spellView = 'grid'; // 'grid' | 'list'
     this.spellCircle = 'all'; // 'all' | 1..6
     this.selectedSpellId = null;
     this.npcSession = null; // { npc, mode: 'talk'|'buy'|'sell'|'deposit'|'withdraw'|'teleport', dialogueKey }
     this.npcShopQty = {}; // { [entryIdx]: qty }
+    this.npcShopTouched = new Set();
+    this.shopTab = 'all'; // 'all' | 'potion' | 'scroll' | 'other'
+    this.shopSort = 'none'; // 'none' | 'price-asc' | 'price-desc'
     this.chatExpanded = false;
     this.chatTab = 'all'; // 'all' | 'combat' | 'chat'
     this.tlCollapsed = false;
@@ -384,6 +393,13 @@ export class GameHud {
     });
 
     modalLayer.addEventListener('click', (ev) => this.#handleModalClick(ev));
+    modalLayer.addEventListener('contextmenu', (ev) => {
+      if (!this.pendingEnchant) return;
+      if (ev.target.closest('.inv-win')) {
+        ev.preventDefault();
+        this.cancelEnchantMode('已使用右鍵取消裝備強化模式。');
+      }
+    });
     modalLayer.addEventListener('input', (ev) => this.#handleModalInput(ev));
     modalLayer.addEventListener('change', (ev) => this.#handleModalChange(ev));
     modalLayer.addEventListener('keydown', (ev) => {
@@ -433,12 +449,8 @@ export class GameHud {
     if (!slot) return;
     if (slot.kind === 'item') {
       const res = this.world.useItem(slot.name);
-      if (res?.toggledAuto) {
-        this.autoHunt.statusLabel = this.world.player.autoConfig.enabled ? '自動練功啟動' : '待機';
-      } else if (res?.openModal) {
-        if (res.scrollId) this.pendingPolyScrollId = res.scrollId;
-        this.activeModal = res.openModal;
-        this.renderModal();
+      if (!res?.toggledAuto) {
+        this.#handleUseResult(res);
       }
     } else if (slot.kind === 'spell') {
       this.world.castSpell(slot.id);
@@ -452,6 +464,9 @@ export class GameHud {
       return;
     }
     this.pendingDiscardId = null;
+    this.pendingEnchant = null;
+    this._lastRenderedModal = null;
+    this._resetModalScroll = false;
     this.invFilter = 'all';
     this.spellCircle = 'all';
     this.activeModal = name;
@@ -462,10 +477,16 @@ export class GameHud {
   closeModal() {
     this.activeModal = null;
     this.pendingDiscardId = null;
+    this.pendingEnchant = null;
+    this._lastRenderedModal = null;
+    this._resetModalScroll = false;
     this.invFilter = 'all';
     this.spellCircle = 'all';
     this.npcSession = null;
     this.npcShopQty = {};
+    this.npcShopTouched = new Set();
+    this.shopTab = 'all';
+    this.shopSort = 'none';
     this.elements.modalLayer.hidden = true;
     this.elements.modalLayer.innerHTML = '';
   }
@@ -479,6 +500,9 @@ export class GameHud {
     else if (npc.type === 'ClanRegistrar') defaultMode = 'clan';
     this.npcSession = { npc, mode: defaultMode, dialogueKey: key };
     this.npcShopQty = {};
+    this.npcShopTouched = new Set();
+    this.shopTab = 'all';
+    this.shopSort = 'none';
     this.activeModal = 'npc';
     this.renderModal();
     this.sync(true);
@@ -539,10 +563,31 @@ export class GameHud {
   renderModal() {
     const layer = this.elements.modalLayer;
     if (!this.activeModal) {
+      this._lastRenderedModal = null;
+      this._resetModalScroll = false;
       layer.hidden = true;
       layer.innerHTML = '';
       return;
     }
+
+    const SCROLL_SELECTORS = [
+      '.ll-inv-grid-4col',
+      '.ll-win-body',
+      '.ll-spell-grid-5col',
+      '.ll-spell-list-box',
+      '.ll-shop-list',
+    ];
+    const preserveScroll = this._lastRenderedModal === this.activeModal && !this._resetModalScroll;
+    const savedScrolls = preserveScroll
+      ? {
+          layerTop: layer.scrollTop,
+          layerLeft: layer.scrollLeft,
+          nodes: SCROLL_SELECTORS.map((sel) => {
+            const node = layer.querySelector(sel);
+            return node ? { sel, top: node.scrollTop, left: node.scrollLeft } : null;
+          }).filter(Boolean),
+        }
+      : null;
 
     layer.hidden = false;
     if (this.activeModal === 'inventory') layer.innerHTML = this.#renderInventoryHtml();
@@ -555,6 +600,20 @@ export class GameHud {
     else if (this.activeModal === 'poly') layer.innerHTML = this.#renderPolyModalHtml();
     else if (this.activeModal === 'auto') layer.innerHTML = this.#renderAutoModalHtml();
     else if (this.activeModal === 'system') layer.innerHTML = this.#renderSystemModalHtml();
+
+    if (savedScrolls) {
+      layer.scrollTop = savedScrolls.layerTop;
+      layer.scrollLeft = savedScrolls.layerLeft;
+      for (const s of savedScrolls.nodes) {
+        const node = layer.querySelector(s.sel);
+        if (node) {
+          node.scrollTop = s.top;
+          node.scrollLeft = s.left;
+        }
+      }
+    }
+    this._lastRenderedModal = this.activeModal;
+    this._resetModalScroll = false;
   }
 
   #buildEquipMap(p) {
@@ -708,6 +767,13 @@ export class GameHud {
     const minCells = Math.max(24, Math.ceil(filtered.length / 4) * 4);
     const emptyCellsCount = Math.max(0, minCells - filtered.length);
 
+    if (this.pendingEnchant) {
+      const stillHasScroll = items.some((i) => i.id === this.pendingEnchant.scrollId && i.count > 0);
+      if (!stillHasScroll) this.pendingEnchant = null;
+    }
+    const enchantState = this.pendingEnchant;
+    const enchantScrollItem = enchantState ? items.find((i) => i.id === enchantState.scrollId) : null;
+
     const itemSlotsHtml = filtered
       .map((it) => {
         const def = this.world.worldData.items[it.name] || {};
@@ -715,10 +781,19 @@ export class GameHud {
         const isGear = def.kind === 'weapon' || def.kind === 'armor';
         const unid = isGear && it.identified === false;
         const selected = selItem?.id === it.id;
+        let enchantCls = '';
+        if (enchantScrollItem) {
+          if (it.id === enchantScrollItem.id) {
+            enchantCls = 'enchant-source';
+          } else {
+            const check = this.world.validateEnchantTarget(enchantScrollItem, it);
+            enchantCls = check.ok ? 'enchant-eligible' : 'enchant-ineligible';
+          }
+        }
         const tipTitle = `${it.plus ? `+${it.plus} ` : ''}${it.name}${it.count > 1 ? ` x${it.count}` : ''}`;
         return `
           <button type="button"
-                  class="ll-inv-slot ${it.equipped ? 'equipped' : ''} ${selected ? 'selected' : ''}"
+                  class="ll-inv-slot ${it.equipped ? 'equipped' : ''} ${selected ? 'selected' : ''} ${enchantCls}"
                   data-select-item="${esc(it.id)}"
                   title="${esc(tipTitle)}">
             ${it.equipped ? '<span class="ll-slot-on">ON</span>' : ''}
@@ -769,14 +844,26 @@ export class GameHud {
       .join('');
 
     const pendingDiscard = selItem && this.pendingDiscardId === selItem.id;
+    const enchantBannerHtml = enchantScrollItem
+      ? `
+        <div class="ll-enchant-banner" data-role="enchant-banner">
+          <div class="ll-enchant-banner-main">
+            <span>⚡ <strong>強化選擇模式</strong>（${esc(enchantScrollItem.name)}）：請直接點擊背包內的【${esc(enchantState.rule.label)}】（已裝備或未裝備皆可）</span>
+            <button type="button" class="ll-act-btn secondary" data-cancel-enchant="1">取消強化 (Esc / 右鍵)</button>
+          </div>
+          ${enchantState.warn ? `<div class="ll-enchant-warn">${esc(enchantState.warn)}</div>` : ''}
+        </div>
+      `
+      : '';
 
     return `
-      <div class="ll-win ll-classic-win wide inv-win">
+      <div class="ll-win ll-classic-win wide inv-win ${enchantScrollItem ? 'enchant-targeting' : ''}">
         <div class="ll-win-head">
           <h3 class="ll-win-title">道具與裝備欄（金幣 ${p.gold.toLocaleString()} · ${items.length} 格）</h3>
-          <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
+          <button type="button" class="ll-win-close" data-close-modal="1" title="關閉" aria-label="關閉">✕</button>
         </div>
         <div class="ll-win-body">
+          ${enchantBannerHtml}
           <div class="ll-inv-classic-wrap">
             <div class="ll-bag-slate-frame">
               <div class="ll-bag-frame-top">
@@ -961,7 +1048,7 @@ export class GameHud {
               <button type="button" class="ll-view-btn ${this.spellView === 'grid' ? 'active' : ''}" data-spell-view="grid" title="5×4 魔法圖示盤">圖示</button>
               <button type="button" class="ll-view-btn ${this.spellView === 'list' ? 'active' : ''}" data-spell-view="list" title="條列詳情檢視">條列</button>
             </div>
-            <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
+            <button type="button" class="ll-win-close" data-close-modal="1" title="關閉" aria-label="關閉">✕</button>
           </div>
         </div>
         <div class="ll-win-body">
@@ -1015,12 +1102,20 @@ export class GameHud {
       const diff = v - base;
       return diff > 0 ? `${v} <em class="buff-plus">(+${diff})</em>` : String(v);
     };
+    const fmtSigned = (n) => (n >= 0 ? `+${n}` : String(n));
+    const der = p.abilities || computeDerivedAbilities({
+      classId: p.classId,
+      level: p.level,
+      stats: p.stats,
+      effStats: { str: p.effStr ?? p.stats.str, dex: p.effDex ?? p.stats.dex, con: p.stats.con, wis: p.stats.wis, int: p.stats.int, cha: p.stats.cha },
+      birthStats: p.birthStats || p.stats,
+    });
 
     return `
       <div class="ll-win ll-classic-win wide status-win">
         <div class="ll-win-head">
           <h3 class="ll-win-title">角色狀態與裝備紙娃娃 — ${esc(p.name)}（${clsName}）</h3>
-          <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
+          <button type="button" class="ll-win-close" data-close-modal="1" title="關閉" aria-label="關閉">✕</button>
         </div>
         <div class="ll-win-body">
           <div class="ll-inv-grid status-layout">
@@ -1049,9 +1144,20 @@ export class GameHud {
 
               <div class="ll-st-divider"></div>
               <div class="ll-st-rows">
-                <div class="ll-st-row"><span class="ll-st-lbl">魔法等級</span><span class="ll-st-box">${Math.max(1, Math.floor(p.level / 4))}</span></div>
-                <div class="ll-st-row"><span class="ll-st-lbl">額外魔攻</span><span class="ll-st-box">SP ${p.sp || 1}</span></div>
-                <div class="ll-st-row"><span class="ll-st-lbl">魔防 / 正義</span><span class="ll-st-box">${p.mr}% · ${p.lawful}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">魔法等級</span><span class="ll-st-box">${der.magicLv}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">魔攻 SP</span><span class="ll-st-box">SP ${p.sp || 1}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">魔防 / ER</span><span class="ll-st-box">${p.mr}% · ER ${der.er}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">正義值</span><span class="ll-st-box">${p.lawful}</span></div>
+              </div>
+
+              <div class="ll-st-divider"></div>
+              <div class="ll-subhead" style="margin-bottom:4px;">能力表衍生加成</div>
+              <div class="ll-st-rows">
+                <div class="ll-st-row"><span class="ll-st-lbl">近戰傷／命</span><span class="ll-st-box">${fmtSigned(der.meleeDmg)} / ${fmtSigned(der.meleeHit)}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">遠弓傷／命</span><span class="ll-st-box">${fmtSigned(der.bowDmg)} / ${fmtSigned(der.bowHit)}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">HP／MP回復</span><span class="ll-st-box">+${der.hpRegen} / +${der.mpRegen}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">藥水／負重</span><span class="ll-st-box">+${der.potionBonusPct}% · ${p.maxWeight || der.maxWeightBase}</span></div>
+                <div class="ll-st-row"><span class="ll-st-lbl">${der.clanCap != null ? '血盟／控制' : '魔攻／控制'}</span><span class="ll-st-box">${der.clanCap != null ? `${der.clanCap}人 / ${der.npcControlCap}名` : `${fmtSigned(der.magicDmg)} / ${der.npcControlCap}名`}</span></div>
               </div>
 
               <div class="ll-st-divider"></div>
@@ -1093,7 +1199,7 @@ export class GameHud {
       <div class="ll-win wide">
         <div class="ll-win-head">
           <h3 class="ll-win-title">變形契約選單（持有變形卷軸 ${scrollCnt} 張）</h3>
-          <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
+          <button type="button" class="ll-win-close" data-close-modal="1" title="關閉" aria-label="關閉">✕</button>
         </div>
         <div class="ll-win-body">
           <div style="font-size:12px;color:#b8aa90;margin-bottom:10px;">
@@ -1128,7 +1234,7 @@ export class GameHud {
       <div class="ll-win wide">
         <div class="ll-win-head">
           <h3 class="ll-win-title">世界地圖 — ${esc(MAP_NAMES[p.map] || meta.name)} (${p.tx}, ${p.ty})</h3>
-          <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
+          <button type="button" class="ll-win-close" data-close-modal="1" title="關閉" aria-label="關閉">✕</button>
         </div>
         <div class="ll-win-body">
           <div style="font-size:12px;color:#b8aa90;margin-bottom:8px;">
@@ -1217,6 +1323,30 @@ export class GameHud {
       ctx.beginPath();
       ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    if (p.autoConfig?.enabled && p.autoConfig?.showNavDebug) {
+      if (p.autoConfig.anchor && p.autoConfig.anchor.map === p.map) {
+        const an = toPx(p.autoConfig.anchor.x, p.autoConfig.anchor.y);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(an.x, an.y, 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (p.path?.length) {
+        ctx.fillStyle = '#6ee7b7';
+        for (const step of p.path) {
+          const sp = toPx(step.x, step.y);
+          ctx.fillRect(sp.x - 1, sp.y - 1, 2, 2);
+        }
+      }
+      ctx.fillStyle = '#fb923c';
+      for (const obs of this.autoHunt.recentObstacles || []) {
+        if (obs.map !== p.map) continue;
+        const op = toPx(obs.tx, obs.ty);
+        ctx.fillRect(op.x - 1.5, op.y - 1.5, 3, 3);
+      }
     }
 
     const me = toPx(p.tx, p.ty);
@@ -1319,9 +1449,65 @@ export class GameHud {
     return Math.max(1, Math.min(9999, Math.floor(raw)));
   }
 
+  #classifyShopCategory(itemName) {
+    const def = this.world.worldData.items?.[itemName];
+    const name = String(itemName || '');
+    if (def?.type === 'potion' || /藥水|綠水|勇水|藍水|精靈餅乾|治療/.test(name)) return 'potion';
+    if (def?.type === 'scroll' || /卷軸|魔法書|瞬間移動|傳送|鑑定/.test(name)) return 'scroll';
+    return 'other';
+  }
+
+  #resolveNpcRoleTitle(npc) {
+    if (!npc) return '商店商人';
+    if (npc.role) return npc.role;
+    if (npc.name === '歐林') return '魔法物品商人';
+    if (npc.name === '潘朵拉') return '說話之島道具商人';
+    if (npc.name === '巴辛' || npc.type === 'Inn') return '旅館雜貨商人';
+    if (npc.type === 'Craft') return '武器防具製作商人';
+    return '亞丁貿易商人';
+  }
+
+  #renderNpcPortraitStageHtml(npc) {
+    const roleTitle = this.#resolveNpcRoleTitle(npc);
+    return `
+      <div class="ll-shop-portrait">
+        <div class="ll-shop-portrait-figure" aria-hidden="true">
+          <svg viewBox="0 0 180 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="llShopRim" x1="35" y1="20" x2="145" y2="220" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#f97316" stop-opacity="0.92" />
+                <stop offset="50%" stop-color="#dc2626" stop-opacity="0.65" />
+                <stop offset="100%" stop-color="#7f1d1d" stop-opacity="0.2" />
+              </linearGradient>
+              <linearGradient id="llShopBody" x1="90" y1="22" x2="90" y2="225" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#1f1111" />
+                <stop offset="55%" stop-color="#0e090a" />
+                <stop offset="100%" stop-color="#070608" />
+              </linearGradient>
+            </defs>
+            <path d="M74 28c6-12 28-14 35-2 7 12 4 28-2 36l3 10c19 5 35 19 42 42l12 42c3 11-4 22-14 26l-10 3v41H40v-41l-10-3c-10-4-17-15-14-26l12-42c7-23 23-37 42-42l3-10c-6-8-9-24 1-36Z" fill="url(#llShopBody)" stroke="url(#llShopRim)" stroke-width="2.2" />
+            <path d="M75 68c10 7 20 7 30 0" stroke="#ea580c" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" />
+            <path d="M55 112c14 10 56 10 70 0" stroke="#991b1b" stroke-opacity="0.4" stroke-width="1.4" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="ll-shop-portrait-caption">
+          <div class="ll-shop-npc-name">${esc(npc.name)}</div>
+          <div class="ll-shop-npc-role">(${esc(roleTitle)})</div>
+        </div>
+      </div>
+    `;
+  }
+
+  #calcShopBatchTotal(entries) {
+    if (!entries?.length || this.npcShopTouched.size === 0) return 0;
+    const indices = [...this.npcShopTouched].filter((i) => entries[i]);
+    return indices.reduce((sum, i) => sum + entries[i].price * this.#getShopQty(i), 0);
+  }
+
   #setShopQtyDom(idx, entry, nextQty) {
     const clamped = Math.max(1, Math.min(9999, Math.floor(Number(nextQty) || 1)));
     this.npcShopQty[idx] = clamped;
+    this.npcShopTouched.add(idx);
     const modal = this.elements.modalLayer;
     const input = modal.querySelector(`[data-shop-qty="${idx}"]`);
     if (input && Number(input.value) !== clamped) {
@@ -1333,10 +1519,20 @@ export class GameHud {
 
   #refreshShopTotalDom(idx, entry, qty) {
     const totalEl = this.elements.modalLayer.querySelector(`[data-shop-total="${idx}"]`);
-    if (!totalEl || !entry) return;
-    const total = entry.price * qty;
-    totalEl.textContent = `總計 ${total.toLocaleString()} 金幣`;
-    totalEl.classList.toggle('insufficient', total > this.world.player.gold);
+    if (totalEl && entry) {
+      const total = entry.price * qty;
+      totalEl.textContent = `總計 ${total.toLocaleString()} 金幣`;
+      totalEl.classList.toggle('insufficient', total > this.world.player.gold);
+    }
+    if (this.npcSession?.mode === 'buy') {
+      const batchEl = this.elements.modalLayer.querySelector('[data-role="shop-batch-total"]');
+      if (batchEl) {
+        const entries = this.#resolveNpcShopList(this.npcSession.npc);
+        const batchTotal = this.#calcShopBatchTotal(entries);
+        batchEl.textContent = batchTotal.toLocaleString();
+        batchEl.classList.toggle('insufficient', batchTotal > this.world.player.gold);
+      }
+    }
   }
 
   #buyShopRow(idx, explicitQty = null) {
@@ -1346,6 +1542,20 @@ export class GameHud {
     if (!entry) return;
     const qty = explicitQty !== null ? Math.max(1, Math.min(9999, Math.floor(Number(explicitQty) || 1))) : this.#getShopQty(idx);
     this.world.buyFromShop(this.npcSession.npc.name, entry, qty);
+    this.npcShopTouched.delete(idx);
+    this.renderModal();
+    this.sync(true);
+  }
+
+  #buyShopBatch() {
+    if (!this.npcSession || this.npcShopTouched.size === 0) return;
+    const entries = this.#resolveNpcShopList(this.npcSession.npc);
+    if (!entries.length) return;
+    const indices = [...this.npcShopTouched].filter((i) => entries[i]).sort((a, b) => a - b);
+    for (const idx of indices) {
+      this.world.buyFromShop(this.npcSession.npc.name, entries[idx], this.#getShopQty(idx));
+    }
+    this.npcShopTouched.clear();
     this.renderModal();
     this.sync(true);
   }
@@ -1356,68 +1566,170 @@ export class GameHud {
     const { npc, mode, dialogueKey } = sess;
     const p = this.world.player;
 
-    let bodyHtml = '';
-    if (mode === 'buy') {
+    if (mode === 'buy' || mode === 'sell') {
+      const iconBag = assetUrl('/lineage163/ui-redraw-v9/619.png');
       const entries = this.#resolveNpcShopList(npc);
-      bodyHtml = `
-        <div style="margin-bottom:8px;color:#ffd872;">持有金幣：${p.gold.toLocaleString()} Adena</div>
-        ${entries
-          .map((e, i) => {
-            const def = this.world.worldData.items[e.item];
-            const iconUrl = this.world.assets.itemIconUrl(def?.icon);
-            const qty = this.#getShopQty(i);
-            const total = e.price * qty;
-            const insufficient = total > p.gold;
-            return `
-              <div class="ll-list-row ll-shop-row">
-                <div class="ll-list-left">
-                  <img src="${esc(iconUrl)}" alt="" />
-                  <div>
-                    <div style="font-weight:700;">${esc(e.item)}${e.count > 1 ? ` x${e.count}` : ''}</div>
-                    <div style="font-size:11px;color:#ffd872;">單價：${e.price.toLocaleString()} 金幣</div>
+      const tabDefs = [
+        { id: 'all', label: '全部' },
+        { id: 'potion', label: '藥水' },
+        { id: 'scroll', label: '卷軸' },
+        { id: 'other', label: '其他' },
+      ];
+
+      let listHtml = '';
+      if (mode === 'buy') {
+        const mapped = entries
+          .map((e, origIdx) => ({ e, origIdx, cat: this.#classifyShopCategory(e.item) }))
+          .filter((row) => this.shopTab === 'all' || row.cat === this.shopTab);
+        if (this.shopSort === 'price-asc') mapped.sort((a, b) => a.e.price - b.e.price);
+        else if (this.shopSort === 'price-desc') mapped.sort((a, b) => b.e.price - a.e.price);
+
+        listHtml =
+          mapped
+            .map(({ e, origIdx }) => {
+              const def = this.world.worldData.items[e.item];
+              const iconUrl = this.world.assets.itemIconUrl(def?.icon);
+              const qty = this.#getShopQty(origIdx);
+              const total = e.price * qty;
+              const insufficient = total > p.gold;
+              return `
+                <div class="ll-shop-item-row" data-shop-row="${origIdx}">
+                  <div class="ll-shop-item-left">
+                    <div class="ll-shop-item-icon"><img src="${esc(iconUrl)}" alt="" /></div>
+                    <div class="ll-shop-item-info">
+                      <div class="ll-shop-item-name">${esc(e.item)}${e.count > 1 ? ` x${e.count}` : ''}</div>
+                      <div class="ll-shop-item-meta">
+                        <span>單價 ${e.price.toLocaleString()}</span>
+                        <span class="ll-shop-total${insufficient ? ' insufficient' : ''}" data-shop-total="${origIdx}">總計 ${total.toLocaleString()} 金幣</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ll-shop-ctrl">
+                    <div class="ll-shop-stepper">
+                      <button type="button" class="ll-qty-step" data-shop-step="${origIdx}:-1" title="減少 1" aria-label="減少 1">−</button>
+                      <input
+                        type="number"
+                        class="ll-qty-input"
+                        min="1"
+                        max="9999"
+                        inputmode="numeric"
+                        value="${qty}"
+                        data-shop-qty="${origIdx}"
+                        aria-label="${esc(e.item)} 購買數量"
+                      />
+                      <button type="button" class="ll-qty-step" data-shop-step="${origIdx}:1" title="增加 1" aria-label="增加 1">+</button>
+                      ${def?.stack ? `<button type="button" class="ll-qty-step secondary" data-shop-step="${origIdx}:10" title="增加 10">+10</button>` : ''}
+                    </div>
+                    <button type="button" class="ll-shop-buy-btn" data-shop-buy="${origIdx}">購買</button>
                   </div>
                 </div>
-                <div class="ll-shop-ctrl">
-                  <div class="ll-shop-stepper">
-                    <button type="button" class="ll-qty-step" data-shop-step="${i}:-1" title="減少 1" aria-label="減少 1">-1</button>
-                    <input
-                      type="number"
-                      class="ll-qty-input"
-                      min="1"
-                      max="9999"
-                      inputmode="numeric"
-                      value="${qty}"
-                      data-shop-qty="${i}"
-                      aria-label="${esc(e.item)} 購買數量"
-                    />
-                    <button type="button" class="ll-qty-step" data-shop-step="${i}:1" title="增加 1" aria-label="增加 1">+1</button>
-                    ${def?.stack ? `<button type="button" class="ll-qty-step secondary" data-shop-step="${i}:10" title="增加 10">+10</button>` : ''}
+              `;
+            })
+            .join('') || '<div style="padding:20px;text-align:center;color:#9ca3af;font-size:12px;">此分類暫無販售商品。</div>';
+      } else {
+        const sellables = p.inventory
+          .filter((it) => !it.equipped)
+          .map((it) => {
+            const def = this.world.worldData.items[it.name];
+            const unit = Math.max(1, Math.floor((def?.price || 10) * 0.5));
+            return { it, def, unit, cat: this.#classifyShopCategory(it.name) };
+          })
+          .filter((row) => this.shopTab === 'all' || row.cat === this.shopTab);
+        if (this.shopSort === 'price-asc') sellables.sort((a, b) => a.unit - b.unit);
+        else if (this.shopSort === 'price-desc') sellables.sort((a, b) => b.unit - a.unit);
+
+        listHtml =
+          sellables
+            .map(({ it, def, unit }) => {
+              const iconUrl = this.world.assets.itemIconUrl(def?.icon);
+              return `
+                <div class="ll-shop-item-row">
+                  <div class="ll-shop-item-left">
+                    <div class="ll-shop-item-icon"><img src="${esc(iconUrl)}" alt="" /></div>
+                    <div class="ll-shop-item-info">
+                      <div class="ll-shop-item-name">${esc(it.name)} x${it.count}</div>
+                      <div class="ll-shop-item-meta"><span>收購單價 ${unit.toLocaleString()} · 合計 ${(unit * it.count).toLocaleString()} 金幣</span></div>
+                    </div>
                   </div>
-                  <div class="ll-shop-buy-group">
-                    <span class="ll-shop-total${insufficient ? ' insufficient' : ''}" data-shop-total="${i}">總計 ${total.toLocaleString()} 金幣</span>
-                    <button type="button" class="ll-act-btn" data-shop-buy="${i}">購買</button>
+                  <div class="ll-shop-ctrl">
+                    <button type="button" class="ll-shop-buy-btn" data-shop-sell="${esc(it.id)}">賣出全部</button>
                   </div>
+                </div>
+              `;
+            })
+            .join('') || '<div style="padding:20px;text-align:center;color:#9ca3af;font-size:12px;">此分類沒有可販售的非裝備道具。</div>';
+      }
+
+      const batchTotal = mode === 'buy' ? this.#calcShopBatchTotal(entries) : 0;
+      const batchInsufficient = batchTotal > p.gold;
+
+      return `
+        <div class="ll-win shop-win">
+          <div class="ll-win-head">
+            <h3 class="ll-win-title">
+              <img class="ll-win-head-icon" src="${esc(iconBag)}" alt="" />
+              <span>${mode === 'buy' ? '購買' : '販賣'} — ${esc(npc.name)}</span>
+            </h3>
+            <button type="button" class="ll-win-close" data-close-modal="1" title="關閉" aria-label="關閉">✕</button>
+          </div>
+          <div class="ll-win-body ll-shop-body">
+            <div class="ll-shop-subbar">
+              <div class="ll-shop-tabs">
+                ${tabDefs
+                  .map(
+                    (t) =>
+                      `<button type="button" class="ll-shop-tab${this.shopTab === t.id ? ' active' : ''}" data-shop-tab="${t.id}">${t.label}</button>`,
+                  )
+                  .join('')}
+              </div>
+              <div class="ll-shop-subbar-right">
+                <div class="ll-shop-mode-switch">
+                  <button type="button" class="ll-shop-mode-pill${mode === 'buy' ? ' active' : ''}" data-npc-mode="buy">購買</button>
+                  <button type="button" class="ll-shop-mode-pill${mode === 'sell' ? ' active' : ''}" data-npc-mode="sell">販賣</button>
+                  <button type="button" class="ll-shop-mode-pill" data-npc-mode="talk">對話</button>
+                </div>
+                <select class="ll-shop-sort" data-shop-sort="1" aria-label="商品排序">
+                  <option value="none"${this.shopSort === 'none' ? ' selected' : ''}>不需排列</option>
+                  <option value="price-asc"${this.shopSort === 'price-asc' ? ' selected' : ''}>價格低 → 高</option>
+                  <option value="price-desc"${this.shopSort === 'price-desc' ? ' selected' : ''}>價格高 → 低</option>
+                </select>
+              </div>
+            </div>
+            <div class="ll-shop-split">
+              ${this.#renderNpcPortraitStageHtml(npc)}
+              <div class="ll-shop-list-pane">
+                <div class="ll-shop-list">${listHtml}</div>
+              </div>
+            </div>
+            <div class="ll-shop-footer">
+              <div class="ll-shop-footer-left">
+                <button type="button" class="ll-shop-reset-btn" data-shop-reset="1" title="重設所有購買數量" aria-label="重設所有購買數量">↺</button>
+                <div class="ll-shop-gold-block">
+                  <span class="ll-shop-gold-lbl">持有金幣</span>
+                  <span class="ll-shop-gold-val">${p.gold.toLocaleString()}</span>
                 </div>
               </div>
-            `;
-          })
-          .join('') || '<div>目前暫無販售商品。</div>'}
-      `;
-    } else if (mode === 'sell') {
-      const sellables = p.inventory.filter((it) => !it.equipped);
-      bodyHtml = sellables
-        .map((it) => {
-          const def = this.world.worldData.items[it.name];
-          const unit = Math.max(1, Math.floor((def?.price || 10) * 0.5));
-          return `
-            <div class="ll-list-row">
-              <div>${esc(it.name)} x${it.count} <span style="color:#ffd872;">(單價 ${unit} 金幣)</span></div>
-              <button type="button" class="ll-act-btn" data-shop-sell="${esc(it.id)}">賣出全部</button>
+              <div class="ll-shop-footer-right">
+                ${
+                  mode === 'buy'
+                    ? `
+                  <div class="ll-shop-gold-block" style="text-align:right;">
+                    <span class="ll-shop-spend-lbl">預計花費</span>
+                    <span class="ll-shop-gold-val${batchInsufficient ? ' insufficient' : ''}" data-role="shop-batch-total">${batchTotal.toLocaleString()}</span>
+                  </div>
+                  <button type="button" class="ll-shop-footer-cta" data-shop-buy-batch="1">購買</button>
+                `
+                    : `<button type="button" class="ll-shop-footer-cta" data-npc-mode="talk">返回對話</button>`
+                }
+              </div>
             </div>
-          `;
-        })
-        .join('') || '<div>背包沒有可販售的非裝備道具。</div>';
-    } else if (mode === 'deposit' || mode === 'withdraw') {
+          </div>
+        </div>
+      `;
+    }
+
+    let bodyHtml = '';
+    if (mode === 'deposit' || mode === 'withdraw') {
       const list = mode === 'deposit' ? p.inventory.filter((i) => !i.equipped) : this.world.warehouse.items;
       const actName = mode === 'deposit' ? 'data-wh-dep' : 'data-wh-wd';
       const label = mode === 'deposit' ? '存入 (30金幣)' : '取出 (30金幣)';
@@ -1462,7 +1774,7 @@ export class GameHud {
         ${
           pet
             ? `
-          <div class="ll-list-row" style="border-color:#9b7a3c;background:rgba(46,35,17,0.68);">
+          <div class="ll-list-row" style="border-bottom:none;border-radius:3px;background:rgba(255,255,255,0.06);">
             <div>
               <div style="font-weight:700;color:#ffe28a;">同行寵物：${esc(pet.name)} (Lv.${pet.level})</div>
               <div style="font-size:11px;color:#cbd5e1;">HP ${pet.hp}/${pet.maxHp} · 攻擊力 ${pet.minDmg}~${pet.maxDmg} · EXP ${pet.exp}</div>
@@ -1492,7 +1804,7 @@ export class GameHud {
       bodyHtml = `
         <div style="margin-bottom:8px;color:#ffd872;">目前角色：${esc(p.name)}（Lv.${p.level}）· 所屬血盟：${p.clanName ? `《${esc(p.clanName)}》` : '無'} · 同服在線：${this.world.onlineCount || 1} 人</div>
         <div class="ll-list-row" style="gap:8px;flex-wrap:wrap;">
-          <input type="text" id="ll-clan-input" maxlength="12" placeholder="輸入血盟名稱（如：亞丁遠征軍）" value="${esc(p.clanName || '')}" style="flex:1;min-width:170px;height:30px;padding:0 8px;border:1px solid #6b532e;background:#0e1217;color:#f5ebd6;border-radius:4px;" />
+          <input type="text" id="ll-clan-input" maxlength="12" placeholder="輸入血盟名稱（如：亞丁遠征軍）" value="${esc(p.clanName || '')}" style="flex:1;min-width:170px;height:30px;padding:0 8px;border:none;background:rgba(4,6,9,0.72);color:#f1f5f9;border-radius:3px;outline:none;" />
           <button type="button" class="ll-act-btn" data-clan-create="1">創立／加入血盟 (1000 金幣)</button>
           ${p.clanName ? '<button type="button" class="ll-act-btn secondary" data-clan-leave="1">退出血盟</button>' : ''}
         </div>
@@ -1634,7 +1946,7 @@ export class GameHud {
       <div class="ll-win wide">
         <div class="ll-win-head">
           <h3 class="ll-win-title">${esc(npc.name)}（${esc(npc.type || 'NPC')}）</h3>
-          <button type="button" class="ll-win-close" data-close-modal="1">離開對話</button>
+          <button type="button" class="ll-win-close" data-close-modal="1" title="離開對話" aria-label="離開對話">✕</button>
         </div>
         <div class="ll-win-body">
           ${mode !== 'talk' ? '<div style="margin-bottom:8px;"><button type="button" class="ll-act-btn secondary" data-npc-mode="talk">← 返回對話</button></div>' : ''}
@@ -1664,6 +1976,9 @@ export class GameHud {
     if (npc.name === '多瑪' || npc.name === '丁') {
       return `<strong>${esc(npc.name)}：</strong>擊打岩石魔怪或硬甲怪物時刀刃很容易受損，若武器捲刃，我可以為你鍛打修復！`;
     }
+    if (npc.name === '奇岩傳送師' || npc.name === '奇岩內城傳送師') {
+      return `<strong>${esc(npc.name)}：</strong>歡迎來到商業首都${esc(areaName)}！我可以協助您快速傳送至亞丁各大城鎮、奇岩地監、龍之谷與奇岩內城。`;
+    }
     if (npc.name.includes('港口主人') || npc.name.includes('水手') || npc.name.includes('船長')) {
       return `<strong>${esc(npc.name)}：</strong>歡迎來到${esc(areaName)}港口，我可以為你安排往返說話之島與古魯丁港口或附近沿岸渡口的船班。`;
     }
@@ -1676,81 +1991,540 @@ export class GameHud {
     return `<strong>${esc(npc.name)}：</strong>你好，來自遠方的旅人。${esc(areaName)}處處充滿冒險氣息，需要協助請隨時開口。`;
   }
 
-  #renderAutoModalHtml() {
-    const cfg = this.world.player.autoConfig;
+  #renderSwitchHtml(attrName, attrVal, checked, ariaLabel) {
     return `
-      <div class="ll-win">
+      <button
+        type="button"
+        role="switch"
+        aria-checked="${checked ? 'true' : 'false'}"
+        aria-label="${esc(ariaLabel)}"
+        ${attrName}="${esc(attrVal)}"
+        class="il-switch${checked ? ' is-on' : ''}"
+      >
+        <span class="il-switch-label">${checked ? '開' : '關'}</span>
+        <span class="il-switch-track" aria-hidden="true"><span class="il-switch-thumb"></span></span>
+      </button>
+    `;
+  }
+
+  #renderAutoTelemetryHtml(summary) {
+    const p = this.world.player;
+    const cfg = p.autoConfig;
+    const min = Math.floor((summary.elapsedSec || 0) / 60);
+    const sec = (summary.elapsedSec || 0) % 60;
+    const timeText = `${min}分${String(sec).padStart(2, '0')}秒`;
+    const anchorText = cfg.anchor ? `(${cfg.anchor.x}, ${cfg.anchor.y})` : '跟隨中';
+    const lastObsText = summary.lastObstacleAt
+      ? `${summary.lastObstacleLabel} (${summary.lastObstacleTx},${summary.lastObstacleTy})`
+      : '尚無障礙碰撞';
+    return `
+      <div class="ll-set-stat"><span>掛機時長</span><strong>${timeText}</strong></div>
+      <div class="ll-set-stat"><span>擊殺 / 金幣</span><strong>${summary.killsGained} 隻 · ${summary.goldGained.toLocaleString()}G</strong></div>
+      <div class="ll-set-stat"><span>障礙偵測 / 重算</span><strong>${summary.obstacleHits} 次 / ${summary.replans} 次</strong></div>
+      <div class="ll-set-stat"><span>最近障礙 / 錨點</span><strong>${esc(lastObsText)} · ${esc(anchorText)}</strong></div>
+    `;
+  }
+
+  #renderSettingsModalHtml() {
+    const cfg = this.world.player.autoConfig;
+    const p = this.world.player;
+    const audio = this.world.audio;
+    const prefs = this.world.displayPrefs || { showVfx: true, showDamageNums: true };
+    const homeTown = resolveHomeTown(p.map, p.tx, p.ty);
+    const sfxOn = !audio.muted && audio.sfxOn !== false;
+    const sfxVol = Number.isFinite(audio.sfxVol) ? audio.sfxVol : 50;
+    const bgmOn = !audio.muted && audio.bgmOn !== false;
+    const bgmVol = Number.isFinite(audio.bgmVol) ? audio.bgmVol : 50;
+    const prefPot = cfg.preferredPot || 'auto';
+    const potToneClass =
+      prefPot === '紅色藥水'
+        ? 'll-pot-red'
+        : prefPot === '橙色藥水'
+          ? 'll-pot-orange'
+          : prefPot === '白色藥水'
+            ? 'll-pot-white'
+            : 'll-pot-auto';
+
+    const summary = this.autoHunt.getSummary();
+    const mapMobNames = this.world.getMapMonsterNames(p.map);
+    const filterSet = this.autoHunt.getMobFilterSet();
+    const learnedAtkSpells = (this.world.worldData.spells || []).filter(
+      (s) =>
+        p.spells.includes(s.id) &&
+        s.id !== 1 &&
+        s.id !== 3 &&
+        s.id !== 5 &&
+        s.id !== 8 &&
+        s.id !== 9 &&
+        s.id !== 12 &&
+        s.id !== 14 &&
+        s.id !== 18 &&
+        s.id !== 19 &&
+        s.id !== 21 &&
+        s.id !== 26 &&
+        s.id !== 28 &&
+        s.id !== 31 &&
+        s.id !== 32 &&
+        s.id !== 35 &&
+        s.id !== 42 &&
+        s.id !== 43 &&
+        s.id !== 48 &&
+        !s.name.includes('日光') &&
+        !s.name.includes('治癒'),
+    );
+
+    return `
+      <div class="ll-win ll-settings-win">
         <div class="ll-win-head">
-          <h3 class="ll-win-title">內掛與喝水符石設定</h3>
-          <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
+          <h3 class="ll-win-title">系統與智慧內掛 — 天堂 1.63 亞丁實境</h3>
+          <button type="button" class="ll-win-close" data-close-modal="1" title="關閉" aria-label="關閉">✕</button>
         </div>
-        <div class="ll-win-body">
-          <div class="ll-list-row">
-            <div>
-              <div style="font-weight:700;">自動練功（內掛符石）</div>
-              <div style="font-size:11px;color:#9eb5cb;">狀態：${esc(this.autoHunt.statusLabel)}</div>
+        <div class="ll-win-body ll-settings-body">
+          <!-- 卡片 1：系統捷徑、音效與音樂 0-100 拉桿、戰鬥特效／傷害數字切換 -->
+          <div class="ll-set-card">
+            <div class="ll-set-actions">
+              <button type="button" class="ll-set-btn" data-sys-act="lobby">回選角</button>
+              <button type="button" class="ll-set-btn accent" data-sys-act="save">儲存進度</button>
+              <button type="button" class="ll-set-btn" data-sys-act="home" title="緊急脫離卡點，傳回 ${esc(homeTown.label)}">回村 (${esc(homeTown.label)})</button>
             </div>
-            <button type="button" class="ll-act-btn" data-auto-toggle="enabled">${cfg.enabled ? '點擊關閉' : '點擊啟動'}</button>
-          </div>
-          <div class="ll-list-row">
-            <div>
-              <div style="font-weight:700;">自動喝水（喝水符石）</div>
-              <div style="font-size:11px;color:#9eb5cb;">HP 低於 <span data-role="pot-val">${cfg.potThreshold}</span>% 自動飲用紅／橙／白水或施放治癒術</div>
+            <div class="ll-set-row ll-set-sep">
+              <label class="ll-set-check" for="set-sfx-on">
+                <input type="checkbox" id="set-sfx-on" data-audio-toggle="sfx" ${sfxOn ? 'checked' : ''} />
+                <span class="ll-set-amber">🔊 戰鬥音效</span>
+              </label>
+              <div class="ll-set-slider-wrap">
+                <input type="range" id="set-sfx-vol" class="ll-set-range sfx" min="0" max="100" step="1" value="${sfxVol}" data-audio-range="sfx" aria-label="戰鬥音效音量" />
+                <span class="ll-set-pct" data-audio-val="sfx">${sfxVol}%</span>
+              </div>
             </div>
-            <button type="button" class="ll-act-btn" data-auto-toggle="pot">${cfg.potEnabled ? '已開啟' : '已關閉'}</button>
+            <div class="ll-set-row ll-set-sep">
+              <label class="ll-set-check" for="set-bgm-on">
+                <input type="checkbox" id="set-bgm-on" data-audio-toggle="bgm" ${bgmOn ? 'checked' : ''} />
+                <span class="ll-set-sky">🎵 背景音樂</span>
+              </label>
+              <div class="ll-set-slider-wrap">
+                <input type="range" id="set-bgm-vol" class="ll-set-range bgm" min="0" max="100" step="1" value="${bgmVol}" data-audio-range="bgm" aria-label="背景音樂音量" />
+                <span class="ll-set-pct" data-audio-val="bgm">${bgmVol}%</span>
+              </div>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <span class="ll-set-label-icon ll-set-emerald">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                <span>戰鬥特效</span>
+              </span>
+              ${this.#renderSwitchHtml('data-pref-toggle', 'showVfx', prefs.showVfx !== false, '切換戰鬥特效')}
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <span class="ll-set-label-icon ll-set-cyan">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/></svg>
+                <span>傷害數字</span>
+              </span>
+              ${this.#renderSwitchHtml('data-pref-toggle', 'showDamageNums', prefs.showDamageNums !== false, '切換傷害數字')}
+            </div>
           </div>
-          <div class="ll-list-row">
-            <span>自動喝水門檻：${cfg.potThreshold}%</span>
-            <input type="range" min="25" max="85" step="5" value="${cfg.potThreshold}" data-auto-range="potThreshold" />
+
+          <!-- 卡片 2：智慧內掛總控、一鍵職業方案與障礙重算監控 -->
+          <div class="ll-set-card">
+            <div class="ll-set-card-title">自動狩獵總控與一鍵方案</div>
+            <div class="ll-set-row">
+              <div class="ll-set-meta">
+                <div class="ll-set-subhead">自動練功（內掛符石 / H）</div>
+                <div class="ll-set-sub" data-role="auto-status-sub">${esc(this.autoHunt.statusLabel)}</div>
+              </div>
+              ${this.#renderSwitchHtml('data-auto-toggle', 'enabled', cfg.enabled, '切換自動狩獵')}
+            </div>
+            <div class="ll-set-presets ll-set-sep">
+              ${Object.entries(AUTO_PRESETS)
+                .map(
+                  ([id, pre]) => `
+                <button type="button" class="ll-set-pill ${cfg.preset === id ? 'active' : ''}" data-auto-preset="${esc(id)}">${esc(pre.label)}</button>
+              `,
+                )
+                .join('')}
+              <button type="button" class="ll-set-pill" data-auto-act="resetAnchor">重設錨點</button>
+              <button type="button" class="ll-set-pill" data-auto-act="resetStats">清除統計</button>
+              <button type="button" class="ll-set-pill" data-auto-act="resetConfig">回復預設</button>
+            </div>
+            <div class="ll-set-stats-grid ll-set-sep" data-role="auto-live-stats">
+              ${this.#renderAutoTelemetryHtml(summary)}
+            </div>
           </div>
-          <div class="ll-list-row">
-            <span>索敵巡邏半徑：${cfg.radius} 格</span>
-            <input type="range" min="6" max="24" step="2" value="${cfg.radius}" data-auto-range="radius" />
+
+          <!-- 卡片 3：智慧尋路、障礙碰撞偵測與重規劃（明確排除怪物） -->
+          <div class="ll-set-card">
+            <div class="ll-set-card-title">碰撞／牆壁／建築偵測與路徑規劃（怪物除外）</div>
+            <div class="ll-set-row">
+              <span class="ll-set-muted">狩獵範圍模式</span>
+              <select class="ll-set-select ll-set-sel-light" data-auto-select="huntMode" aria-label="狩獵範圍模式">
+                <option value="anchor" ${cfg.huntMode === 'anchor' ? 'selected' : ''}>定錨巡邏 (範圍內折返)</option>
+                <option value="roam" ${cfg.huntMode === 'roam' ? 'selected' : ''}>全圖漫遊 (隨推進擴展)</option>
+                <option value="stationary" ${cfg.huntMode === 'stationary' ? 'selected' : ''}>定點原位 (遠攻不動)</option>
+              </select>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <span class="ll-set-muted">索敵巡邏半徑</span>
+              <div class="ll-set-slider-wrap">
+                <input type="range" class="ll-set-range" min="6" max="26" step="2" value="${cfg.radius}" data-auto-range="radius" aria-label="索敵巡邏半徑" />
+                <span class="ll-set-pct" data-auto-val="radius">${cfg.radius} 格</span>
+              </div>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <span class="ll-set-muted">決策頻率／前瞻步數</span>
+              <div class="ll-set-inline-controls">
+                <select class="ll-set-select ll-set-sel-light" data-auto-select="tickMs" aria-label="決策頻率">
+                  <option value="180" ${Number(cfg.tickMs) === 180 ? 'selected' : ''}>極速 180ms</option>
+                  <option value="260" ${Number(cfg.tickMs) === 260 ? 'selected' : ''}>迅速 260ms</option>
+                  <option value="280" ${Number(cfg.tickMs) === 280 ? 'selected' : ''}>標準 280ms</option>
+                  <option value="380" ${Number(cfg.tickMs) === 380 ? 'selected' : ''}>平衡 380ms</option>
+                  <option value="550" ${Number(cfg.tickMs) === 550 ? 'selected' : ''}>節能 550ms</option>
+                </select>
+                <input type="range" class="ll-set-range ll-set-range-sm" min="2" max="8" step="1" value="${cfg.obstacleLookahead ?? 4}" data-auto-range="obstacleLookahead" aria-label="前瞻步數" />
+                <span class="ll-set-pct" data-auto-val="obstacleLookahead">${cfg.obstacleLookahead ?? 4} 格</span>
+              </div>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <label class="ll-set-hp-wrap">
+                <span>卡點</span>
+                <input type="number" class="ll-set-num" min="2" max="15" step="1" value="${cfg.stuckTimeoutSec ?? 3}" data-auto-num="stuckTimeoutSec" aria-label="卡點判定秒數" />
+                <span>秒對策</span>
+              </label>
+              <select class="ll-set-select ll-set-sel-light" data-auto-select="stuckRecovery" aria-label="卡點對策">
+                <option value="replan" ${cfg.stuckRecovery === 'replan' ? 'selected' : ''}>自動改目標與重新尋路</option>
+                <option value="teleport" ${cfg.stuckRecovery === 'teleport' ? 'selected' : ''}>使用瞬移／指定傳送脫困</option>
+                <option value="recall" ${cfg.stuckRecovery === 'recall' ? 'selected' : ''}>使用回卷返村</option>
+              </select>
+            </div>
+            <div class="ll-set-grid-2 ll-set-sep">
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="obstacleAvoidance" ${cfg.obstacleAvoidance !== false ? 'checked' : ''} />
+                <span class="ll-set-amber">障礙／牆壁／建築碰撞重算</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="avoidWallHug" ${cfg.avoidWallHug !== false ? 'checked' : ''} />
+                <span class="ll-set-muted">路徑盡量遠離牆角邊緣</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="avoidPortals" ${cfg.avoidPortals !== false ? 'checked' : ''} />
+                <span class="ll-set-sky">巡邏自動避開傳送點／樓梯</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="avoidSafetyBorder" ${cfg.avoidSafetyBorder !== false ? 'checked' : ''} />
+                <span class="ll-set-muted">避開安全區邊界線</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="switchOnBlocked" ${cfg.switchOnBlocked !== false ? 'checked' : ''} />
+                <span class="ll-set-emerald">靜態地形阻隔自動換怪</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="showNavDebug" ${cfg.showNavDebug ? 'checked' : ''} />
+                <span class="ll-set-cyan">顯示路徑、錨點與障礙標記</span>
+              </label>
+            </div>
           </div>
-          <div class="ll-list-row">
-            <span>自動拾取地上戰利品</span>
-            <button type="button" class="ll-act-btn" data-auto-toggle="pickup">${cfg.pickupDrops ? '已開啟' : '已關閉'}</button>
+
+          <!-- 卡片 4：雙階喝水、治癒法術、緊急避難與狀態恢復 -->
+          <div class="ll-set-card">
+            <div class="ll-set-card-title">補給喝水、治癒法術與緊急撤退</div>
+            <div class="ll-set-row">
+              <select class="ll-set-select ${potToneClass}" data-auto-select="preferredPot" aria-label="優先自動飲用藥水">
+                <option value="auto" class="ll-pot-auto" ${prefPot === 'auto' ? 'selected' : ''}>自動順序喝水</option>
+                <option value="紅色藥水" class="ll-pot-red" ${prefPot === '紅色藥水' ? 'selected' : ''}>紅色藥水</option>
+                <option value="橙色藥水" class="ll-pot-orange" ${prefPot === '橙色藥水' ? 'selected' : ''}>橙色藥水</option>
+                <option value="白色藥水" class="ll-pot-white" ${prefPot === '白色藥水' ? 'selected' : ''}>白色藥水</option>
+              </select>
+              <div class="ll-set-pot-right">
+                <label class="ll-set-hp-wrap">
+                  <span>HP &lt;</span>
+                  <input type="number" class="ll-set-num" min="15" max="90" step="5" value="${cfg.potThreshold}" data-auto-num="potThreshold" aria-label="自動喝水血量百分比" />
+                  <span>%</span>
+                </label>
+                ${this.#renderSwitchHtml('data-auto-toggle', 'pot', cfg.potEnabled, '切換自動喝水')}
+              </div>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <span class="ll-set-muted">二階緊急大水</span>
+              <div class="ll-set-pot-right">
+                <select class="ll-set-select ll-pot-white" data-auto-select="emergencyPot" aria-label="二階緊急藥水">
+                  <option value="白色藥水" ${(cfg.emergencyPot || '白色藥水') === '白色藥水' ? 'selected' : ''}>白色藥水</option>
+                  <option value="橙色藥水" ${cfg.emergencyPot === '橙色藥水' ? 'selected' : ''}>橙色藥水</option>
+                  <option value="紅色藥水" ${cfg.emergencyPot === '紅色藥水' ? 'selected' : ''}>紅色藥水</option>
+                </select>
+                <label class="ll-set-hp-wrap">
+                  <span>HP &lt;</span>
+                  <input type="number" class="ll-set-num" min="5" max="65" step="2" value="${cfg.emergencyPotThreshold ?? 28}" data-auto-num="emergencyPotThreshold" aria-label="緊急大水血量百分比" />
+                  <span>%</span>
+                </label>
+              </div>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoHealSpell" ${cfg.autoHealSpell !== false ? 'checked' : ''} />
+                <span class="ll-set-emerald">自動治癒法術</span>
+              </label>
+              <div class="ll-set-pot-right">
+                <select class="ll-set-select ll-set-sel-light" data-auto-select="healSpellMode" aria-label="治癒法術階級">
+                  <option value="auto" ${(cfg.healSpellMode || 'auto') === 'auto' ? 'selected' : ''}>智慧擇優 (高/中/初)</option>
+                  <option value="greater" ${cfg.healSpellMode === 'greater' ? 'selected' : ''}>高級治癒優先</option>
+                  <option value="medium" ${cfg.healSpellMode === 'medium' ? 'selected' : ''}>中級治癒優先</option>
+                  <option value="light" ${cfg.healSpellMode === 'light' ? 'selected' : ''}>初級治癒省魔</option>
+                </select>
+                <label class="ll-set-hp-wrap">
+                  <span>HP &lt;</span>
+                  <input type="number" class="ll-set-num" min="15" max="95" step="5" value="${cfg.healSpellThreshold ?? 62}" data-auto-num="healSpellThreshold" aria-label="自動治癒血量百分比" />
+                  <span>%</span>
+                </label>
+              </div>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <span class="ll-set-muted">藥水耗盡時動作</span>
+              <select class="ll-set-select ll-set-sel-light" data-auto-select="noPotAction" aria-label="藥水耗盡對策">
+                <option value="keep" ${(cfg.noPotAction || 'keep') === 'keep' ? 'selected' : ''}>繼續掛機（依賴治癒法術）</option>
+                <option value="home" ${cfg.noPotAction === 'home' ? 'selected' : ''}>立即回村並停掛</option>
+                <option value="pause" ${cfg.noPotAction === 'pause' ? 'selected' : ''}>原地暫停掛機</option>
+              </select>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="escapeEnabled" ${cfg.escapeEnabled ? 'checked' : ''} />
+                <span style="color:#fda4af;">殘血緊急撤退</span>
+              </label>
+              <div class="ll-set-pot-right">
+                <label class="ll-set-hp-wrap">
+                  <span>HP &le;</span>
+                  <input type="number" class="ll-set-num" min="5" max="55" step="2" value="${cfg.escapeHpPercent ?? 18}" data-auto-num="escapeHpPercent" aria-label="撤退血量百分比" />
+                  <span>%</span>
+                </label>
+                <select class="ll-set-select ll-set-sel-light" data-auto-select="escapeAction" aria-label="撤退方式">
+                  <option value="home" ${(cfg.escapeAction || 'home') === 'home' ? 'selected' : ''}>回村卷軸保命</option>
+                  <option value="teleport" ${cfg.escapeAction === 'teleport' ? 'selected' : ''}>隨機瞬間移動</option>
+                </select>
+              </div>
+            </div>
+            <div class="ll-set-grid-2 ll-set-sep">
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoCurePoison" ${cfg.autoCurePoison !== false ? 'checked' : ''} />
+                <span style="color:#e9d5ff;">中毒喝翡翠／施放解毒</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoEatFood" ${cfg.autoEatFood !== false ? 'checked' : ''} />
+                <span class="ll-set-muted">飢餓 &le; ${cfg.autoEatThreshold ?? 25}% 自動吃肉</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 卡片 5：索敵優先序、等級／名稱過濾、拉打走位與換刀 -->
+          <div class="ll-set-card">
+            <div class="ll-set-card-title">索敵策略、怪物過濾與站位拉打</div>
+            <div class="ll-set-row">
+              <span class="ll-set-muted">目標優先權</span>
+              <select class="ll-set-select ll-set-sel-light" data-auto-select="targetPriority" aria-label="目標優先權">
+                <option value="nearest" ${(cfg.targetPriority || 'nearest') === 'nearest' ? 'selected' : ''}>距離最近優先</option>
+                <option value="aggroFirst" ${cfg.targetPriority === 'aggroFirst' ? 'selected' : ''}>先清主動圍攻者</option>
+                <option value="weakest" ${cfg.targetPriority === 'weakest' ? 'selected' : ''}>殘血目標優先收頭</option>
+                <option value="highestExp" ${cfg.targetPriority === 'highestExp' ? 'selected' : ''}>高經驗怪物優先</option>
+              </select>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <span class="ll-set-muted">怪物等級區間</span>
+              <div class="ll-set-pot-right">
+                <label class="ll-set-hp-wrap">
+                  <span>Lv.</span>
+                  <input type="number" class="ll-set-num" min="1" max="80" step="1" value="${cfg.minMobLevel ?? 1}" data-auto-num="minMobLevel" aria-label="最低目標等級" />
+                </label>
+                <span class="ll-set-muted">~</span>
+                <label class="ll-set-hp-wrap">
+                  <input type="number" class="ll-set-num" min="1" max="99" step="1" value="${cfg.maxMobLevel ?? 45}" data-auto-num="maxMobLevel" aria-label="最高目標等級" />
+                </label>
+              </div>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <select class="ll-set-select ll-set-sel-light" data-auto-select="mobFilterMode" aria-label="怪物名單模式">
+                <option value="all" ${(cfg.mobFilterMode || 'all') === 'all' ? 'selected' : ''}>不限怪物名單</option>
+                <option value="whitelist" ${cfg.mobFilterMode === 'whitelist' ? 'selected' : ''}>只攻擊白名單</option>
+                <option value="blacklist" ${cfg.mobFilterMode === 'blacklist' ? 'selected' : ''}>排除黑名單</option>
+              </select>
+              <input type="text" class="ll-set-text" data-auto-text="mobFilterNames" value="${esc(cfg.mobFilterNames || '')}" placeholder="輸入或點下方怪名（逗號分隔）" aria-label="怪物過濾名單" />
+            </div>
+            ${
+              mapMobNames.length
+                ? `
+              <div class="ll-set-chips">
+                ${mapMobNames
+                  .map(
+                    (nm) => `<button type="button" class="ll-set-chip ${filterSet.has(nm) ? 'is-selected' : ''}" data-mob-chip="${esc(nm)}">${esc(nm)}</button>`,
+                  )
+                  .join('')}
+              </div>
+            `
+                : ''
+            }
+            <div class="ll-set-grid-2 ll-set-sep">
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="retaliateAggro" ${cfg.retaliateAggro !== false ? 'checked' : ''} />
+                <span class="ll-set-amber">遭圍攻時優先自衛反擊</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="skipCritters" ${cfg.skipCritters !== false ? 'checked' : ''} />
+                <span class="ll-set-muted">略過無威脅小動物 (鹿／兔)</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="avoidBoss" ${cfg.avoidBoss !== false ? 'checked' : ''} />
+                <span class="ll-set-muted">避開 Lv.32+ 高階強敵</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="safeLevelCap" ${cfg.safeLevelCap ? 'checked' : ''} />
+                <span class="ll-set-muted">不打高過自身 +10 級怪</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="kiteRanged" ${cfg.kiteRanged ? 'checked' : ''} />
+                <span class="ll-set-sky">遠程拉打走位 (${cfg.kiteDistance ?? 2} 格)</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="switchMeleeNoArrows" ${cfg.switchMeleeNoArrows !== false ? 'checked' : ''} />
+                <span class="ll-set-muted">無箭矢自動切回近戰武器</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 卡片 6：狀態藥水、補助與攻擊法術控魔 -->
+          <div class="ll-set-card">
+            <div class="ll-set-card-title">輔助狀態、攻擊／範圍法術與魔力保留</div>
+            <div class="ll-set-grid-2">
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoHaste" ${cfg.autoHaste ? 'checked' : ''} />
+                <span style="color:#86efac;">自我加速藥水／加速術</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoBrave" ${cfg.autoBrave ? 'checked' : ''} />
+                <span style="color:#d8b4fe;">勇敢藥水／精靈餅乾</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoBlue" ${cfg.autoBlue ? 'checked' : ''} />
+                <span style="color:#93c5fd;">藍色藥水（自動回魔）</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoWisdom" ${cfg.autoWisdom ? 'checked' : ''} />
+                <span style="color:#c4b5fd;">慎重藥水（魔攻回魔）</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoDefBuffs" ${cfg.autoDefBuffs !== false ? 'checked' : ''} />
+                <span class="ll-set-cyan">保護罩／鎧甲護持／魔屏</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoCombatBuffs" ${cfg.autoCombatBuffs ? 'checked' : ''} />
+                <span class="ll-set-amber">神聖祝福／通暢／體魄</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoMeditate" ${cfg.autoMeditate ? 'checked' : ''} />
+                <span class="ll-set-sky">脫戰低魔自動冥想術</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoVampireTouch" ${cfg.autoVampireTouch !== false ? 'checked' : ''} />
+                <span style="color:#fda4af;">缺血自動吸血鬼之吻</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoTurnUndead" ${cfg.autoTurnUndead ? 'checked' : ''} />
+                <span style="color:#fde68a;">對不死系起死回生術</span>
+              </label>
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="autoAttackSpell" ${cfg.autoAttackSpell ? 'checked' : ''} />
+                <span class="ll-set-emerald">自動施放攻擊／AOE 法術</span>
+              </label>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <select class="ll-set-select ll-set-sel-light" data-auto-select="attackSpellId" aria-label="指定攻擊法術">
+                <option value="auto" ${(cfg.attackSpellId || 'auto') === 'auto' ? 'selected' : ''}>智慧擇優 (多怪轉 AOE)</option>
+                ${learnedAtkSpells
+                  .map(
+                    (s) => `<option value="${s.id}" ${String(cfg.attackSpellId) === String(s.id) ? 'selected' : ''}>${esc(s.name)} (MP ${s.mp})</option>`,
+                  )
+                  .join('')}
+              </select>
+              <div class="ll-set-pot-right">
+                <label class="ll-set-hp-wrap">
+                  <span>留魔</span>
+                  <input type="number" class="ll-set-num" min="0" max="80" step="5" value="${cfg.minMpReservePct ?? 25}" data-auto-num="minMpReservePct" aria-label="魔力保留百分比" />
+                  <span>%</span>
+                </label>
+                <label class="ll-set-hp-wrap">
+                  <span>群攻&ge;</span>
+                  <input type="number" class="ll-set-num" min="2" max="8" step="1" value="${cfg.aoeMinCount ?? 2}" data-auto-num="aoeMinCount" aria-label="群攻怪物隻數門檻" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 7：戰利品篩選、撿取優先序與負重保護 -->
+          <div class="ll-set-card">
+            <div class="ll-set-card-title">戰利品拾取篩選與負重管控</div>
+            <div class="ll-set-row">
+              <label class="ll-set-check">
+                <input type="checkbox" data-auto-check="pickupDrops" ${cfg.pickupDrops ? 'checked' : ''} />
+                <span class="ll-set-emerald">自動拾取戰利品</span>
+              </label>
+              <select class="ll-set-select ll-set-sel-light" data-auto-select="lootFilter" aria-label="拾取過濾條件">
+                <option value="all" ${(cfg.lootFilter || 'all') === 'all' ? 'selected' : ''}>拾取全部掉落物</option>
+                <option value="goldAndGear" ${cfg.lootFilter === 'goldAndGear' ? 'selected' : ''}>僅金幣與武器裝備</option>
+                <option value="valuable" ${cfg.lootFilter === 'valuable' ? 'selected' : ''}>高價值 (金幣/裝/捲/寶石)</option>
+                <option value="goldOnly" ${cfg.lootFilter === 'goldOnly' ? 'selected' : ''}>只拾取金幣</option>
+              </select>
+            </div>
+            <div class="ll-set-row ll-set-sep">
+              <select class="ll-set-select ll-set-sel-light" data-auto-select="pickupPriority" aria-label="拾取時機">
+                <option value="afterKill" ${(cfg.pickupPriority || 'afterKill') === 'afterKill' ? 'selected' : ''}>清怪後再拾取</option>
+                <option value="immediate" ${cfg.pickupPriority === 'immediate' ? 'selected' : ''}>見寶優先拾取</option>
+                <option value="whenSafe" ${cfg.pickupPriority === 'whenSafe' ? 'selected' : ''}>低風險時拾取</option>
+              </select>
+              <div class="ll-set-pot-right">
+                <label class="ll-set-hp-wrap">
+                  <span>半徑</span>
+                  <input type="number" class="ll-set-num" min="2" max="24" step="2" value="${cfg.pickupRadius ?? 12}" data-auto-num="pickupRadius" aria-label="拾取半徑格數" />
+                </label>
+                <label class="ll-set-hp-wrap">
+                  <span>負重&lt;</span>
+                  <input type="number" class="ll-set-num" min="50" max="100" step="5" value="${cfg.maxWeightPct ?? 85}" data-auto-num="maxWeightPct" aria-label="停止拾取物品之負重上限百分比" />
+                  <span>%</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     `;
+  }
+
+  #renderAutoModalHtml() {
+    return this.#renderSettingsModalHtml();
   }
 
   #renderSystemModalHtml() {
-    const muted = this.world.audio.muted;
-    const p = this.world.player;
-    const homeTown = resolveHomeTown(p.map, p.tx, p.ty);
-    return `
-      <div class="ll-win">
-        <div class="ll-win-head">
-          <h3 class="ll-win-title">系統選單 — 天堂 1.63 亞丁實境</h3>
-          <button type="button" class="ll-win-close" data-close-modal="1">關閉</button>
-        </div>
-        <div class="ll-win-body">
-          <div class="ll-list-row">
-            <span>背景音樂與音效</span>
-            <button type="button" class="ll-act-btn" data-sys-act="mute">${muted ? '目前靜音 · 點擊開啟' : '開啟中 · 點擊靜音'}</button>
-          </div>
-          <div class="ll-list-row">
-            <span>立刻手動存檔（同步帳號進度）</span>
-            <button type="button" class="ll-act-btn" data-sys-act="save">儲存角色資料</button>
-          </div>
-          <div class="ll-list-row">
-            <span>緊急脫離卡點（傳送回 ${esc(homeTown.label)}）</span>
-            <button type="button" class="ll-act-btn secondary" data-sys-act="home">傳回村莊</button>
-          </div>
-          <div class="ll-list-row">
-            <span>儲存並登出至角色選擇畫面</span>
-            <button type="button" class="ll-act-btn" data-sys-act="lobby">回選角大廳</button>
-          </div>
-        </div>
-      </div>
-    `;
+    return this.#renderSettingsModalHtml();
+  }
+
+  cancelEnchantMode(logMsg = '已取消裝備強化模式。') {
+    if (!this.pendingEnchant) return;
+    this.pendingEnchant = null;
+    if (logMsg) this.world.addLog(logMsg, 'info');
+    if (this.activeModal === 'inventory') this.renderModal();
+    this.sync(true);
   }
 
   #handleUseResult(res) {
+    if (res?.enterEnchant) {
+      this.pendingEnchant = { ...res.enterEnchant, warn: '' };
+      this.pendingDiscardId = null;
+      this.activeModal = 'inventory';
+      this.world.addLog(
+        `進入強化模式：請點擊背包中的【${res.enterEnchant.rule.label}】以使用 ${res.enterEnchant.scrollName}（右鍵或 Esc 可取消）。`,
+        'cyan',
+      );
+      this.renderModal();
+      this.sync(true);
+      return true;
+    }
     if (res?.openModal) {
       if (res.scrollId) this.pendingPolyScrollId = res.scrollId;
+      this.pendingEnchant = null;
       this.activeModal = res.openModal;
       this.renderModal();
       this.sync(true);
@@ -1765,6 +2539,11 @@ export class GameHud {
       return;
     }
 
+    if (ev.target.closest('[data-cancel-enchant]')) {
+      this.cancelEnchantMode('已取消裝備強化模式。');
+      return;
+    }
+
     const openWin = ev.target.closest('[data-open-win]');
     if (openWin) {
       if (openWin.dataset.preselectItem) this.selectedItemId = openWin.dataset.preselectItem;
@@ -1776,6 +2555,7 @@ export class GameHud {
     if (invFilterBtn) {
       this.invFilter = invFilterBtn.dataset.invFilter || 'all';
       this.pendingDiscardId = null;
+      this._resetModalScroll = true;
       this.renderModal();
       return;
     }
@@ -1843,6 +2623,24 @@ export class GameHud {
     if (selItemBtn) {
       const id = selItemBtn.dataset.selectItem;
       this.pendingDiscardId = null;
+      if (this.pendingEnchant) {
+        if (id === this.pendingEnchant.scrollId) {
+          this.cancelEnchantMode('已取消裝備強化模式。');
+          return;
+        }
+        const encRes = this.world.enchantItemWithScroll(this.pendingEnchant.scrollId, id);
+        if (encRes.ok) {
+          this.pendingEnchant = null;
+          if (encRes.destroyed && this.selectedItemId === id) this.selectedItemId = null;
+          else if (!encRes.destroyed) this.selectedItemId = id;
+        } else {
+          this.pendingEnchant.warn = encRes.reason || '無法強化此物品。';
+          this.selectedItemId = id;
+        }
+        this.renderModal();
+        this.sync(true);
+        return;
+      }
       if (this.selectedItemId === id) {
         if (this.#handleUseResult(this.world.useItem(id))) return;
       } else {
@@ -1855,8 +2653,14 @@ export class GameHud {
 
     const useSel = ev.target.closest('[data-use-selected]');
     if (useSel) {
+      const id = useSel.dataset.useSelected;
       this.pendingDiscardId = null;
-      if (this.#handleUseResult(this.world.useItem(useSel.dataset.useSelected))) return;
+      if (this.pendingEnchant && id === this.pendingEnchant.scrollId) {
+        this.cancelEnchantMode('已取消裝備強化模式。');
+        return;
+      }
+      this.pendingEnchant = null;
+      if (this.#handleUseResult(this.world.useItem(id))) return;
       this.renderModal();
       this.sync(true);
       return;
@@ -2102,6 +2906,27 @@ export class GameHud {
       return;
     }
 
+    const shopTabBtn = ev.target.closest('[data-shop-tab]');
+    if (shopTabBtn && this.npcSession) {
+      this.shopTab = shopTabBtn.dataset.shopTab || 'all';
+      this.renderModal();
+      return;
+    }
+
+    const shopResetBtn = ev.target.closest('[data-shop-reset]');
+    if (shopResetBtn && this.npcSession) {
+      this.npcShopQty = {};
+      this.npcShopTouched.clear();
+      this.renderModal();
+      return;
+    }
+
+    const shopBatchBtn = ev.target.closest('[data-shop-buy-batch]');
+    if (shopBatchBtn && this.npcSession) {
+      this.#buyShopBatch();
+      return;
+    }
+
     const stepBtn = ev.target.closest('[data-shop-step]');
     if (stepBtn && this.npcSession) {
       const [idxStr, deltaStr] = stepBtn.dataset.shopStep.split(':');
@@ -2185,6 +3010,55 @@ export class GameHud {
       return;
     }
 
+    const prefBtn = ev.target.closest('[data-pref-toggle]');
+    if (prefBtn) {
+      const key = prefBtn.dataset.prefToggle;
+      const cur = this.world.displayPrefs?.[key] !== false;
+      const next = !cur;
+      this.world.setDisplayPref(key, next);
+      prefBtn.classList.toggle('is-on', next);
+      prefBtn.setAttribute('aria-checked', next ? 'true' : 'false');
+      const lbl = prefBtn.querySelector('.il-switch-label');
+      if (lbl) lbl.textContent = next ? '開' : '關';
+      return;
+    }
+
+    const presetBtn = ev.target.closest('[data-auto-preset]');
+    if (presetBtn) {
+      this.autoHunt.applyPreset(presetBtn.dataset.autoPreset);
+      this.renderModal();
+      this.sync(true);
+      return;
+    }
+
+    const autoActBtn = ev.target.closest('[data-auto-act]');
+    if (autoActBtn) {
+      const act = autoActBtn.dataset.autoAct;
+      if (act === 'resetAnchor') this.autoHunt.resetAnchor();
+      else if (act === 'resetStats') this.autoHunt.resetStats();
+      else if (act === 'resetConfig') this.autoHunt.resetConfigToDefaults();
+      this.renderModal();
+      this.sync(true);
+      return;
+    }
+
+    const mobChip = ev.target.closest('[data-mob-chip]');
+    if (mobChip) {
+      const mobName = mobChip.dataset.mobChip;
+      const cfg = this.world.player.autoConfig;
+      const list = [...this.autoHunt.getMobFilterSet()];
+      const idx = list.indexOf(mobName);
+      if (idx === -1) list.push(mobName);
+      else list.splice(idx, 1);
+      cfg.mobFilterNames = list.join(', ');
+      if (cfg.mobFilterMode === 'all' && list.length > 0) {
+        cfg.mobFilterMode = 'blacklist';
+      }
+      this.world.dirtySave = true;
+      this.renderModal();
+      return;
+    }
+
     const autoBtn = ev.target.closest('[data-auto-toggle]');
     if (autoBtn) {
       const kind = autoBtn.dataset.autoToggle;
@@ -2223,6 +3097,24 @@ export class GameHud {
     }
   }
 
+  #clampAutoNum(inputEl, key) {
+    const min = inputEl.min !== '' ? Number(inputEl.min) : 0;
+    const max = inputEl.max !== '' ? Number(inputEl.max) : 100;
+    const defVal = DEFAULT_AUTO_CONFIG[key] ?? min;
+    const parsed = Number(inputEl.value);
+    const base = Number.isFinite(parsed) ? parsed : defVal;
+    const clamped = Math.max(min, Math.min(max, Math.round(base)));
+    const cfg = this.world.player.autoConfig;
+    cfg[key] = clamped;
+    if (key === 'minMobLevel' && cfg.minMobLevel > (cfg.maxMobLevel ?? 99)) {
+      cfg.maxMobLevel = cfg.minMobLevel;
+    } else if (key === 'maxMobLevel' && cfg.maxMobLevel < (cfg.minMobLevel ?? 1)) {
+      cfg.minMobLevel = cfg.maxMobLevel;
+    }
+    this.world.dirtySave = true;
+    return clamped;
+  }
+
   #handleModalInput(ev) {
     const qtyInput = ev.target.closest('[data-shop-qty]');
     if (qtyInput && this.npcSession) {
@@ -2233,24 +3125,111 @@ export class GameHud {
       if (!raw) return;
       const parsed = Math.max(1, Math.min(9999, Math.floor(Number(raw) || 1)));
       this.npcShopQty[idx] = parsed;
+      this.npcShopTouched.add(idx);
       this.#refreshShopTotalDom(idx, entry, parsed);
+      return;
+    }
+
+    const audioRng = ev.target.closest('[data-audio-range]');
+    if (audioRng) {
+      const kind = audioRng.dataset.audioRange;
+      const v = Math.max(0, Math.min(100, Math.round(Number(audioRng.value) || 0)));
+      if (kind === 'sfx') this.world.audio.setSfxVol(v);
+      else if (kind === 'bgm') this.world.audio.setBgmVol(v);
+      const valEl = this.elements.modalLayer.querySelector(`[data-audio-val="${kind}"]`);
+      if (valEl) valEl.textContent = `${v}%`;
+      return;
+    }
+
+    const autoText = ev.target.closest('[data-auto-text]');
+    if (autoText) {
+      const key = autoText.dataset.autoText;
+      this.world.player.autoConfig[key] = autoText.value;
+      this.world.dirtySave = true;
+      if (key === 'mobFilterNames') {
+        const set = this.autoHunt.getMobFilterSet();
+        for (const chip of this.elements.modalLayer.querySelectorAll('[data-mob-chip]')) {
+          chip.classList.toggle('is-selected', set.has(chip.dataset.mobChip));
+        }
+      }
+      return;
+    }
+
+    const potNum = ev.target.closest('[data-auto-num]');
+    if (potNum) {
+      if (!potNum.value.trim()) return;
+      this.#clampAutoNum(potNum, potNum.dataset.autoNum);
       return;
     }
 
     const rng = ev.target.closest('[data-auto-range]');
     if (!rng) return;
     const key = rng.dataset.autoRange;
-    this.world.player.autoConfig[key] = Number(rng.value);
+    const val = Number(rng.value);
+    this.world.player.autoConfig[key] = val;
     this.world.dirtySave = true;
-    this.renderModal();
+    const autoValEl = this.elements.modalLayer.querySelector(`[data-auto-val="${key}"]`);
+    if (autoValEl) {
+      autoValEl.textContent = key === 'radius' || key === 'obstacleLookahead' ? `${val} 格` : `${val}%`;
+    } else {
+      this.renderModal();
+    }
   }
 
   #handleModalChange(ev) {
+    const sortSel = ev.target.closest('[data-shop-sort]');
+    if (sortSel && this.npcSession) {
+      this.shopSort = sortSel.value || 'none';
+      this.renderModal();
+      return;
+    }
+
     const qtyInput = ev.target.closest('[data-shop-qty]');
-    if (!qtyInput || !this.npcSession) return;
-    const idx = Number(qtyInput.dataset.shopQty);
-    const entries = this.#resolveNpcShopList(this.npcSession.npc);
-    this.#setShopQtyDom(idx, entries[idx], qtyInput.value || 1);
+    if (qtyInput && this.npcSession) {
+      const idx = Number(qtyInput.dataset.shopQty);
+      const entries = this.#resolveNpcShopList(this.npcSession.npc);
+      this.#setShopQtyDom(idx, entries[idx], qtyInput.value || 1);
+      return;
+    }
+
+    const audioToggle = ev.target.closest('[data-audio-toggle]');
+    if (audioToggle) {
+      const kind = audioToggle.dataset.audioToggle;
+      if (kind === 'sfx') this.world.audio.setSfxOn(audioToggle.checked);
+      else if (kind === 'bgm') this.world.audio.setBgmOn(audioToggle.checked);
+      return;
+    }
+
+    const autoCheck = ev.target.closest('[data-auto-check]');
+    if (autoCheck) {
+      const key = autoCheck.dataset.autoCheck;
+      this.world.player.autoConfig[key] = Boolean(autoCheck.checked);
+      this.world.dirtySave = true;
+      this.sync(true);
+      return;
+    }
+
+    const autoSel = ev.target.closest('[data-auto-select]');
+    if (autoSel) {
+      const key = autoSel.dataset.autoSelect;
+      const rawVal = autoSel.value;
+      this.world.player.autoConfig[key] = key === 'tickMs' || key === 'aoeMinCount' ? Number(rawVal) : rawVal;
+      if (key === 'preferredPot') {
+        autoSel.classList.remove('ll-pot-auto', 'll-pot-red', 'll-pot-orange', 'll-pot-white');
+        autoSel.classList.add(
+          rawVal === '紅色藥水' ? 'll-pot-red' : rawVal === '橙色藥水' ? 'll-pot-orange' : rawVal === '白色藥水' ? 'll-pot-white' : 'll-pot-auto',
+        );
+      }
+      this.world.dirtySave = true;
+      return;
+    }
+
+    const potNum = ev.target.closest('[data-auto-num]');
+    if (potNum) {
+      const key = potNum.dataset.autoNum;
+      const clamped = this.#clampAutoNum(potNum, key);
+      potNum.value = String(clamped);
+    }
   }
 
   sync(force = false) {
@@ -2363,10 +3342,17 @@ export class GameHud {
       `;
     }
 
-    const radarSig = `${p.map}:${p.tx}:${p.ty}:${this.world.mobs.filter((m) => m.hp > 0).length}:${this.world.remotePeers.length}:${p.pet ? `${p.pet.tx}:${p.pet.ty}` : ''}`;
+    const radarSig = `${p.map}:${p.tx}:${p.ty}:${this.world.mobs.filter((m) => m.hp > 0).length}:${this.world.remotePeers.length}:${p.pet ? `${p.pet.tx}:${p.pet.ty}` : ''}:${this.autoHunt.stats?.replans || 0}:${p.autoConfig?.showNavDebug ? 1 : 0}`;
     if (force || radarSig !== this.lastRadarSig) {
       this.lastRadarSig = radarSig;
       this.#paintRadarCanvas(el.radarCanvas, 65, { step: 2, walkColor: '#364a5e' });
+    }
+
+    if (this.activeModal === 'auto' || this.activeModal === 'system') {
+      const statusEl = this.elements.modalLayer.querySelector('[data-role="auto-status-sub"]');
+      if (statusEl) statusEl.textContent = this.autoHunt.statusLabel;
+      const statsEl = this.elements.modalLayer.querySelector('[data-role="auto-live-stats"]');
+      if (statsEl) statsEl.innerHTML = this.#renderAutoTelemetryHtml(this.autoHunt.getSummary(now));
     }
 
     el.hudAutoBtn?.classList.toggle('active', Boolean(p.autoConfig.enabled));

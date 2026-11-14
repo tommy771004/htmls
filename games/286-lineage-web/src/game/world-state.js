@@ -1,6 +1,14 @@
 // 286 天堂實境客戶端：全 64 張地圖世界模擬、角色屬性、戰鬥掉落、法術、商店與倉庫存檔
 import { tileToWorld, tileDistance, headingBetween, HEADING_DELTAS } from './map-iso.js';
 import {
+  computeDerivedAbilities,
+  computeInitialHp,
+  computeInitialMp,
+  getSpellMpDiscount,
+  LINEAGE_REAL_BASE_STATS,
+  normalizeAbilityClassId,
+} from './ability-tables.js';
+import {
   MAP_NAMES,
   getMapMeta,
   isSafetyZone,
@@ -8,6 +16,74 @@ import {
 } from './world-maps.js';
 
 export { MAP_NAMES };
+
+export const DEFAULT_AUTO_CONFIG = {
+  enabled: false,
+  preset: 'custom',
+  // 補給與緊急保命
+  potEnabled: true,
+  preferredPot: 'auto',
+  potThreshold: 55,
+  emergencyPotThreshold: 28,
+  emergencyPot: '白色藥水',
+  autoHealSpell: true,
+  healSpellThreshold: 62,
+  healSpellMode: 'auto',
+  escapeEnabled: false,
+  escapeHpPercent: 18,
+  escapeAction: 'home',
+  noPotAction: 'keep',
+  autoCurePoison: true,
+  autoEatFood: true,
+  autoEatThreshold: 25,
+  // 尋路與靜態障礙閃避（不含怪物）
+  huntMode: 'anchor',
+  radius: 14,
+  tickMs: 280,
+  obstacleAvoidance: true,
+  obstacleLookahead: 4,
+  avoidWallHug: true,
+  avoidPortals: true,
+  avoidSafetyBorder: true,
+  stuckTimeoutSec: 3,
+  stuckRecovery: 'replan',
+  showNavDebug: false,
+  // 目標篩選與戰術站位
+  targetPriority: 'nearest',
+  retaliateAggro: true,
+  switchOnBlocked: true,
+  skipCritters: true,
+  avoidBoss: true,
+  minMobLevel: 1,
+  maxMobLevel: 45,
+  safeLevelCap: false,
+  mobFilterMode: 'all',
+  mobFilterNames: '',
+  kiteRanged: false,
+  kiteDistance: 2,
+  switchMeleeNoArrows: true,
+  // 輔助狀態與攻擊法術
+  autoHaste: false,
+  autoBrave: false,
+  autoBlue: false,
+  autoWisdom: false,
+  autoDefBuffs: true,
+  autoCombatBuffs: false,
+  autoMeditate: false,
+  autoAttackSpell: false,
+  attackSpellId: 'auto',
+  minMpReservePct: 25,
+  aoeMinCount: 2,
+  autoTurnUndead: false,
+  autoVampireTouch: true,
+  // 戰利品與負重管理
+  pickupDrops: true,
+  lootFilter: 'all',
+  pickupPriority: 'afterKill',
+  pickupRadius: 12,
+  maxWeightPct: 85,
+  anchor: null,
+};
 
 const QUICKBAR_DEFAULT_BY_CLASS = {
   royal: [
@@ -180,6 +256,7 @@ export class LineageWorld {
 
     this.saveKey = `ll286:${this.username}:world_slot_${character.slot ?? 0}`;
     this.storagePrefix = `ll286:${this.username}:warehouse`;
+    this.displayPrefs = this.#loadDisplayPrefs();
 
     this.player = this.#initPlayer(character);
     this.warehouse = this.#loadWarehouse();
@@ -200,6 +277,8 @@ export class LineageWorld {
     this.lastSaveAt = performance.now();
     this.lastRegenAt = performance.now();
     this.lastHungerAt = performance.now();
+    this.onAutoToggled = null;
+    this.portalSetByMap = new Map();
 
     this.loadMapEntities(this.player.map);
     this.saveWorld(true);
@@ -236,19 +315,23 @@ export class LineageWorld {
 
     const clsId = char.classId || 'royal';
     const clsCfg = this.worldData.classes[clsId] || this.worldData.classes.royal;
+    const realCfg = LINEAGE_REAL_BASE_STATS[normalizeAbilityClassId(clsId)] || LINEAGE_REAL_BASE_STATS.royal;
     const gfx = Number(char.sex) === 1 ? clsCfg.femaleGfx : clsCfg.maleGfx;
 
     const baseStats = {
-      str: Number(char.str ?? clsCfg.stats.str),
-      con: Number(char.con ?? clsCfg.stats.con),
-      dex: Number(char.dex ?? clsCfg.stats.dex),
-      wis: Number(char.wis ?? clsCfg.stats.wis),
-      cha: Number(char.cha ?? clsCfg.stats.cha),
-      int: Number(char.int ?? clsCfg.stats.int),
+      str: Number(char.str ?? realCfg.base.str ?? clsCfg.stats.str),
+      con: Number(char.con ?? realCfg.base.con ?? clsCfg.stats.con),
+      dex: Number(char.dex ?? realCfg.base.dex ?? clsCfg.stats.dex),
+      wis: Number(char.wis ?? realCfg.base.wis ?? clsCfg.stats.wis),
+      cha: Number(char.cha ?? realCfg.base.cha ?? clsCfg.stats.cha),
+      int: Number(char.int ?? realCfg.base.int ?? clsCfg.stats.int),
     };
+    const birthStats = saved?.birthStats || char.birthStats || { ...baseStats };
 
-    const startHp = Number(char.maxHp || char.hp || clsCfg.baseHp);
-    const startMp = Number(char.maxMp || char.mp || clsCfg.baseMp);
+    const initHp = computeInitialHp(clsId) + Math.max(0, baseStats.con - 15);
+    const initMp = computeInitialMp(clsId, baseStats.wis);
+    const startHp = Number(char.maxHp || char.hp || initHp);
+    const startMp = Number(char.maxMp || char.mp || initMp);
 
     const player = {
       id: 'me',
@@ -265,6 +348,7 @@ export class LineageWorld {
       kills: Number(saved?.kills ?? 0),
       quests: saved?.quests || { hunterDone: false, slayerDone: false },
       stats: saved?.stats || baseStats,
+      birthStats,
       hp: Number(saved?.hp ?? startHp),
       maxHp: Number(saved?.maxHp ?? startHp),
       mp: Number(saved?.mp ?? startMp),
@@ -309,14 +393,11 @@ export class LineageWorld {
       spells: saved?.spells || [...(STARTER_SPELLS_BY_CLASS[clsId] || [1])],
       inventory: saved?.inventory || this.#buildStarterInventory(clsCfg, clsId),
       quickbar: saved?.quickbar || JSON.parse(JSON.stringify(QUICKBAR_DEFAULT_BY_CLASS[clsId] || QUICKBAR_DEFAULT_BY_CLASS.royal)),
-      autoConfig: saved?.autoConfig || {
-        enabled: false,
-        potEnabled: true,
-        potThreshold: 55,
-        radius: 14,
-        pickupDrops: true,
-        anchor: null,
+      autoConfig: {
+        ...DEFAULT_AUTO_CONFIG,
+        ...(saved?.autoConfig || {}),
       },
+      lastMoveBlocked: null,
       worldX: 0,
       worldY: 0,
       ac: 10,
@@ -399,13 +480,31 @@ export class LineageWorld {
     const now = performance.now();
     const effStr = p.stats.str + ((p.buffs.strUp || 0) > now ? 5 : 0);
     const effDex = p.stats.dex + ((p.buffs.dexUp || 0) > now ? 5 : 0);
+    const effCon = p.stats.con;
+    const effWis = p.stats.wis;
+    const effInt = p.stats.int;
+    const effCha = p.stats.cha;
     p.effStr = effStr;
     p.effDex = effDex;
+    p.effCon = effCon;
+    p.effWis = effWis;
+    p.effInt = effInt;
+    p.effCha = effCha;
 
-    let ac = 10 - Math.floor((effDex - 10) / 3);
+    const abilities = computeDerivedAbilities({
+      classId: p.classId,
+      level: p.level,
+      stats: p.stats,
+      effStats: { str: effStr, dex: effDex, con: effCon, wis: effWis, int: effInt, cha: effCha },
+      birthStats: p.birthStats || p.stats,
+    });
+    p.abilities = abilities;
+
+    let ac = 10 - abilities.levelAcRed - abilities.birthAcBonus;
     let bonusHp = 0;
     let bonusMp = 0;
-    let bonusMr = Math.max(0, (p.stats.wis - 10) * 2);
+    let bonusMr = abilities.wisMr;
+    let bonusSp = 0;
     let totalWeight = Math.floor(p.gold * 0.002);
     let activeWeapon = null;
 
@@ -422,6 +521,7 @@ export class LineageWorld {
         bonusMp += def.mp;
         bonusMr += def.mr;
       }
+      bonusSp += def.sp || 0;
     }
 
     if ((p.buffs.shield || 0) > now) ac -= 2;
@@ -435,13 +535,15 @@ export class LineageWorld {
       p.polyBonus = null;
     }
 
-    const maxWeight = Math.max(500, 1000 + effStr * 50 + ((p.buffs.heavy || 0) > now ? 450 : 0));
+    const maxWeight = Math.max(500, abilities.maxWeightBase + ((p.buffs.heavy || 0) > now ? 450 : 0));
     p.ac = ac;
     p.mr = bonusMr;
+    p.er = abilities.er;
     p.sp = Math.max(
       1,
-      1 +
-        Math.floor((p.stats.int - 10) / 3) +
+      abilities.magicLv +
+        abilities.extraSp +
+        bonusSp +
         ((p.buffs.wisdom || 0) > now ? 2 : 0) +
         (isPolied ? (p.polyBonus?.sp || 0) : 0),
     );
@@ -529,10 +631,18 @@ export class LineageWorld {
       p.level += 1;
       leveled = true;
       const cls = this.worldData.classes[p.classId] || this.worldData.classes.royal;
-      const hpGain = Math.max(4, Math.floor((cls.baseHp || 14) * 0.65) + Math.floor((p.stats.con - 10) / 2) + randInt(1, 5));
-      const mpGain = Math.max(1, Math.floor((cls.baseMp || 3) * 0.7) + Math.floor((p.stats.wis - 10) / 2) + randInt(0, 3));
-      p.maxHp = Math.min(cls.maxHpCap || 1500, p.maxHp + hpGain);
-      p.maxMp = Math.min(cls.maxMpCap || 1200, p.maxMp + mpGain);
+      const realCls = LINEAGE_REAL_BASE_STATS[normalizeAbilityClassId(p.classId)] || LINEAGE_REAL_BASE_STATS.royal;
+      const der = computeDerivedAbilities({
+        classId: p.classId,
+        level: p.level,
+        stats: p.stats,
+        effStats: p.stats,
+        birthStats: p.birthStats || p.stats,
+      });
+      const hpGain = Math.max(4, Math.floor((realCls.baseHp || cls.baseHp || 14) * 0.55) + der.hpGrowth + randInt(1, 5));
+      const mpGain = Math.max(1, Math.floor((computeInitialMp(p.classId, p.stats.wis) || 2) * 0.65) + Math.max(0, der.mpGrowth) + randInt(0, 2));
+      p.maxHp = Math.min(realCls.maxHpCap || cls.maxHpCap || 1500, p.maxHp + hpGain);
+      p.maxMp = Math.min(realCls.maxMpCap || cls.maxMpCap || 1200, p.maxMp + mpGain);
       p.hp = p.maxHp;
       p.mp = p.maxMp;
       this.spawnEffect(p.tx, p.ty, 'levelup');
@@ -542,6 +652,33 @@ export class LineageWorld {
     }
     if (leveled) this.recomputePlayerStats();
     return leveled;
+  }
+
+  #loadDisplayPrefs() {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('ll286:display_prefs_v1') : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          return { showVfx: parsed.showVfx !== false, showDamageNums: parsed.showDamageNums !== false };
+        }
+      }
+    } catch {
+      // 忽略
+    }
+    return { showVfx: true, showDamageNums: true };
+  }
+
+  setDisplayPref(key, val) {
+    if (!this.displayPrefs) this.displayPrefs = { showVfx: true, showDamageNums: true };
+    this.displayPrefs[key] = Boolean(val);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('ll286:display_prefs_v1', JSON.stringify(this.displayPrefs));
+      }
+    } catch {
+      // 忽略
+    }
   }
 
   #loadWarehouse() {
@@ -574,6 +711,7 @@ export class LineageWorld {
       kills: p.kills,
       quests: p.quests,
       stats: p.stats,
+      birthStats: p.birthStats || p.stats,
       hp: p.hp,
       maxHp: p.maxHp,
       mp: p.mp,
@@ -658,10 +796,7 @@ export class LineageWorld {
       return { ok: true, cmd: 'loc' };
     }
     if (cmd === '/auto') {
-      p.autoConfig.enabled = !p.autoConfig.enabled;
-      p.autoConfig.anchor = p.autoConfig.enabled ? { map: p.map, x: p.tx, y: p.ty } : null;
-      this.addLog(p.autoConfig.enabled ? '已透過指令開啟內掛。' : '已透過指令關閉內掛。', 'gold');
-      this.dirtySave = true;
+      this.toggleAutoHunt('已透過指令開啟內掛。', '已透過指令關閉內掛。');
       return { ok: true, cmd: 'auto' };
     }
     if (cmd === '/home') {
@@ -921,13 +1056,104 @@ export class LineageWorld {
     return false;
   }
 
-  getOccupiedTileSet(excludeId = null) {
+  /**
+   * 切換自動練功開關並通知外掛控制器重置／保存錨點與統計。
+   */
+  toggleAutoHunt(enableMsg = null, disableMsg = null) {
+    const p = this.player;
+    p.autoConfig.enabled = !p.autoConfig.enabled;
+    p.autoConfig.anchor = p.autoConfig.enabled ? { map: p.map, x: p.tx, y: p.ty } : null;
+    if (p.autoConfig.enabled && enableMsg) this.addLog(enableMsg, 'gold');
+    if (!p.autoConfig.enabled && disableMsg) this.addLog(disableMsg, 'gold');
+    this.onAutoToggled?.(p.autoConfig.enabled);
+    this.dirtySave = true;
+    return p.autoConfig.enabled;
+  }
+
+  /**
+   * 取得指定地圖所有靜態傳送點座標集合（不快取怪物）。
+   */
+  getPortalTileSet(mapId = this.player?.map) {
+    const m = Number(mapId);
+    let set = this.portalSetByMap.get(m);
+    if (!set) {
+      set = new Set();
+      for (const portal of this.worldData.portals || []) {
+        if (portal.map === m) set.add(`${portal.x},${portal.y}`);
+      }
+      this.portalSetByMap.set(m, set);
+    }
+    return set;
+  }
+
+  /**
+   * 取得僅包含靜態實體（NPC）的佔位座標集合，明確排除怪物。
+   */
+  getStaticOccupiedTileSet() {
     const set = new Set();
     for (const n of this.npcs) set.add(`${n.x},${n.y}`);
+    return set;
+  }
+
+  /**
+   * 取得目前地圖上存活怪物佔位集合，僅供軟繞路成本權衡，不當作牆壁障礙。
+   */
+  getMobTileSet(excludeMobId = null) {
+    const set = new Set();
+    for (const m of this.mobs) {
+      if (m.hp > 0 && m.id !== excludeMobId) set.add(`${m.tx},${m.ty}`);
+    }
+    return set;
+  }
+
+  getOccupiedTileSet(excludeId = null) {
+    const set = this.getStaticOccupiedTileSet();
     for (const m of this.mobs) {
       if (m.hp > 0 && m.id !== excludeId) set.add(`${m.tx},${m.ty}`);
     }
     return set;
+  }
+
+  /**
+   * 彙整指定地圖可出沒的怪物名稱清單（供內掛白名單／黑名單勾選）。
+   */
+  getMapMonsterNames(mapId = this.player?.map) {
+    const mId = Number(mapId);
+    const names = new Set();
+    for (const m of this.mobs) {
+      if (m.name) names.add(m.name);
+    }
+    for (const sp of this.worldData.spawns || []) {
+      if (sp.map === mId && sp.name && this.worldData.monsters?.[sp.name]) {
+        names.add(sp.name);
+      }
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+  }
+
+  /**
+   * 共用智慧 A* 尋路入口：硬阻擋僅含靜態障礙（NPC／傳送點／牆壁），怪物只列為軟繞行成本。
+   */
+  computeSmartPath(tx, ty, options = {}) {
+    const p = this.player;
+    const staticBlocked = this.getStaticOccupiedTileSet();
+    if (options.extraStaticBlocked) {
+      for (const k of options.extraStaticBlocked) staticBlocked.add(k);
+    }
+    const mobTiles = options.excludeMobTiles ? null : this.getMobTileSet(options.excludeMobId || null);
+    const useAutoGuards = Boolean(options.useAutoGuards ?? p.autoConfig?.enabled);
+    return this.isoMap.findPathDetailed(p.tx, p.ty, tx, ty, p.map, {
+      blockedSet: staticBlocked,
+      softBlockedSet: mobTiles,
+      softPenalty: options.softPenalty ?? 5,
+      wallMarginCost: p.autoConfig?.avoidWallHug ? 0.14 : 0,
+      goalRange: options.goalRange ?? 0,
+      requireLos: Boolean(options.requireLos),
+      maxNodes: options.maxNodes ?? 2200,
+      allowPartial: options.allowPartial ?? true,
+      portalSet: useAutoGuards && p.autoConfig?.avoidPortals ? this.getPortalTileSet(p.map) : null,
+      avoidSafety: Boolean(useAutoGuards && p.autoConfig?.avoidSafetyBorder),
+    });
   }
 
   setWalkTarget(tx, ty) {
@@ -937,14 +1163,15 @@ export class LineageWorld {
     p.pendingInteractNpcId = null;
     p.pendingPickupId = null;
     p.pendingTrainNpcId = null;
-    const blocked = this.getOccupiedTileSet();
-    p.path = this.isoMap.findPath(p.tx, p.ty, tx, ty, p.map, blocked);
+    p.lastMoveBlocked = null;
+    p.path = this.computeSmartPath(tx, ty, { useAutoGuards: false }).path;
   }
 
   interactOrWalkToNpc(npc) {
     const p = this.player;
     p.targetId = null;
     p.pendingPickupId = null;
+    p.lastMoveBlocked = null;
     if (npc?.type === 'TrainingDummy') {
       p.pendingInteractNpcId = null;
       p.pendingTrainNpcId = npc.id;
@@ -953,8 +1180,7 @@ export class LineageWorld {
         p.path = [];
         this.hitTrainingDummy(npc);
       } else {
-        const blocked = this.getOccupiedTileSet();
-        p.path = this.isoMap.findPath(p.tx, p.ty, npc.x, npc.y, p.map, blocked);
+        p.path = this.computeSmartPath(npc.x, npc.y, { useAutoGuards: false }).path;
       }
       return null;
     }
@@ -964,8 +1190,7 @@ export class LineageWorld {
       return npc;
     }
     p.pendingInteractNpcId = npc.id;
-    const blocked = this.getOccupiedTileSet();
-    p.path = this.isoMap.findPath(p.tx, p.ty, npc.x, npc.y, p.map, blocked);
+    p.path = this.computeSmartPath(npc.x, npc.y, { useAutoGuards: false }).path;
     return null;
   }
 
@@ -1047,8 +1272,8 @@ export class LineageWorld {
       return true;
     }
     p.pendingPickupId = drop.id;
-    const blocked = this.getOccupiedTileSet();
-    p.path = this.isoMap.findPath(p.tx, p.ty, drop.tx, drop.ty, p.map, blocked);
+    const res = this.computeSmartPath(drop.tx, drop.ty);
+    p.path = res.path;
     return false;
   }
 
@@ -1123,7 +1348,7 @@ export class LineageWorld {
     return true;
   }
 
-  useItem(itemOrId) {
+  useItem(itemOrId, explicitTargetId = null) {
     const item = typeof itemOrId === 'string'
       ? this.player.inventory.find((i) => i.id === itemOrId || i.name === itemOrId)
       : itemOrId;
@@ -1170,7 +1395,9 @@ export class LineageWorld {
     if (potHeal[item.name]) {
       if (now - p.lastPotionAt < 500) return { ok: false };
       const [lo, hi, fx] = potHeal[item.name];
-      const heal = randInt(lo, hi);
+      const baseHeal = randInt(lo, hi);
+      const pct = p.abilities?.potionBonusPct || 0;
+      const heal = Math.max(1, Math.round(baseHeal * (1 + pct / 100)));
       p.hp = clamp(p.hp + heal, 1, p.maxHp);
       p.lastPotionAt = now;
       this.consumeItem(item.id, 1);
@@ -1335,29 +1562,28 @@ export class LineageWorld {
       return { ok: true };
     }
 
-    if (item.name === '對武器施法的卷軸') {
-      return this.#applyEnchantScroll(item, { kind: 'weapon', types: null, label: '武器' });
-    }
-
-    if (item.name === '對盔甲施法的卷軸') {
-      return this.#applyEnchantScroll(item, { kind: 'armor', types: null, label: '防具' });
-    }
-
-    if (SKELETON_ENCHANT_MAP[item.name]) {
-      return this.#applyEnchantScroll(item, SKELETON_ENCHANT_MAP[item.name]);
+    const enchantRule = this.getEnchantRule(item);
+    if (enchantRule) {
+      if (explicitTargetId) {
+        return this.enchantItemWithScroll(item.id, explicitTargetId);
+      }
+      return {
+        ok: true,
+        openModal: 'inventory',
+        enterEnchant: {
+          scrollId: item.id,
+          scrollName: item.name,
+          rule: enchantRule,
+        },
+      };
     }
 
     if (item.name === '內掛符石' || item.name === '喝水符石') {
-      p.autoConfig.enabled = !p.autoConfig.enabled;
-      p.autoConfig.anchor = p.autoConfig.enabled ? { map: p.map, x: p.tx, y: p.ty } : null;
-      this.addLog(
-        p.autoConfig.enabled
-          ? `啟動自動練功 (${MAP_NAMES[p.map]} ${p.tx},${p.ty}，半徑 ${p.autoConfig.radius} 格)`
-          : '已關閉自動練功。',
-        'gold',
+      const enabled = this.toggleAutoHunt(
+        `啟動自動練功 (${MAP_NAMES[p.map]} ${p.tx},${p.ty}，半徑 ${p.autoConfig.radius} 格)`,
+        '已關閉自動練功。',
       );
-      this.dirtySave = true;
-      return { ok: true, toggledAuto: true };
+      return { ok: true, toggledAuto: true, enabled };
     }
 
     this.addLog(`使用了 ${item.name}。`, 'info');
@@ -1378,15 +1604,33 @@ export class LineageWorld {
     const p = this.player;
     const now = performance.now();
     if (p.lastSpellAt > 0 && now - p.lastSpellAt < Math.max(550, spell.delay || 750)) return false;
-    if (p.mp < spell.mp) {
-      this.addLog(`魔力不足，無法施放 ${spell.name}。`, 'warn');
+
+    const abilities = p.abilities || computeDerivedAbilities({
+      classId: p.classId,
+      level: p.level,
+      stats: p.stats,
+      effStats: {
+        str: p.effStr ?? p.stats.str,
+        dex: p.effDex ?? p.stats.dex,
+        con: p.effCon ?? p.stats.con,
+        wis: p.effWis ?? p.stats.wis,
+        int: p.effInt ?? p.stats.int,
+        cha: p.effCha ?? p.stats.cha,
+      },
+      birthStats: p.birthStats || p.stats,
+    });
+    const rawMp = Number(spell.mp || 0);
+    const mpCost = rawMp <= 0 ? 0 : Math.max(1, rawMp - getSpellMpDiscount(p.stats.int, spell.level || 1, abilities.mpReduce || 0));
+
+    if (p.mp < mpCost) {
+      this.addLog(`魔力不足（需要 MP ${mpCost}），無法施放 ${spell.name}。`, 'warn');
       return false;
     }
 
     // 治療 / 防禦 / 傳送類
     if (spell.name.includes('治癒術')) {
-      const baseHeal = randInt(spell.minDmg || 10, spell.maxDmg || 25) + Math.floor(p.stats.int * 0.8);
-      p.mp -= spell.mp;
+      const baseHeal = randInt(spell.minDmg || 10, spell.maxDmg || 25) + Math.floor(p.stats.int * 0.8) + abilities.magicDmg;
+      p.mp -= mpCost;
       p.hp = clamp(p.hp + baseHeal, 1, p.maxHp);
       p.lastSpellAt = now;
       this.#startPlayerSpellAnim(now);
@@ -1398,7 +1642,7 @@ export class LineageWorld {
     }
 
     if (spell.name === '保護罩' || spell.name === '鎧甲護持') {
-      p.mp -= spell.mp;
+      p.mp -= mpCost;
       p.lastSpellAt = now;
       this.#startPlayerSpellAnim(now);
       if (spell.name === '保護罩') p.buffs.shield = now + 600000;
@@ -1421,14 +1665,14 @@ export class LineageWorld {
         8,
         p.map,
       );
-      p.mp -= spell.mp;
+      p.mp -= mpCost;
       p.lastSpellAt = now;
       if (cand) this.teleportTo(p.map, cand.x, cand.y, p.heading);
       return true;
     }
 
     if (spell.name === '日光術') {
-      p.mp -= spell.mp;
+      p.mp -= mpCost;
       p.lastSpellAt = now;
       p.buffs.light = now + 600000;
       this.spawnEffect(p.tx, p.ty, 169);
@@ -1437,7 +1681,7 @@ export class LineageWorld {
     }
 
     if (spell.name === '解毒術') {
-      p.mp -= spell.mp;
+      p.mp -= mpCost;
       p.lastSpellAt = now;
       this.#startPlayerSpellAnim(now);
       const cured = this.curePoison();
@@ -1448,7 +1692,7 @@ export class LineageWorld {
     }
 
     if (spell.name === '神聖武器' || spell.name === '擬似魔法武器') {
-      p.mp -= spell.mp;
+      p.mp -= mpCost;
       p.lastSpellAt = now;
       this.#startPlayerSpellAnim(now);
       p.buffs.holyWeapon = now + 600000;
@@ -1462,7 +1706,7 @@ export class LineageWorld {
     // 表格驅動輔助／強化魔法（通暢氣脈術、體魄強健術、加速術、負重強化、魔法屏障、冥想術、祝福魔法武器）
     const buffCfg = STAT_BUFF_SPELLS[spell.id];
     if (buffCfg) {
-      p.mp -= spell.mp;
+      p.mp -= mpCost;
       p.lastSpellAt = now;
       this.#startPlayerSpellAnim(now);
       p.buffs[buffCfg.key] = now + buffCfg.sec * 1000;
@@ -1487,7 +1731,7 @@ export class LineageWorld {
       return false;
     }
 
-    p.mp -= spell.mp;
+    p.mp -= mpCost;
     p.lastSpellAt = now;
     p.targetId = target.id;
     p.heading = headingBetween(target.tx - p.tx, target.ty - p.ty);
@@ -1544,10 +1788,13 @@ export class LineageWorld {
       return true;
     }
 
-    const dmg = Math.max(
-      1,
-      randInt(Math.max(4, spell.minDmg || 8), Math.max(8, spell.maxDmg || 16)) + Math.floor(p.stats.int * 0.9) + (p.sp || 1) * 2,
-    );
+    const isMagicCrit = abilities.magicCritPct > 0 && Math.random() * 100 < abilities.magicCritPct;
+    const rawMagicDmg =
+      randInt(Math.max(4, spell.minDmg || 8), Math.max(8, spell.maxDmg || 16)) +
+      Math.floor(p.stats.int * 0.9) +
+      abilities.magicDmg +
+      (p.sp || 1) * 2;
+    const dmg = Math.max(1, isMagicCrit ? Math.round(rawMagicDmg * 1.4) : rawMagicDmg);
 
     if (spell.id === 28) {
       // 吸血鬼之吻
@@ -1700,22 +1947,73 @@ export class LineageWorld {
     return true;
   }
 
-  #applyEnchantScroll(scrollItem, rule) {
+  getEnchantRule(scrollItem) {
+    if (!scrollItem) return null;
+    if (scrollItem.name === '對武器施法的卷軸') return { kind: 'weapon', types: null, label: '武器' };
+    if (scrollItem.name === '對盔甲施法的卷軸') return { kind: 'armor', types: null, label: '防具' };
+    return SKELETON_ENCHANT_MAP[scrollItem.name] || null;
+  }
+
+  validateEnchantTarget(scrollItem, targetItem) {
+    const rule = this.getEnchantRule(scrollItem);
+    if (!rule) return { ok: false, reason: '此物品不是強化卷軸。' };
+    if (!targetItem) return { ok: false, reason: '找不到要強化的目標物品。' };
+    if (targetItem.id === scrollItem.id) return { ok: false, reason: '不能對卷軸本身進行強化。' };
+
+    const def = this.worldData.items[targetItem.name];
+    if (!def || (def.kind !== 'weapon' && def.kind !== 'armor')) {
+      return { ok: false, reason: `「${targetItem.name}」不是武器或防具，無法使用 ${scrollItem.name} 強化。` };
+    }
+    if (def.enchant === false) {
+      return { ok: false, reason: `「${targetItem.name}」屬於不可強化裝備。` };
+    }
+    if (rule.kind === 'weapon' && def.kind !== 'weapon') {
+      return { ok: false, reason: `【${scrollItem.name}】僅能強化武器，無法強化防具「${targetItem.name}」。` };
+    }
+    if (rule.kind === 'armor' && def.kind !== 'armor') {
+      return { ok: false, reason: `【${scrollItem.name}】僅能強化防具，無法強化武器「${targetItem.name}」。` };
+    }
+    if (rule.types && !rule.types.includes(def.type)) {
+      return { ok: false, reason: `【${scrollItem.name}】僅限強化${rule.label}，無法用於「${targetItem.name}」。` };
+    }
+    return { ok: true, rule, def };
+  }
+
+  enchantItemWithScroll(scrollId, targetItemId) {
     const p = this.player;
-    const target = p.inventory.find((i) => {
-      if (!i.equipped) return false;
-      const d = this.worldData.items[i.name];
-      if (!d || d.kind !== rule.kind) return false;
-      if (rule.types && !rule.types.includes(d.type)) return false;
-      return true;
-    });
+    const scrollItem = p.inventory.find((i) => i.id === scrollId && i.count > 0);
+    if (!scrollItem) {
+      this.addLog('強化卷軸不存在或已消耗殆盡。', 'warn');
+      return { ok: false, reason: '強化卷軸不存在或已消耗殆盡。' };
+    }
+    const targetItem = p.inventory.find((i) => i.id === targetItemId);
+    const check = this.validateEnchantTarget(scrollItem, targetItem);
+    if (!check.ok) {
+      this.addLog(check.reason, 'warn');
+      return { ok: false, reason: check.reason };
+    }
+    return this.#applyEnchantScroll(scrollItem, check.rule, targetItem);
+  }
+
+  #applyEnchantScroll(scrollItem, rule, explicitTarget = null) {
+    const p = this.player;
+    const target =
+      explicitTarget ||
+      p.inventory.find((i) => {
+        if (!i.equipped) return false;
+        const d = this.worldData.items[i.name];
+        if (!d || d.kind !== rule.kind) return false;
+        if (rule.types && !rule.types.includes(d.type)) return false;
+        return d.enchant !== false;
+      });
     if (!target) {
-      this.addLog(`請先裝備對應的${rule.label}後再使用 ${scrollItem.name}。`, 'warn');
-      return { ok: false };
+      const msg = `請點選背包內可強化的${rule.label}（或先裝備後再使用 ${scrollItem.name}）。`;
+      this.addLog(msg, 'warn');
+      return { ok: false, reason: msg };
     }
     const safe = this.worldData.items[target.name]?.safe ?? (rule.kind === 'weapon' ? 6 : 4);
     const successChance = rule.types ? 0.55 : 0.45;
-    const ok = target.plus < safe || Math.random() < successChance;
+    const ok = (target.plus || 0) < safe || Math.random() < successChance;
     this.consumeItem(scrollItem.id, 1);
     if (ok) {
       target.plus = (target.plus || 0) + 1;
@@ -1730,7 +2028,13 @@ export class LineageWorld {
     this.recomputePlayerStats();
     this.dirtySave = true;
     this.saveWorld(true);
-    return { ok: true };
+    return {
+      ok: true,
+      success: ok,
+      destroyed: !ok,
+      targetId: target.id,
+      newPlus: ok ? target.plus : 0,
+    };
   }
 
   identifyItem(targetId = null, scrollItemId = null) {
@@ -2274,7 +2578,14 @@ export class LineageWorld {
         p.targetId = null;
       } else {
         const dist = tileDistance(p.tx, p.ty, mob.tx, mob.ty);
-        if (dist <= p.attackRange) {
+        const staticSet = this.getStaticOccupiedTileSet();
+        const hasLos =
+          dist === 0 ||
+          (dist === 1
+            ? this.isoMap.canStep(p.tx, p.ty, mob.tx - p.tx, mob.ty - p.ty, p.map)
+            : this.isoMap.hasStaticLineOfSight(p.tx, p.ty, mob.tx, mob.ty, p.map, { staticBlockedSet: staticSet }));
+
+        if (dist <= p.attackRange && hasLos) {
           p.path = [];
           const cd = Math.round(700 / speedMult);
           if (now - p.lastAttackAt >= cd) {
@@ -2282,10 +2593,23 @@ export class LineageWorld {
           }
           return;
         }
-        // 自動貼近怪物
-        if (!p.path.length) {
-          const blocked = this.getOccupiedTileSet(mob.id);
-          p.path = this.isoMap.findPath(p.tx, p.ty, mob.tx, mob.ty, p.map, blocked, 420);
+
+        const pathEnd = p.path[p.path.length - 1];
+        const mobDrifted = pathEnd ? tileDistance(pathEnd.x, pathEnd.y, mob.tx, mob.ty) > Math.max(1, p.attackRange) : false;
+        if (!p.path.length || mobDrifted) {
+          let res = this.computeSmartPath(mob.tx, mob.ty, {
+            excludeMobId: mob.id,
+            goalRange: p.attackRange,
+            requireLos: true,
+          });
+          if (!res.path.length && !res.reached) {
+            res = this.computeSmartPath(mob.tx, mob.ty, {
+              excludeMobId: mob.id,
+              goalRange: 0,
+              requireLos: false,
+            });
+          }
+          p.path = res.path;
         }
       }
     }
@@ -2295,8 +2619,15 @@ export class LineageWorld {
       const next = p.path.shift();
       const dx = next.x - p.tx;
       const dy = next.y - p.ty;
-      const occ = this.getOccupiedTileSet();
-      if (this.isoMap.canStep(p.tx, p.ty, dx, dy, p.map) && !occ.has(`${next.x},${next.y}`)) {
+      const staticObs = this.isoMap.inspectStepObstacle(p.tx, p.ty, dx, dy, p.map, {
+        staticBlockedSet: this.getStaticOccupiedTileSet(),
+      });
+      const blockingMob = !staticObs
+        ? this.mobs.find((m) => m.hp > 0 && m.tx === next.x && m.ty === next.y)
+        : null;
+
+      if (!staticObs && !blockingMob) {
+        p.lastMoveBlocked = null;
         p.moveFrom = { x: p.tx, y: p.ty };
         p.moveTo = { x: next.x, y: next.y };
         p.moveProgress = 0;
@@ -2305,6 +2636,30 @@ export class LineageWorld {
         p.animState = 'walk';
         return;
       }
+
+      p.lastMoveBlocked = staticObs
+        ? {
+            at: now,
+            tx: next.x,
+            ty: next.y,
+            dx,
+            dy,
+            kind: staticObs.kind,
+            label: staticObs.label,
+            isMob: false,
+            mobId: null,
+          }
+        : {
+            at: now,
+            tx: next.x,
+            ty: next.y,
+            dx,
+            dy,
+            kind: 'mob',
+            label: blockingMob.name,
+            isMob: true,
+            mobId: blockingMob.id,
+          };
       p.path = [];
     }
 
@@ -2367,27 +2722,37 @@ export class LineageWorld {
 
   #rollWeaponDamage(mob, arrowItem) {
     const p = this.player;
-    const effStr = p.effStr ?? p.stats.str;
-    const effDex = p.effDex ?? p.stats.dex;
+    const abilities = p.abilities || computeDerivedAbilities({
+      classId: p.classId,
+      level: p.level,
+      stats: p.stats,
+      effStats: { str: p.effStr ?? p.stats.str, dex: p.effDex ?? p.stats.dex },
+      birthStats: p.birthStats || p.stats,
+    });
+    const isBow = p.weaponType === 'bow';
+    const wDef = p.weaponItem?.def;
+    const wPlus = p.weaponItem?.item?.plus || 0;
+    const statHit = isBow ? abilities.bowHit : abilities.meleeHit;
     const hitChance = clamp(
-      0.72 + (p.level - mob.level) * 0.025 + (effDex - 10) * 0.015 + (mob.ac || 0) * 0.008,
+      0.74 + (p.level - mob.level) * 0.022 + statHit * 0.018 + (wDef?.hit || 0) * 0.015 + Math.floor(wPlus / 2) * 0.01 + (mob.ac || 0) * 0.008,
       0.35,
-      0.97,
+      0.98,
     );
     if (Math.random() > hitChance) return 0;
 
-    const wDef = p.weaponItem?.def;
-    const wPlus = p.weaponItem?.item?.plus || 0;
     const brokenPenalty = p.weaponItem?.item?.brokenCount || 0;
     const lo = wDef ? Math.max(2, wDef.small || 4) : 2;
     const hi = wDef ? Math.max(lo + 2, wDef.large || 6) : 5;
-    const statBonus =
-      p.weaponType === 'bow'
-        ? Math.max(0, Math.floor((effDex - 8) / 2)) + (arrowItem ? this.worldData.items[arrowItem.name]?.small || 3 : 0)
-        : Math.max(0, Math.floor((effStr - 8) / 2));
+    const statBonus = isBow
+      ? Math.max(0, abilities.bowDmg) + (arrowItem ? this.worldData.items[arrowItem.name]?.small || 3 : 0)
+      : Math.max(-2, abilities.meleeDmg);
     const polyBonus = (p.buffs.poly || 0) > performance.now() ? (p.polyBonus?.dmg ?? 3) : 0;
     const holyBonus = (p.buffs.holyWeapon || 0) > performance.now() ? 2 : 0;
-    return Math.max(1, randInt(lo, hi) + wPlus + statBonus + (wDef?.damage || 0) + polyBonus + holyBonus - brokenPenalty);
+    let dmg = Math.max(1, randInt(lo, hi) + wPlus + statBonus + (wDef?.damage || 0) + polyBonus + holyBonus - brokenPenalty);
+    if (!isBow && abilities.meleeCritPct > 0 && Math.random() * 100 < abilities.meleeCritPct) {
+      dmg = Math.round(dmg * 1.5);
+    }
+    return dmg;
   }
 
   #applyDamageToMob(mob, dmg, spellName = '') {
@@ -2810,13 +3175,15 @@ export class LineageWorld {
 
     if (p.weightPercent >= 50 || (p.food ?? 84) <= 10) return;
     if (!poisoned && p.hp < p.maxHp) {
-      p.hp = Math.min(p.maxHp, p.hp + Math.max(1, Math.floor((p.stats.con - 6) / 3)));
+      const hpTick = Math.max(1, p.abilities?.hpRegen ?? Math.max(1, p.stats.con <= 13 ? 1 : p.stats.con - 12));
+      p.hp = Math.min(p.maxHp, p.hp + hpTick);
       this.dirtySave = true;
     }
     if (p.mp < p.maxMp) {
-      const blueBonus = (p.buffs.bluePotion || 0) > now ? 4 : 0;
+      const blueBonus = (p.buffs.bluePotion || 0) > now ? (p.abilities?.bluePotBonus ?? 2) : 0;
       const medBonus = (p.buffs.meditation || 0) > now ? 3 : 0;
-      p.mp = Math.min(p.maxMp, p.mp + Math.max(1, Math.floor((p.stats.wis - 8) / 3) + blueBonus + medBonus));
+      const mpTick = Math.max(1, (p.abilities?.mpRegen ?? 1) + blueBonus + medBonus);
+      p.mp = Math.min(p.maxMp, p.mp + mpTick);
       this.dirtySave = true;
     }
   }

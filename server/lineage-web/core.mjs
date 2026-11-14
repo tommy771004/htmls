@@ -464,8 +464,8 @@ export const CHARACTER_CLASSES = {
     bonusPoints: 8,
     baseStats: { str: 13, dex: 10, con: 10, wis: 11, cha: 13, int: 10 },
     maxStats: { str: 20, dex: 20, con: 20, wis: 20, cha: 20, int: 20 },
-    baseHp: 16,
-    baseMp: 6,
+    baseHp: 14,
+    baseMp: 2,
     startingAdena: 1200,
     startingWeapons: [
       { id: 4, name: '匕首', plus: 0, count: 1, equip: true, slot: 'weapon' },
@@ -484,12 +484,12 @@ export const CHARACTER_CLASSES = {
     name: '騎士',
     englishName: 'Knight',
     logo: '/assets/284/logo/knight.png',
-    bonusPoints: 8,
+    bonusPoints: 4,
     altBonusPoints: [4, 8],
-    baseStats: { str: 16, dex: 12, con: 14, wis: 9, cha: 8, int: 8 },
+    baseStats: { str: 16, dex: 12, con: 14, wis: 9, cha: 12, int: 8 },
     maxStats: { str: 20, dex: 20, con: 20, wis: 20, cha: 20, int: 20 },
-    baseHp: 22,
-    baseMp: 4,
+    baseHp: 16,
+    baseMp: 1,
     startingAdena: 1000,
     startingWeapons: [
       { id: 35, name: '匕首', plus: 0, count: 1, equip: true, slot: 'weapon' },
@@ -511,8 +511,8 @@ export const CHARACTER_CLASSES = {
     bonusPoints: 16,
     baseStats: { str: 8, dex: 7, con: 12, wis: 12, cha: 8, int: 12 },
     maxStats: { str: 20, dex: 20, con: 20, wis: 20, cha: 20, int: 20 },
-    baseHp: 14,
-    baseMp: 16,
+    baseHp: 12,
+    baseMp: 6,
     startingAdena: 1200,
     startingWeapons: [
       { id: 115, name: '匕首', plus: 0, count: 1, equip: true, slot: 'weapon' },
@@ -531,12 +531,12 @@ export const CHARACTER_CLASSES = {
     name: '妖精',
     englishName: 'Elf',
     logo: '/assets/284/logo/elf.png',
-    bonusPoints: 8,
+    bonusPoints: 7,
     altBonusPoints: [7, 8],
-    baseStats: { str: 11, dex: 12, con: 12, wis: 12, cha: 8, int: 12 },
+    baseStats: { str: 11, dex: 12, con: 12, wis: 12, cha: 9, int: 12 },
     maxStats: { str: 20, dex: 20, con: 20, wis: 20, cha: 20, int: 20 },
-    baseHp: 18,
-    baseMp: 10,
+    baseHp: 15,
+    baseMp: 4,
     startingAdena: 1100,
     startingWeapons: [
       { id: 172, name: '短弓', plus: 0, count: 1, equip: true, slot: 'weapon' },
@@ -555,11 +555,12 @@ export const CHARACTER_CLASSES = {
     name: '黑暗妖精',
     englishName: 'Dark Elf',
     logo: '/assets/284/logo/dark.png',
-    bonusPoints: 11,
-    baseStats: { str: 12, dex: 15, con: 8, wis: 11, cha: 8, int: 10 },
+    bonusPoints: 10,
+    altBonusPoints: [10, 11],
+    baseStats: { str: 12, dex: 15, con: 8, wis: 10, cha: 9, int: 11 },
     maxStats: { str: 20, dex: 20, con: 20, wis: 20, cha: 20, int: 20 },
     baseHp: 16,
-    baseMp: 8,
+    baseMp: 3,
     startingAdena: 1000,
     startingWeapons: [
       { id: 4, name: '匕首', plus: 0, count: 1, equip: true, slot: 'weapon' },
@@ -806,9 +807,16 @@ export function buildNewCharacter(slotIndex, input) {
     return { ok: false, error: 'points_unallocated' };
   }
 
-  const maxHp = classDef.baseHp + Math.max(0, finalStats.con - 10) * 2;
-  const maxMp = classDef.baseMp + Math.max(0, finalStats.wis - 10);
-  const ac = 10 - Math.floor(finalStats.dex / 4);
+  let maxMp = classDef.baseMp;
+  if (classDef.id === 'royal') maxMp = finalStats.wis >= 16 ? 4 : finalStats.wis >= 12 ? 3 : 2;
+  else if (classDef.id === 'knight' || classDef.id === 'warrior') maxMp = finalStats.wis >= 12 ? 2 : 1;
+  else if (classDef.id === 'elf') maxMp = finalStats.wis >= 16 ? 6 : 4;
+  else if (classDef.id === 'mage') maxMp = finalStats.wis >= 16 ? 8 : finalStats.wis >= 12 ? 6 : 4;
+  else if (classDef.id === 'dark') maxMp = finalStats.wis >= 16 ? 6 : finalStats.wis >= 12 ? 4 : 3;
+  else maxMp = classDef.baseMp + Math.max(0, finalStats.wis - 10);
+
+  const maxHp = classDef.baseHp + Math.max(0, finalStats.con - 15);
+  const ac = 10;
 
   const created = {
     slot: slotIndex + 1,
@@ -822,6 +830,7 @@ export function buildNewCharacter(slotIndex, input) {
     pledge: '無血盟',
     classicMode: Boolean(input.classicMode ?? true),
     stats: finalStats,
+    birthStats: { ...finalStats },
     hp: maxHp,
     maxHp,
     mp: maxMp,

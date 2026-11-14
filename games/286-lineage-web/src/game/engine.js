@@ -37,6 +37,7 @@ export class LineageGameEngine {
       onLobbySync,
     });
     this.autoHunt = new AutoHuntController(this.world);
+    this.world.onAutoToggled = (enabled) => this.autoHunt.onExternalToggle(enabled);
     this.hud = new GameHud({
       rootEl: this.rootEl,
       world: this.world,
@@ -242,7 +243,8 @@ export class LineageGameEngine {
 
     if (ev.code === 'Escape') {
       ev.preventDefault();
-      if (this.hud.activeModal) this.hud.closeModal();
+      if (this.hud.pendingEnchant) this.hud.cancelEnchantMode();
+      else if (this.hud.activeModal) this.hud.closeModal();
       else this.hud.toggleModal('system');
       return;
     }
@@ -455,6 +457,11 @@ export class LineageGameEngine {
       ctx.restore();
     }
 
+    // 3b. 內掛尋路除錯視覺化（錨點、A* 路線與偵測到的靜態障礙物；不含怪物）
+    if (p.autoConfig?.enabled && p.autoConfig?.showNavDebug) {
+      this.#renderAutoNavOverlay(ctx, camLeft, camTop, visW, visH);
+    }
+
     // 4. 地面戰利品掉落物
     for (const drop of this.world.drops) {
       if (drop.map !== p.map) continue;
@@ -620,26 +627,88 @@ export class LineageGameEngine {
       this.sprites.drawProjectile(ctx, pr, pr.x - camLeft, pr.y - camTop);
     }
 
-    for (const fx of this.world.effects) {
-      this.sprites.drawEffect(ctx, fx, fx.x - camLeft, fx.y - camTop, now - fx.bornAt);
+    if (this.world.displayPrefs?.showVfx !== false) {
+      for (const fx of this.world.effects) {
+        this.sprites.drawEffect(ctx, fx, fx.x - camLeft, fx.y - camTop, now - fx.bornAt);
+      }
     }
 
-    const dmgFontPx = Math.max(9.5, Math.round((14 / Math.pow(Math.max(1, zoom), 0.55)) * 10) / 10);
-    for (const ft of this.world.floatingTexts) {
-      const progress = Math.min(1, (now - ft.bornAt) / ft.duration);
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, 1 - progress * progress);
-      ctx.font = `bold ${dmgFontPx}px "Noto Sans TC", sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.lineWidth = Math.max(1.8, 3 / zoom);
-      ctx.strokeStyle = 'rgba(0,0,0,0.88)';
-      const sx = ft.x - camLeft;
-      const sy = ft.y - camTop - progress * 26;
-      ctx.strokeText(ft.text, sx, sy);
-      ctx.fillStyle = ft.color;
-      ctx.fillText(ft.text, sx, sy);
-      ctx.restore();
+    if (this.world.displayPrefs?.showDamageNums !== false) {
+      const dmgFontPx = Math.max(9.5, Math.round((14 / Math.pow(Math.max(1, zoom), 0.55)) * 10) / 10);
+      for (const ft of this.world.floatingTexts) {
+        const progress = Math.min(1, (now - ft.bornAt) / ft.duration);
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 1 - progress * progress);
+        ctx.font = `bold ${dmgFontPx}px "Noto Sans TC", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.lineWidth = Math.max(1.8, 3 / zoom);
+        ctx.strokeStyle = 'rgba(0,0,0,0.88)';
+        const sx = ft.x - camLeft;
+        const sy = ft.y - camTop - progress * 26;
+        ctx.strokeText(ft.text, sx, sy);
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, sx, sy);
+        ctx.restore();
+      }
     }
+  }
+
+  /**
+   * 繪製內掛自動巡路除錯圖層（錨點、A* 規劃路線與靜態障礙座標標記；排除怪物）。
+   */
+  #renderAutoNavOverlay(ctx, camLeft, camTop, visW, visH) {
+    const p = this.world.player;
+    const anchor = p.autoConfig?.anchor;
+    ctx.save();
+    if (anchor && anchor.map === p.map) {
+      const aw = tileToWorld(anchor.x, anchor.y);
+      const ax = aw.x - camLeft;
+      const ay = aw.y - camTop;
+      if (ax >= -80 && ay >= -80 && ax <= visW + 80 && ay <= visH + 80) {
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay - 12);
+        ctx.lineTo(ax + 24, ay);
+        ctx.lineTo(ax, ay + 12);
+        ctx.lineTo(ax - 24, ay);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+
+    if (p.path?.length) {
+      ctx.strokeStyle = 'rgba(110, 231, 183, 0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const pw = tileToWorld(p.tx, p.ty);
+      ctx.moveTo(pw.x - camLeft, pw.y - camTop);
+      for (const step of p.path) {
+        const sw = tileToWorld(step.x, step.y);
+        ctx.lineTo(sw.x - camLeft, sw.y - camTop);
+      }
+      ctx.stroke();
+    }
+
+    for (const obs of this.autoHunt.recentObstacles || []) {
+      if (obs.map !== p.map) continue;
+      const ow = tileToWorld(obs.tx, obs.ty);
+      const ox = ow.x - camLeft;
+      const oy = ow.y - camTop;
+      if (ox < -40 || oy < -40 || ox > visW + 40 || oy > visH + 40) continue;
+      ctx.fillStyle = 'rgba(249, 115, 22, 0.25)';
+      ctx.strokeStyle = 'rgba(251, 146, 60, 0.9)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(ox, oy - 10);
+      ctx.lineTo(ox + 20, oy);
+      ctx.lineTo(ox, oy + 10);
+      ctx.lineTo(ox - 20, oy);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   getSnapshot() {
@@ -661,6 +730,7 @@ export class LineageGameEngine {
       cameraZoom: Number((this.cameraZoom || 1).toFixed(2)),
       autoEnabled: p.autoConfig.enabled,
       autoStatus: this.autoHunt.statusLabel,
+      autoStats: this.autoHunt.getSummary(),
       npcsCount: this.world.npcs.length,
       mobsCount: this.world.mobs.filter((m) => m.hp > 0).length,
       dropsCount: this.world.drops.length,

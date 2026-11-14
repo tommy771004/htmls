@@ -341,8 +341,8 @@ try {
     await page.click(`[data-class-id="${classId}"]`);
     await page.waitForTimeout(40);
   }
-  // 騎士獎勵點數為 8 點（STR +4 至上限 20、CON +4 至 18）後即可按「開始遊戲」
-  for (let i = 0; i < 4; i += 1) {
+  // 騎士獎勵點數為 4 點（STR +2 至 18、CON +2 至 16）後即可按「開始遊戲」
+  for (let i = 0; i < 2; i += 1) {
     await page.click('[data-stat-inc="str"]');
     await page.click('[data-stat-inc="con"]');
   }
@@ -461,6 +461,27 @@ try {
   assert(hudCheck.expW >= 1400, `Bottom EXP footer should span full viewport, got width=${hudCheck.expW}`);
   assert(hudCheck.consoleCenterDiff <= 140, `Center console should stay horizontally centered, diff=${hudCheck.consoleCenterDiff}`);
 
+  const borderlessPanels = await page.evaluate(() => {
+    const selectors = ['.ll-radar-card', '.ll-acc-item', '.ll-chat-col', '.ll-center-console', '.ll-tl-toolbar', '.ll-play-btn'];
+    return selectors.map((sel) => {
+      const el = document.querySelector(sel);
+      const cs = el ? getComputedStyle(el) : null;
+      return {
+        sel,
+        exists: Boolean(el),
+        bt: cs?.borderTopWidth || null,
+        br: cs?.borderRightWidth || null,
+        bb: cs?.borderBottomWidth || null,
+        bl: cs?.borderLeftWidth || null,
+      };
+    });
+  });
+  assert(
+    borderlessPanels.every((p) => p.exists && p.bt === '0px' && p.br === '0px' && p.bb === '0px' && p.bl === '0px'),
+    `Expected clean borderless HUD panels: ${JSON.stringify(borderlessPanels)}`
+  );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-game-hud.png') });
+
   // 驗證右下工具列可正常收合展開
   await page.click('[data-act="toggle-tl"]');
   const collapsedOk = await page.evaluate(() => ({
@@ -504,14 +525,25 @@ try {
 
   await page.keyboard.press('KeyS');
   await page.waitForTimeout(180);
-  const statusUiCheck = await page.evaluate(() => ({
-    modal: window.__lineage.game()?.activeModal,
-    dollSlots: document.querySelectorAll('.ll-doll-stage .ll-doll-grid .ll-doll-slot').length,
-    equippedSlots: document.querySelectorAll('.ll-doll-slot.equipped').length,
-    hasSlateStats: Boolean(document.querySelector('.ll-status-slate')),
-  }));
+  const statusUiCheck = await page.evaluate(() => {
+    const win = document.querySelector('.ll-win');
+    const cs = win ? getComputedStyle(win) : null;
+    return {
+      modal: window.__lineage.game()?.activeModal,
+      dollSlots: document.querySelectorAll('.ll-doll-stage .ll-doll-grid .ll-doll-slot').length,
+      equippedSlots: document.querySelectorAll('.ll-doll-slot.equipped').length,
+      hasSlateStats: Boolean(document.querySelector('.ll-status-slate')),
+      winBorderWidth: cs?.borderTopWidth || null,
+      winBorderColor: cs?.borderTopColor || null,
+    };
+  });
   assert(
-    statusUiCheck.modal === 'status' && statusUiCheck.dollSlots === 11 && statusUiCheck.equippedSlots >= 1 && statusUiCheck.hasSlateStats,
+    statusUiCheck.modal === 'status' &&
+      statusUiCheck.dollSlots === 11 &&
+      statusUiCheck.equippedSlots >= 1 &&
+      statusUiCheck.hasSlateStats &&
+      statusUiCheck.winBorderWidth === '2px' &&
+      statusUiCheck.winBorderColor === 'rgb(72, 70, 66)',
     `Classic status & paperdoll layout mismatch: ${JSON.stringify(statusUiCheck)}`
   );
   await page.screenshot({ path: path.join(scratchDir, 'lineage-game-status.png') });
@@ -937,7 +969,7 @@ try {
 
     const plusBeforeSkel = eqWeapon ? (eqWeapon.plus || 0) : 0;
     const skelScroll = w.player.inventory.find((i) => i.name === '對骷骨之劍強化的卷軸');
-    if (skelScroll) w.useItem(skelScroll.id);
+    if (skelScroll && eqWeapon) w.useItem(skelScroll.id, eqWeapon.id);
     const plusAfterSkel = eqWeapon ? (eqWeapon.plus || 0) : 0;
 
     eng.hud.selectedItemId = unidSword?.id || null;
@@ -1142,22 +1174,97 @@ try {
   assert(polishChecks.mobResetToIdle, 'Idle monsters should not keep walk animation when stationary');
   assert(polishChecks.hasShopStepper && polishChecks.hasShopQtyInput, `Missing shop qty controls: ${JSON.stringify(polishChecks)}`);
 
+  const remasterShopDom = await page.evaluate(() => {
+    const win = document.querySelector('.ll-win.shop-win');
+    const cs = win ? getComputedStyle(win) : null;
+    return {
+      hasShopWin: Boolean(win),
+      borderWidth: cs?.borderTopWidth || null,
+      borderColor: cs?.borderTopColor || null,
+      hasPortrait: Boolean(document.querySelector('.ll-shop-portrait')),
+      hasTabs: ['all', 'potion', 'scroll', 'other'].every((t) =>
+        Boolean(document.querySelector(`[data-shop-tab="${t}"]`))
+      ),
+      hasSort: Boolean(document.querySelector('[data-shop-sort="1"]')),
+      hasReset: Boolean(document.querySelector('[data-shop-reset="1"]')),
+      hasBatchBuy: Boolean(document.querySelector('[data-shop-buy-batch="1"]')),
+      hasBatchTotal: Boolean(document.querySelector('[data-role="shop-batch-total"]')),
+    };
+  });
+  assert(
+    remasterShopDom.hasShopWin &&
+      remasterShopDom.borderWidth === '2px' &&
+      remasterShopDom.borderColor === 'rgb(72, 70, 66)' &&
+      remasterShopDom.hasPortrait &&
+      remasterShopDom.hasTabs &&
+      remasterShopDom.hasSort &&
+      remasterShopDom.hasReset &&
+      remasterShopDom.hasBatchBuy &&
+      remasterShopDom.hasBatchTotal,
+    `Remaster shop layout DOM mismatch: ${JSON.stringify(remasterShopDom)}`
+  );
+
+  await page.click('[data-shop-tab="potion"]');
+  const potionTabActive = await page.evaluate(() =>
+    document.querySelector('[data-shop-tab="potion"]')?.classList.contains('active')
+  );
+  assert(potionTabActive, 'Clicking potion shop tab should activate it');
+  await page.selectOption('[data-shop-sort="1"]', 'price-asc');
+  const sortVal = await page.inputValue('[data-shop-sort="1"]');
+  assert(sortVal === 'price-asc', `Shop sort should change to price-asc, got ${sortVal}`);
+  await page.selectOption('[data-shop-sort="1"]', 'none');
+  await page.click('[data-shop-tab="all"]');
+
   await page.click('[data-shop-step="0:1"]');
   await page.click('[data-shop-step="0:1"]');
   await page.click('[data-shop-step="0:-1"]');
   const afterStepVal = await page.inputValue('[data-shop-qty="0"]');
   assert(afterStepVal === '2', `Shop +1/+1/-1 step should yield 2, got ${afterStepVal}`);
 
+  await page.click('[data-shop-reset="1"]');
+  const resetQty = await page.inputValue('[data-shop-qty="0"]');
+  const resetBatchTotal = await page.textContent('[data-role="shop-batch-total"]');
+  assert(resetQty === '1' && resetBatchTotal?.trim() === '0', `Shop reset failed: qty=${resetQty}, total=${resetBatchTotal}`);
+
   await page.fill('[data-shop-qty="0"]', '25');
   await page.dispatchEvent('[data-shop-qty="0"]', 'input');
   await page.waitForTimeout(80);
   const totalLabel = await page.textContent('[data-shop-total="0"]');
+  const batchTotalLabel = await page.textContent('[data-role="shop-batch-total"]');
   const expectedCost = polishChecks.firstItemPrice * 25;
   assert(
-    totalLabel && totalLabel.includes(expectedCost.toLocaleString()),
-    `Live shop total should reflect qty 25 (${expectedCost.toLocaleString()}): ${totalLabel}`
+    totalLabel && totalLabel.includes(expectedCost.toLocaleString()) &&
+      batchTotalLabel && batchTotalLabel.includes(expectedCost.toLocaleString()),
+    `Live shop total should reflect qty 25 (${expectedCost.toLocaleString()}): row=${totalLabel}, batch=${batchTotalLabel}`
   );
   await page.screenshot({ path: path.join(scratchDir, 'lineage-game-shop.png') });
+
+  const origShopVp = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(100);
+  const mobileShopFit = await page.evaluate(() => {
+    const win = document.querySelector('.ll-win.shop-win');
+    const r = win ? win.getBoundingClientRect() : null;
+    return {
+      innerW: window.innerWidth,
+      scrollW: document.documentElement.scrollWidth,
+      left: r ? Math.round(r.left) : null,
+      right: r ? Math.round(r.right) : null,
+    };
+  });
+  assert(
+    mobileShopFit.scrollW <= mobileShopFit.innerW &&
+      mobileShopFit.left !== null &&
+      mobileShopFit.left >= 0 &&
+      mobileShopFit.right <= mobileShopFit.innerW,
+    `Mobile shop modal overflow: ${JSON.stringify(mobileShopFit)}`
+  );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-game-shop-mobile.png') });
+  if (origShopVp) {
+    await page.setViewportSize(origShopVp);
+    await page.waitForTimeout(80);
+  }
+
   await page.click('[data-shop-buy="0"]');
   await page.waitForTimeout(100);
 
@@ -1174,6 +1281,190 @@ try {
     afterBuyRes.gold === polishChecks.goldBefore - expectedCost &&
       afterBuyRes.count === polishChecks.beforeCount + 25 * polishChecks.firstItemCount,
     `Shop custom qty purchase mismatch: ${JSON.stringify(afterBuyRes)} vs ${JSON.stringify(polishChecks)}`
+  );
+
+  // 驗證 284 風格設定面板（卡牌排版、音效/音樂 0-100 拉桿、特效/傷害開關、藥水選單、自動練功設定、手機版無溢出）
+  await page.click('[data-win="auto"]');
+  await page.waitForTimeout(150);
+  const settingsUiCheck = await page.evaluate(async () => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const audio = eng.audio;
+    const win = document.querySelector('.ll-win.ll-settings-win');
+    const cards = document.querySelectorAll('.ll-set-card').length;
+    const switches = document.querySelectorAll('.il-switch').length;
+    const sfxOnEl = document.getElementById('set-sfx-on');
+    const sfxVolEl = document.getElementById('set-sfx-vol');
+    const bgmOnEl = document.getElementById('set-bgm-on');
+    const bgmVolEl = document.getElementById('set-bgm-vol');
+    const hasActions =
+      Boolean(document.querySelector('[data-sys-act="lobby"]')) &&
+      Boolean(document.querySelector('[data-sys-act="save"]')) &&
+      Boolean(document.querySelector('[data-sys-act="home"]'));
+
+    audio.setMuted(false);
+    audio.playBgm('/assets/286/assets/284/bgm/town_talking.mp3');
+    await new Promise((r) => setTimeout(r, 250));
+    const bgmVolAt50 = audio.bgmAudio?.volume ?? -1;
+
+    // 測試拉桿即時 input 更新文字且不重建 DOM，並實際縮放音樂音量與寫入 localStorage
+    sfxVolEl.value = '85';
+    sfxVolEl.dispatchEvent(new Event('input', { bubbles: true }));
+    const sfxConnectedAfterInput = sfxVolEl.isConnected;
+    const sfxLabelAfterInput = document.querySelector('[data-audio-val="sfx"]')?.textContent?.trim();
+
+    bgmVolEl.value = '100';
+    bgmVolEl.dispatchEvent(new Event('input', { bubbles: true }));
+    const bgmConnectedAfterInput = bgmVolEl.isConnected;
+    const bgmLabelAt100 = document.querySelector('[data-audio-val="bgm"]')?.textContent?.trim();
+    const bgmVolAt100 = audio.bgmAudio?.volume ?? -1;
+
+    bgmVolEl.value = '0';
+    bgmVolEl.dispatchEvent(new Event('input', { bubbles: true }));
+    const bgmVolAt0 = audio.bgmAudio?.volume ?? -1;
+
+    // 測試取消勾選 SFX 與拉回常用測試值 (65 / 75) 的持久化
+    sfxOnEl.checked = false;
+    sfxOnEl.dispatchEvent(new Event('change', { bubbles: true }));
+    const savedMutedSfx = JSON.parse(localStorage.getItem('ll286:audio_prefs_v1') || '{}');
+    sfxOnEl.checked = true;
+    sfxOnEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+    sfxVolEl.value = '65';
+    sfxVolEl.dispatchEvent(new Event('input', { bubbles: true }));
+    sfxVolEl.dispatchEvent(new Event('change', { bubbles: true }));
+    bgmVolEl.value = '75';
+    bgmVolEl.dispatchEvent(new Event('input', { bubbles: true }));
+    bgmVolEl.dispatchEvent(new Event('change', { bubbles: true }));
+    const savedCustomAudio = JSON.parse(localStorage.getItem('ll286:audio_prefs_v1') || '{}');
+
+    // 測試顯示特效/傷害數字 pill 開關 (.il-switch)
+    const vfxBtn = document.querySelector('[data-pref-toggle="showVfx"]');
+    const dmgBtn = document.querySelector('[data-pref-toggle="showDamageNums"]');
+    vfxBtn.click();
+    dmgBtn.click();
+    const prefsOff = {
+      showVfx: w.displayPrefs.showVfx,
+      showDamageNums: w.displayPrefs.showDamageNums,
+      vfxHasOnClass: document.querySelector('[data-pref-toggle="showVfx"]')?.classList.contains('is-on'),
+      ls: JSON.parse(localStorage.getItem('ll286:display_prefs_v1') || '{}'),
+    };
+    document.querySelector('[data-pref-toggle="showVfx"]')?.click();
+    document.querySelector('[data-pref-toggle="showDamageNums"]')?.click();
+
+    // 測試喝水設定與 2 欄功能開關
+    const potSel = document.querySelector('[data-auto-select="preferredPot"]');
+    const potNum = document.querySelector('[data-auto-num="potThreshold"]');
+    const hasteChk = document.querySelector('[data-auto-check="autoHaste"]');
+    potSel.value = '橙色藥水';
+    potSel.dispatchEvent(new Event('change', { bubbles: true }));
+    potNum.value = '62';
+    potNum.dispatchEvent(new Event('change', { bubbles: true }));
+    hasteChk.checked = true;
+    hasteChk.dispatchEvent(new Event('change', { bubbles: true }));
+
+    return {
+      hasWin: Boolean(win),
+      cards,
+      switches,
+      hasActions,
+      sfxMin: sfxVolEl?.min,
+      sfxMax: sfxVolEl?.max,
+      bgmMin: bgmVolEl?.min,
+      bgmMax: bgmVolEl?.max,
+      bgmVolAt50,
+      bgmVolAt100,
+      bgmVolAt0,
+      sfxConnectedAfterInput,
+      bgmConnectedAfterInput,
+      sfxLabelAfterInput,
+      bgmLabelAt100,
+      savedMutedSfx,
+      savedCustomAudio,
+      prefsOff,
+      autoAfter: {
+        preferredPot: w.player.autoConfig.preferredPot,
+        potThreshold: w.player.autoConfig.potThreshold,
+        autoHaste: w.player.autoConfig.autoHaste,
+      },
+    };
+  });
+  assert(
+    settingsUiCheck.hasWin &&
+      settingsUiCheck.cards >= 4 &&
+      settingsUiCheck.switches >= 2 &&
+      settingsUiCheck.hasActions &&
+      settingsUiCheck.sfxMin === '0' &&
+      settingsUiCheck.sfxMax === '100' &&
+      settingsUiCheck.bgmMin === '0' &&
+      settingsUiCheck.bgmMax === '100',
+    `284 settings panel structure check failed: ${JSON.stringify(settingsUiCheck)}`
+  );
+  assert(
+    settingsUiCheck.sfxConnectedAfterInput &&
+      settingsUiCheck.bgmConnectedAfterInput &&
+      settingsUiCheck.sfxLabelAfterInput === '85%' &&
+      settingsUiCheck.bgmLabelAt100 === '100%' &&
+      settingsUiCheck.bgmVolAt50 > 0 &&
+      settingsUiCheck.bgmVolAt100 > settingsUiCheck.bgmVolAt50 &&
+      settingsUiCheck.bgmVolAt0 === 0 &&
+      settingsUiCheck.savedMutedSfx.sfxOn === false &&
+      settingsUiCheck.savedCustomAudio.sfxOn === true &&
+      settingsUiCheck.savedCustomAudio.sfxVol === 65 &&
+      settingsUiCheck.savedCustomAudio.bgmVol === 75,
+    `Audio 0-100 slider/toggle check failed: ${JSON.stringify(settingsUiCheck)}`
+  );
+  assert(
+    settingsUiCheck.prefsOff.showVfx === false &&
+      settingsUiCheck.prefsOff.showDamageNums === false &&
+      settingsUiCheck.prefsOff.vfxHasOnClass === false &&
+      settingsUiCheck.prefsOff.ls.showVfx === false &&
+      settingsUiCheck.autoAfter.preferredPot === '橙色藥水' &&
+      settingsUiCheck.autoAfter.potThreshold === 62 &&
+      settingsUiCheck.autoAfter.autoHaste === true,
+    `Display prefs / autoConfig check failed: ${JSON.stringify(settingsUiCheck)}`
+  );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-game-settings.png') });
+
+  // 手機版 390x844 設定面板溢出與可視範圍驗證
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(120);
+  const mobileSettingsOverflow = await page.evaluate(() => {
+    const win = document.querySelector('.ll-win.ll-settings-win');
+    const r = win ? win.getBoundingClientRect() : null;
+    return {
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+      rect: r ? { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height } : null,
+    };
+  });
+  assert(
+    mobileSettingsOverflow.scrollWidth <= mobileSettingsOverflow.innerWidth &&
+      mobileSettingsOverflow.rect &&
+      mobileSettingsOverflow.rect.left >= 0 &&
+      mobileSettingsOverflow.rect.right <= 390.5,
+    `Mobile settings panel overflow: ${JSON.stringify(mobileSettingsOverflow)}`
+  );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-game-settings-mobile.png') });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.waitForTimeout(100);
+
+  // 還原預設 50% 音量與自動練功設定再繼續後續 BGM/安全區測試
+  await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    eng.audio.setSfxOn(true);
+    eng.audio.setSfxVol(50);
+    eng.audio.setBgmOn(true);
+    eng.audio.setBgmVol(50);
+    eng.world.player.autoConfig.preferredPot = 'auto';
+    eng.world.player.autoConfig.potThreshold = 55;
+    eng.world.player.autoConfig.autoHaste = false;
+  });
+  await page.click('[data-close-modal="1"]');
+  await page.waitForTimeout(100);
+  assert(
+    await page.evaluate(() => !document.querySelector('.ll-win')),
+    'Settings modal should close cleanly on close button'
   );
 
   // 驗證打木人不切換戰鬥音樂、打真怪時 battle 取代原本背景音樂不重疊、同時最多只有 1 軌 <audio> 播放
@@ -1497,6 +1788,348 @@ try {
   await page.waitForTimeout(200);
   st = await page.evaluate(() => window.__lineage.getState());
   assert(st.realtimeLog && st.realtimeLog.includes('pong'), `Expected pong frame in realtimeLog, got: ${st.realtimeLog}`);
+
+  // 驗證新實作 4 項需求：
+  // 1) lineagereal.com/ability/ 官方角色數值表與衍生能力面板
+  // 2) 武卷／防卷進入強化游標模式，可點擊背包任一未裝備武器／防具並做類型判斷與 Esc 取消
+  // 3) 背包滾動後點擊道具／鎖定／使用時捲動軸固定不跳回頂部
+  // 4) 奇岩城（中央廣場）與奇岩內城傳送師 NPC 雙向傳送
+  await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    eng?.hud?.closeModal?.();
+  });
+  await page.click('[data-win="status"]');
+  await page.waitForTimeout(160);
+  const abilityCheck = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const classes = w.worldData?.classes || {};
+    const ab = w.player.abilities || {};
+    const statusText = document.querySelector('#ll-modal-layer .status-win')?.textContent || '';
+    return {
+      statusText,
+      ab,
+      royal: classes.royal ? { baseHp: classes.royal.baseHp, baseMp: classes.royal.baseMp, stats: classes.royal.stats } : null,
+      knight: classes.knight ? { baseHp: classes.knight.baseHp, baseMp: classes.knight.baseMp, stats: classes.knight.stats } : null,
+      elf: classes.elf ? { baseHp: classes.elf.baseHp, baseMp: classes.elf.baseMp, stats: classes.elf.stats } : null,
+      mage: classes.mage ? { baseHp: classes.mage.baseHp, baseMp: classes.mage.baseMp, stats: classes.mage.stats } : null,
+    };
+  });
+  assert(
+    abilityCheck.statusText.includes('能力表衍生加成') &&
+      abilityCheck.statusText.includes('近戰傷／命') &&
+      typeof abilityCheck.ab.meleeDmg === 'number' &&
+      typeof abilityCheck.ab.er === 'number' &&
+      typeof abilityCheck.ab.mpDiscountCap === 'number' &&
+      typeof abilityCheck.ab.acDivisor === 'number' &&
+      abilityCheck.royal?.baseHp === 14 &&
+      abilityCheck.royal?.baseMp === 2 &&
+      abilityCheck.royal?.stats?.str === 13 &&
+      abilityCheck.royal?.stats?.cha === 13 &&
+      abilityCheck.knight?.baseHp === 16 &&
+      abilityCheck.knight?.baseMp === 1 &&
+      abilityCheck.knight?.stats?.str === 16 &&
+      abilityCheck.knight?.stats?.con === 14 &&
+      abilityCheck.elf?.baseHp === 15 &&
+      abilityCheck.elf?.baseMp === 4 &&
+      abilityCheck.mage?.baseHp === 12 &&
+      abilityCheck.mage?.baseMp === 6 &&
+      abilityCheck.mage?.stats?.str === 8,
+    `Official ability tables or Status modal check failed: ${JSON.stringify(abilityCheck)}`
+  );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-ability-status.png') });
+  await page.click('[data-close-modal="1"]');
+  await page.waitForTimeout(100);
+
+  // 準備足夠道具讓道具欄產生捲軸並測試未裝備武器／防具強化
+  const enchantSetup = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    eng.hud.invFilter = 'all';
+    const addFreshItem = (name) => {
+      const prevLen = w.player.inventory.length;
+      if (!w.addItemToInventory(name, 1) || w.player.inventory.length <= prevLen) return null;
+      return w.player.inventory[w.player.inventory.length - 1];
+    };
+    const tmpIds = [];
+    for (let i = 0; i < 32; i += 1) {
+      const added = addFreshItem('鋼盔');
+      if (added?.id) tmpIds.push(added.id);
+    }
+    const targetSword = addFreshItem('長劍');
+    if (targetSword?.id) {
+      targetSword.plus = 0;
+      targetSword.equipped = false;
+      tmpIds.push(targetSword.id);
+    }
+    const targetJacket = addFreshItem('皮夾克');
+    if (targetJacket?.id) {
+      targetJacket.plus = 0;
+      targetJacket.equipped = false;
+      tmpIds.push(targetJacket.id);
+    }
+    w.addItemToInventory('對武器施法的卷軸', 2);
+    w.addItemToInventory('對盔甲施法的卷軸', 2);
+    const weaponScroll = w.player.inventory.find((i) => i.name === '對武器施法的卷軸');
+    const armorScroll = w.player.inventory.find((i) => i.name === '對盔甲施法的卷軸');
+    window.__lineageEnchantTest = {
+      tmpIds,
+      targetSwordId: targetSword?.id || null,
+      targetJacketId: targetJacket?.id || null,
+      weaponScrollId: weaponScroll?.id || null,
+      armorScrollId: armorScroll?.id || null,
+      weaponScrollStartCount: Number(weaponScroll?.count || 0),
+      armorScrollStartCount: Number(armorScroll?.count || 0),
+    };
+    return window.__lineageEnchantTest;
+  });
+  assert(
+    enchantSetup.targetSwordId &&
+      enchantSetup.targetJacketId &&
+      enchantSetup.weaponScrollId &&
+      enchantSetup.armorScrollId,
+    `Failed to stage enchant & scroll test items: ${JSON.stringify(enchantSetup)}`
+  );
+
+  await page.click('[data-win="inventory"]');
+  await page.waitForTimeout(160);
+
+  // 檢查 3) 背包滾動後點擊道具／鎖定／反選不會跳回頂端
+  const scrollTarget = await page.evaluate((setup) => {
+    const grid = document.querySelector('.ll-inv-grid-4col');
+    if (!grid) return { ok: false, reason: 'missing grid' };
+    const maxScroll = Math.max(0, grid.scrollHeight - grid.clientHeight);
+    if (maxScroll < 80) {
+      return { ok: false, reason: `maxScroll=${maxScroll}`, scrollHeight: grid.scrollHeight, clientHeight: grid.clientHeight };
+    }
+    grid.scrollTop = Math.min(180, maxScroll);
+    const skipIds = new Set([
+      setup.targetSwordId,
+      setup.targetJacketId,
+      setup.weaponScrollId,
+      setup.armorScrollId,
+    ]);
+    const gridRect = grid.getBoundingClientRect();
+    const visibleSlot = [...grid.querySelectorAll('[data-select-item]')].find((el) => {
+      const id = el.getAttribute('data-select-item');
+      if (!id || skipIds.has(id)) return false;
+      const r = el.getBoundingClientRect();
+      return r.top >= gridRect.top + 6 && r.bottom <= gridRect.bottom - 6;
+    });
+    return {
+      ok: Boolean(visibleSlot),
+      beforeScrollTop: grid.scrollTop,
+      visibleItemId: visibleSlot?.getAttribute('data-select-item') || null,
+      maxScroll,
+    };
+  }, enchantSetup);
+  assert(
+    scrollTarget.ok && scrollTarget.beforeScrollTop >= 80 && scrollTarget.visibleItemId,
+    `Inventory grid did not overflow enough for scroll test: ${JSON.stringify(scrollTarget)}`
+  );
+
+  await page.click(`[data-select-item="${scrollTarget.visibleItemId}"]`);
+  await page.waitForTimeout(100);
+  const afterSelectScroll = await page.evaluate(() => document.querySelector('.ll-inv-grid-4col')?.scrollTop ?? -1);
+  assert(
+    Math.abs(afterSelectScroll - scrollTarget.beforeScrollTop) <= 4,
+    `Inventory scroll jumped after item click: before=${scrollTarget.beforeScrollTop}, after=${afterSelectScroll}`
+  );
+
+  await page.click(`[data-toggle-lock="${scrollTarget.visibleItemId}"]`);
+  await page.waitForTimeout(100);
+  const afterLockScroll = await page.evaluate(() => document.querySelector('.ll-inv-grid-4col')?.scrollTop ?? -1);
+  assert(
+    Math.abs(afterLockScroll - scrollTarget.beforeScrollTop) <= 4,
+    `Inventory scroll jumped after item lock: before=${scrollTarget.beforeScrollTop}, after=${afterLockScroll}`
+  );
+
+  // 檢查 2) 武卷／防卷游標強化模式、錯配阻擋與包內未裝備強化
+  await page.click(`[data-select-item="${enchantSetup.weaponScrollId}"]`);
+  await page.waitForTimeout(100);
+  await page.click(`[data-use-selected="${enchantSetup.weaponScrollId}"]`);
+  await page.waitForTimeout(120);
+
+  const wpnEnchantUi = await page.evaluate(({ targetSwordId, targetJacketId }) => {
+    const win = document.querySelector('.ll-win.inv-win.enchant-targeting');
+    const grid = document.querySelector('.ll-inv-grid-4col');
+    const banner = document.querySelector('.ll-enchant-banner')?.textContent || '';
+    const swordSlot = document.querySelector(`[data-select-item="${targetSwordId}"]`);
+    const jacketSlot = document.querySelector(`[data-select-item="${targetJacketId}"]`);
+    return {
+      hasTargetingClass: Boolean(win),
+      banner,
+      gridCursor: grid ? getComputedStyle(grid).cursor : '',
+      swordEligible: Boolean(swordSlot?.classList.contains('enchant-eligible')),
+      jacketIneligible: Boolean(jacketSlot?.classList.contains('enchant-ineligible')),
+    };
+  }, enchantSetup);
+  assert(
+    wpnEnchantUi.hasTargetingClass &&
+      wpnEnchantUi.banner.includes('對武器施法的卷軸') &&
+      wpnEnchantUi.gridCursor.includes('data:image/svg+xml') &&
+      wpnEnchantUi.swordEligible &&
+      wpnEnchantUi.jacketIneligible,
+    `Weapon enchant cursor mode UI failed: ${JSON.stringify(wpnEnchantUi)}`
+  );
+
+  // 點擊未裝備防具應阻擋且不消耗武卷
+  await page.click(`[data-select-item="${enchantSetup.targetJacketId}"]`);
+  await page.waitForTimeout(120);
+  const mismatchCheck = await page.evaluate(({ targetJacketId, weaponScrollId }) => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const jacket = w.player.inventory.find((i) => i.id === targetJacketId);
+    const wpnScroll = w.player.inventory.find((i) => i.id === weaponScrollId);
+    return {
+      warnText: document.querySelector('.ll-enchant-warn')?.textContent || '',
+      stillTargeting: Boolean(document.querySelector('.ll-win.inv-win.enchant-targeting')),
+      jacketPlus: jacket?.plus ?? -1,
+      wpnScrollCount: wpnScroll?.count ?? 0,
+    };
+  }, enchantSetup);
+  assert(
+    mismatchCheck.warnText.length > 0 &&
+      mismatchCheck.stillTargeting &&
+      mismatchCheck.jacketPlus === 0 &&
+      mismatchCheck.wpnScrollCount === enchantSetup.weaponScrollStartCount,
+    `Mismatched armor click under weapon scroll should warn without consuming scroll: ${JSON.stringify(mismatchCheck)}`
+  );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-enchant-mode.png') });
+
+  // 點擊背包未裝備的長劍進行強化 -> +1
+  await page.click(`[data-select-item="${enchantSetup.targetSwordId}"]`);
+  await page.waitForTimeout(140);
+  const afterSwordEnchant = await page.evaluate(({ targetSwordId, weaponScrollId }) => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const sword = w.player.inventory.find((i) => i.id === targetSwordId);
+    const wpnScroll = w.player.inventory.find((i) => i.id === weaponScrollId);
+    return {
+      swordPlus: sword?.plus ?? -1,
+      swordEquipped: Boolean(sword?.equipped),
+      wpnScrollCount: wpnScroll?.count ?? 0,
+      stillTargeting: Boolean(document.querySelector('.ll-win.inv-win.enchant-targeting')),
+    };
+  }, enchantSetup);
+  assert(
+    afterSwordEnchant.swordPlus === 1 &&
+      !afterSwordEnchant.swordEquipped &&
+      afterSwordEnchant.wpnScrollCount === enchantSetup.weaponScrollStartCount - 1 &&
+      !afterSwordEnchant.stillTargeting,
+    `Bag weapon enchant failed: ${JSON.stringify(afterSwordEnchant)}`
+  );
+
+  // 按 Esc 只應取消強化游標模式，不關閉背包視窗
+  await page.click(`[data-select-item="${enchantSetup.weaponScrollId}"]`);
+  await page.waitForTimeout(100);
+  await page.click(`[data-use-selected="${enchantSetup.weaponScrollId}"]`);
+  await page.waitForTimeout(100);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(100);
+  const escCancelCheck = await page.evaluate(() => ({
+    invStillOpen: Boolean(document.querySelector('.ll-win.inv-win')),
+    targetingActive: Boolean(document.querySelector('.ll-win.inv-win.enchant-targeting')),
+  }));
+  assert(
+    escCancelCheck.invStillOpen && !escCancelCheck.targetingActive,
+    `Escape should cancel enchant mode while keeping inventory open: ${JSON.stringify(escCancelCheck)}`
+  );
+
+  // 防卷強化背包內未裝備皮夾克 -> +1
+  await page.click(`[data-select-item="${enchantSetup.armorScrollId}"]`);
+  await page.waitForTimeout(100);
+  await page.click(`[data-use-selected="${enchantSetup.armorScrollId}"]`);
+  await page.waitForTimeout(120);
+  await page.click(`[data-select-item="${enchantSetup.targetJacketId}"]`);
+  await page.waitForTimeout(140);
+  const afterArmorEnchant = await page.evaluate(({ targetJacketId, armorScrollId }) => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const jacket = w.player.inventory.find((i) => i.id === targetJacketId);
+    const armScroll = w.player.inventory.find((i) => i.id === armorScrollId);
+    const tmpIds = new Set(window.__lineageEnchantTest?.tmpIds || []);
+    w.player.inventory = w.player.inventory.filter((i) => !tmpIds.has(i.id));
+    w.recomputePlayerStats?.();
+    return {
+      jacketPlus: jacket?.plus ?? -1,
+      jacketEquipped: Boolean(jacket?.equipped),
+      armScrollCount: armScroll?.count ?? 0,
+      stillTargeting: Boolean(document.querySelector('.ll-win.inv-win.enchant-targeting')),
+    };
+  }, enchantSetup);
+  assert(
+    afterArmorEnchant.jacketPlus === 1 &&
+      !afterArmorEnchant.jacketEquipped &&
+      afterArmorEnchant.armScrollCount === enchantSetup.armorScrollStartCount - 1 &&
+      !afterArmorEnchant.stillTargeting,
+    `Bag armor enchant failed: ${JSON.stringify(afterArmorEnchant)}`
+  );
+  await page.click('[data-close-modal="1"]');
+  await page.waitForTimeout(100);
+
+  // 檢查 4) 奇岩城（中央廣場）與奇岩內城傳送師 NPC
+  const giranPlazaOpen = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    w.player.gold += 5000;
+    w.teleportTo(4, 33432, 32818, 4);
+    const plazaTp = w.npcs.find((n) => n.name === '奇岩傳送師' && n.map === 4 && n.type === 'Teleport');
+    const innerTp = (w.worldData?.npcs || []).find(
+      (n) => n.name === '奇岩內城傳送師' && n.map === 52 && n.type === 'Teleport'
+    );
+    if (plazaTp) eng.hud.openNpc(plazaTp);
+    const tpButtons = [...document.querySelectorAll('[data-tp-idx]')].map((b) => ({
+      idx: b.getAttribute('data-tp-idx'),
+      text: b.closest('.ll-list-row')?.textContent || b.textContent || '',
+    }));
+    return {
+      hasPlazaTp: Boolean(plazaTp),
+      hasInnerTp: Boolean(innerTp),
+      plazaCoords: plazaTp ? { x: plazaTp.x, y: plazaTp.y } : null,
+      tpButtons,
+    };
+  });
+  const innerRouteBtn = giranPlazaOpen.tpButtons.find((b) => b.text.includes('奇岩內城'));
+  assert(
+    giranPlazaOpen.hasPlazaTp && giranPlazaOpen.hasInnerTp && innerRouteBtn,
+    `Giran Teleporter NPC check failed: ${JSON.stringify(giranPlazaOpen)}`
+  );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-giran-teleporter.png') });
+  await page.click(`[data-tp-idx="${innerRouteBtn.idx}"]`);
+  await page.waitForTimeout(250);
+
+  const giranRoundTrip = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const afterInnerMap = w.player.map;
+    const innerTp = w.npcs.find((n) => n.name === '奇岩內城傳送師' && n.map === 52);
+    if (innerTp) eng.hud.openNpc(innerTp);
+    const backBtn = [...document.querySelectorAll('[data-tp-idx]')].find((b) =>
+      (b.closest('.ll-list-row')?.textContent || b.textContent || '').includes('奇岩城（中央廣場')
+    );
+    return {
+      afterInnerMap,
+      backIdx: backBtn?.getAttribute('data-tp-idx') || null,
+    };
+  });
+  assert(
+    giranRoundTrip.afterInnerMap === 52 && giranRoundTrip.backIdx !== null,
+    `Giran Inner Castle teleport failed: ${JSON.stringify(giranRoundTrip)}`
+  );
+  await page.click(`[data-tp-idx="${giranRoundTrip.backIdx}"]`);
+  await page.waitForTimeout(250);
+  const backPlazaPos = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const out = { map: w.player.map, tx: w.player.tx, ty: w.player.ty };
+    eng.hud.closeModal();
+    return out;
+  });
+  assert(
+    backPlazaPos.map === 4 && Math.abs(backPlazaPos.tx - 33432) <= 2 && Math.abs(backPlazaPos.ty - 32818) <= 2,
+    `Giran Plaza return teleport failed: ${JSON.stringify(backPlazaPos)}`
+  );
 
   // 驗證魔法書內僅存在分包的法術圖示（例如 11/20）透過分包 Blob 載入，不觸發散檔 404 與 Range 請求
   await page.evaluate(() => {

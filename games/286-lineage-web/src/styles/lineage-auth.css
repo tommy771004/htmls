@@ -895,12 +895,16 @@
 
 .ll-stage-modal {
   width: min(440px, 92%);
-  background: rgba(15, 20, 30, 0.97);
-  border: 1px solid var(--border-gold, #8c6d3a);
-  border-radius: 6px;
+  background: rgba(16, 16, 18, 0.96);
+  border: 2px solid #484642;
+  border-radius: 2px;
   padding: 16px;
-  color: #f4edda;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.9);
+  color: #e2e8f0;
+  box-shadow:
+    0 0 0 1px #09090b,
+    inset 0 0 0 1px #242321,
+    inset 0 1px 0 1px rgba(255, 255, 255, 0.12),
+    0 18px 46px rgba(0, 0, 0, 0.9);
 }
 
 /* ===== 4. Entered World Stage (#game-screen) ===== */

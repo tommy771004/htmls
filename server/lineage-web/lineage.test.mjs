@@ -4,6 +4,8 @@ import { EventEmitter } from 'node:events';
 import { describe, it } from 'node:test';
 import {
   buildIdempotencyKey,
+  buildNewCharacter,
+  CHARACTER_CLASSES,
   CLASS_BASE_STATS,
   computeEggGrant,
   computeFinalStats,
@@ -559,5 +561,44 @@ describe('286 lineage-web HTTP API & Pack Slicing integration tests', () => {
     assert.equal(slice3.status, 200);
     const slice3Json = await slice3.json();
     assert.ok(slice3Json);
+  });
+
+  it('9. ability-tables: CHARACTER_CLASSES and buildNewCharacter match lineagereal.com/ability/', () => {
+    assert.deepEqual(CHARACTER_CLASSES.royal.baseStats, { str: 13, dex: 10, con: 10, wis: 11, cha: 13, int: 10 });
+    assert.equal(CHARACTER_CLASSES.royal.bonusPoints, 8);
+    assert.equal(CHARACTER_CLASSES.royal.baseHp, 14);
+    assert.equal(CHARACTER_CLASSES.royal.baseMp, 2);
+
+    assert.deepEqual(CHARACTER_CLASSES.knight.baseStats, { str: 16, dex: 12, con: 14, wis: 9, cha: 12, int: 8 });
+    assert.equal(CHARACTER_CLASSES.knight.bonusPoints, 4);
+    assert.equal(CHARACTER_CLASSES.knight.baseHp, 16);
+    assert.equal(CHARACTER_CLASSES.knight.baseMp, 1);
+
+    assert.deepEqual(CHARACTER_CLASSES.mage.baseStats, { str: 8, dex: 7, con: 12, wis: 12, cha: 8, int: 12 });
+    assert.equal(CHARACTER_CLASSES.mage.bonusPoints, 16);
+    assert.equal(CHARACTER_CLASSES.mage.baseHp, 12);
+    assert.equal(CHARACTER_CLASSES.mage.baseMp, 6);
+
+    assert.deepEqual(CHARACTER_CLASSES.elf.baseStats, { str: 11, dex: 12, con: 12, wis: 12, cha: 9, int: 12 });
+    assert.equal(CHARACTER_CLASSES.elf.bonusPoints, 7);
+    assert.equal(CHARACTER_CLASSES.elf.baseHp, 15);
+    assert.equal(CHARACTER_CLASSES.elf.baseMp, 4);
+
+    assert.deepEqual(CHARACTER_CLASSES.dark.baseStats, { str: 12, dex: 15, con: 8, wis: 10, cha: 9, int: 11 });
+    assert.equal(CHARACTER_CLASSES.dark.bonusPoints, 10);
+    assert.equal(CHARACTER_CLASSES.dark.baseHp, 16);
+    assert.equal(CHARACTER_CLASSES.dark.baseMp, 3);
+
+    const elfChar = buildNewCharacter(1, {
+      name: '亞丁妖精',
+      classId: 'elf',
+      gender: 'f',
+      bonusStats: { str: 0, dex: 6, con: 0, wis: 1, cha: 0, int: 0 },
+    });
+    assert.equal(elfChar.ok, true);
+    assert.equal(elfChar.character.maxHp, 15);
+    assert.equal(elfChar.character.maxMp, 4);
+    assert.equal(elfChar.character.ac, 10);
+    assert.deepEqual(elfChar.character.birthStats, { str: 11, dex: 18, con: 12, wis: 13, cha: 9, int: 12 });
   });
 });

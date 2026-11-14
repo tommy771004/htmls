@@ -601,6 +601,36 @@ const npcs = E.o
     shop: Boolean(n.shop),
   }));
 
+const EXTRA_GIRANS_TELEPORTERS = [
+  {
+    id: 'npc-giran-plaza-tp',
+    name: '奇岩傳送師',
+    map: 4,
+    x: 33433,
+    y: 32818,
+    gfx: 940,
+    renderGfx: 940,
+    heading: 5,
+    type: 'Teleport',
+    shop: false,
+  },
+  {
+    id: 'npc-giran-inner-tp',
+    name: '奇岩內城傳送師',
+    map: 52,
+    x: 32740,
+    y: 32815,
+    gfx: 940,
+    renderGfx: 940,
+    heading: 4,
+    type: 'Teleport',
+    shop: false,
+  },
+];
+for (const tp of EXTRA_GIRANS_TELEPORTERS) {
+  if (!npcs.some((n) => n.id === tp.id)) npcs.push(tp);
+}
+
 const shops = {};
 for (const row of E.i) {
   if (!row.sell) continue;
@@ -803,6 +833,20 @@ for (const [id, info] of Object.entries(classMap)) {
     },
     startItems,
   };
+}
+
+const ABILITY_CLASS_BASE = {
+  royal: { baseHp: 14, baseMp: 2, stats: { str: 13, dex: 10, con: 10, wis: 11, cha: 13, int: 10 } },
+  knight: { baseHp: 16, baseMp: 1, stats: { str: 16, dex: 12, con: 14, wis: 9, cha: 12, int: 8 } },
+  elf: { baseHp: 15, baseMp: 4, stats: { str: 11, dex: 12, con: 12, wis: 12, cha: 9, int: 12 } },
+  mage: { baseHp: 12, baseMp: 6, stats: { str: 8, dex: 7, con: 12, wis: 12, cha: 8, int: 12 } },
+};
+for (const [id, ov] of Object.entries(ABILITY_CLASS_BASE)) {
+  if (classes[id]) {
+    classes[id].baseHp = ov.baseHp;
+    classes[id].baseMp = ov.baseMp;
+    classes[id].stats = { ...ov.stats };
+  }
 }
 
 // 10. 全 64 張地圖區塊清單與高畫質重繪查找表（以 gzip 壓縮維持單檔輕量）
