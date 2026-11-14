@@ -1,0 +1,22 @@
+name = "realm-edge-gateway"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+
+[vars]
+ASSET_CACHE_TTL = "31536000"
+
+# R2 需先在 Cloudflare 控制台啟用並執行 `npx wrangler r2 bucket create realm-assets-prod`，
+# 之後取消下面三行註解再部署。未綁定時 /assets/* 回 503，/ws 與 /health 照常運作。
+# [[r2_buckets]]
+# binding = "R2_ASSETS"
+# bucket_name = "realm-assets-prod"
+
+[[durable_objects.bindings]]
+name = "REALM_GATEWAY"
+class_name = "RealmGatewayDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RealmGatewayDO"]
+
+# Secret managed via `wrangler secret put REALM_TICKET_SECRET`

@@ -1,0 +1,14 @@
+{
+  "name": "286-lineage-web",
+  "version": "1.63.0",
+  "private": true,
+  "type": "module",
+  "description": "天堂人生 · 1.63 獨立運作平台 — 說話之島 4:3 大廳、8 格角色系統、243 筆攻略圖鑑、冒險者論壇、骰子模擬、蛋幣儲值與 GM 控制台（作品 286）",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "test": "node tools/accept.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

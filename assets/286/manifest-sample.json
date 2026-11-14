@@ -1,0 +1,11 @@
+{
+  "build": 100,
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "packs": [
+    {
+      "key": "starter/ui-theme-v1.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 1024
+    }
+  ]
+}

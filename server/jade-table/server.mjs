@@ -233,11 +233,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const onUpgrade = (req, socket, head) => salt.handleUpgrade(req, socket, head) || rsa.handleUpgrade(req, socket, head) || ochre.handleUpgrade(req, socket, head) || roLobby.handleUpgrade(req, socket, head);
   const { createRoLife } = await import('../ro-life/server.mjs');
   const ro = createRoLife({ lobby: { url: LOBBY_PATH, secret: lobbySecret } });
-  const app = createJadeServer({ port: Number(process.env.PORT || 8127), host: process.env.HOST || '127.0.0.1', origins, onUpgrade, onRequest: ro.handle });
+  const { createLineageServer } = await import('../lineage-web/server.mjs');
+  const lineage = createLineageServer();
+  const app = createJadeServer({ port: Number(process.env.PORT || 8127), host: process.env.HOST || '127.0.0.1', origins, onUpgrade, onRequest: async (req, res) => (await ro.handle(req, res)) || (await lineage.handle(req, res)) });
   const address = await app.listen();
   console.log(`青雀伺服器：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/127-jade-table.html`);
   console.log(`鹽岬大逃殺：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/199-saltcape.html`);
   console.log(`Roadster Stunt Arena：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/200-roadster-arena.html`);
   console.log(`赭線 OCHRE LINE（多人）：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/278-ochre-line.html`);
+  console.log(`天堂人生 1.63 獨立運作平台：http://${address.address.includes(':') ? '[' + address.address + ']' : address.address}:${address.port}/web/286-lineage-web.html`);
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { salt.close(); rsa.close(); ochre.close(); await app.close(); process.exit(0); });
 }

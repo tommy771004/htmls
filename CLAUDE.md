@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `web/NNN-keyword.html`：網頁作品（001–100 為原始百件，101、102 為 AI 教學簡報，103 起為後續作品）。
 - `app/NNN-keyword.html`：100 個手機 App 原型（001–100）。
 
-根目錄的 `index.html` 是展示頁（搜尋、分類、預覽 iframe、收藏、自評）。常駐後端是第 127 件「青雀真人麻將」的 WebSocket 服務（見下方），199、200、278 的連線房間與 282 的帳號／雲端存檔 API（`/api/ro`）、普隆德拉大廳（`/api/ro/lobby`）掛在同一個 `npm start` 伺服器上。網站內容與文件一律使用繁體中文。
+根目錄的 `index.html` 是展示頁（搜尋、分類、預覽 iframe、收藏、自評）。常駐後端是第 127 件「青雀真人麻將」的 WebSocket 服務（見下方），199、200、278 的連線房間、282 的帳號／雲端存檔 API（`/api/ro`）與普隆德拉大廳（`/api/ro/lobby`），以及 286 的天堂 1.63 獨立運作平台 API（`/api/lineage`）掛在同一個 `npm start` 伺服器上。網站內容與文件一律使用繁體中文。
 
 ## 指令
 
@@ -21,6 +21,7 @@ npm start                 # 麻將＋鹽岬大逃殺（199）＋278 連線房間
 npm run test:mahjong      # node:test，規則引擎 + 跨實例四人房整合測試
 npm run test:saltcape     # 199 的規則層與 WebSocket 伺服器測試
 npm run test:ro           # 282 的 Google／LINE 登入、雲端存檔 API、大廳連線與社交（假的第三方端點、記憶體資料、node:sqlite）
+npm run test:lineage      # 286 的 8 大領域模組單元測試與 18 個 API 端點／.bin 分包切片整合測試
 node --test --test-name-pattern="行牌" server/jade-table/game.test.mjs   # 只跑單一測試
 node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對真實 Neon 驗證（需 DATABASE_URL）
 ```
@@ -91,5 +92,7 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 | 280 | 絕命免運費 · CANCEL ANYTIME | `games/280-cancel-anytime/`（Three.js r186 全程序建模＋toon 描邊、純規則引擎＋機器人模擬、esbuild） | 同資料夾 `CLAUDE.md` |
 | 282 | 仙境人生 · RO LIFE | `games/282-ro-life/`、帳號與雲端存檔 `server/ro-life/`、`api/ro.mjs`、大廳 Worker `games/282-ro-life/worker/`（PixiJS 8 2.5D 渲染器＋10 大遊戲子系統模組＋10 份 JSON 遊戲資料庫、esbuild；素材留在 `assets/282/`，不內嵌） | 同資料夾 `CLAUDE.md`（含 `window.__ro` 掛點、手機只做橫向等規則） |
 | 283 | 午夜退房 · LATE CHECKOUT | `games/283-late-checkout/`（Three.js r186 全程序建模＋逐頂點烘焙光＋自製 HDR 後製、純邏輯對戰模擬與 bot AI、esbuild；零外部素材） | 同資料夾 `CLAUDE.md` |
+| 285 | 巔峰試駕 · APEX STAGE '98 | `games/285-apex-stage/`（Three.js r186 全程序建模＋Cannon-es RaycastVehicle 與 Pacejka 輪胎物理＋Web Audio 即時引擎與環境合成、esbuild；零外部素材） | 同資料夾 `CLAUDE.md` |
+| 286 | 天堂人生 · 1.63 獨立運作平台 | `games/286-lineage-web/`、後端 `server/lineage-web/`、`api/lineage.mjs`、Edge Worker `games/286-lineage-web/worker/`（9 大視圖、8 槽位角色與 8 職業創角、243 筆攻略圖鑑、論壇、儲值簽章與 GM 控制台；素材與 335 個 `.bin` 分包在 `assets/286/`） | 同資料夾 `CLAUDE.md` |
 
 新增有原始碼的作品時，把專屬說明寫進該資料夾的 `CLAUDE.md`，這裡只加一列。

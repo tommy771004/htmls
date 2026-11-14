@@ -1,0 +1,13 @@
+{
+  "name": "apex-stage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "巔峰試駕 · APEX STAGE '98：90 年代街機美學 × 高擬真 3D 物理賽車與試駕測試場（作品 285）",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --dev",
+    "test": "node --test test/ && node tools/accept.mjs",
+    "accept": "node tools/accept.mjs"
+  }
+}

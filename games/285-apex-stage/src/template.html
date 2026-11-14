@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="icon" href="data:,">
+<title>巔峰試駕 · APEX STAGE '98 — 3D 硬派物理賽車模擬</title>
+<meta name="description" content="致敬 90 年代經典街機與擬真賽車名作的 3D 瀏覽器物理賽車遊戲。收錄 D/C/B/A/S 五大性能層級共 10 款原創名車、四輪獨立懸吊與 Pacejka 輪胎物理、Web Audio 即時引擎聲浪合成、筑波山道計時賽與有明綜合試車場。">
+<style>
+  :root {
+    --bg-dark: rgba(9, 12, 18, 0.78);
+    --bg-panel: rgba(12, 16, 24, 0.84);
+    --border-dim: rgba(255, 255, 255, 0.16);
+    --accent-orange: #ff5500;
+    --accent-yellow: #ffd000;
+    --accent-cyan: #00e5ff;
+    --accent-red: #ff1f5a;
+    --text-main: #f4f7fb;
+    --text-muted: #93a3b8;
+    --font-ui: 'Chakra Petch', 'Rajdhani', 'SF Pro Display', 'Noto Sans TC', 'PingFang TC', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Share Tech Mono', 'SFMono-Regular', ui-monospace, monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #07090e;
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    touch-action: none;
+  }
+
+  #gameCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    z-index: 1;
+    cursor: grab;
+  }
+  #gameCanvas:active {
+    cursor: grabbing;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  /* 頂部極簡狀態列 */
+  .top-strip {
+    position: fixed;
+    top: 10px;
+    left: 14px;
+    right: 14px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+    gap: 8px;
+  }
+
+  .brand-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-panel);
+    border-left: 4px solid var(--accent-orange);
+    border-top: 1px solid var(--border-dim);
+    border-right: 1px solid var(--border-dim);
+    border-bottom: 1px solid var(--border-dim);
+    padding: 5px 12px;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+    pointer-events: auto;
+    backdrop-filter: blur(6px);
+  }
+
+  .brand-title {
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: #ffffff;
+  }
+  .brand-title em {
+    font-style: normal;
+    color: var(--accent-orange);
+  }
+  .fan-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    border-left: 1px solid var(--border-dim);
+    padding-left: 8px;
+  }
+
+  .top-SysRight {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+  }
+
+  .sys-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 5px 9px;
+    background: rgba(0, 229, 255, 0.12);
+    border: 1px solid rgba(0, 229, 255, 0.45);
+    color: var(--accent-cyan);
+    font-weight: 700;
+  }
+
+  .arcade-btn {
+    appearance: none;
+    background: var(--bg-panel);
+    color: var(--text-main);
+    border: 1px solid var(--border-dim);
+    padding: 6px 11px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+    clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+  }
+  .arcade-btn:hover {
+    border-color: var(--accent-cyan);
+    background: rgba(22, 32, 48, 0.92);
+  }
+  .arcade-btn.muted {
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+  }
+
+  .key-hint {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 5px;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--accent-yellow);
+    border-radius: 2px;
+    margin-left: 4px;
+  }
+
+  /* ==================== 車庫與選車展間 (GARAGE) ==================== */
+  #garageScreen {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 50px 16px 14px;
+  }
+
+  .garage-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .class-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: auto;
+    background: var(--bg-panel);
+    padding: 5px 8px;
+    border: 1px solid var(--border-dim);
+    backdrop-filter: blur(6px);
+  }
+
+  #classTabs {
+    display: flex;
+    gap: 5px;
+  }
+
+  .cls-tab {
+    appearance: none;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+    padding: 5px 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    transition: all 0.14s ease;
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+  }
+  .cls-tab .cls-letter {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--cls-col, #fff);
+  }
+  .cls-tab .cls-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+  .cls-tab.active {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: var(--cls-col, var(--accent-orange));
+    box-shadow: inset 0 -3px 0 var(--cls-col, var(--accent-orange));
+  }
+
+  .track-selector-btn {
+    pointer-events: auto;
+    appearance: none;
+    background: var(--bg-panel);
+    border: 1px solid rgba(0, 229, 255, 0.45);
+    border-right: 4px solid var(--accent-cyan);
+    color: var(--text-main);
+    padding: 6px 14px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    backdrop-filter: blur(6px);
+  }
+  .track-selector-btn:hover {
+    background: rgba(0, 229, 255, 0.14);
+  }
+  .track-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .track-title {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--accent-cyan);
+    letter-spacing: 0.08em;
+  }
+  .track-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* 車庫左側規格卡（懸浮不遮擋中央旋轉展台） */
+  .garage-mid-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    min-height: 0;
+    padding: 8px 0;
+  }
+
+  .spec-card {
+    pointer-events: auto;
+    width: 300px;
+    max-width: 44vw;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dim);
+    border-left: 4px solid var(--accent-orange);
+    padding: 12px 14px;
+    backdrop-filter: blur(8px);
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+  }
+
+  .spec-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .class-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 900;
+    color: #07090e;
+    background: var(--accent-orange);
+    padding: 2px 7px;
+    letter-spacing: 0.08em;
+  }
+  .car-brand {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--accent-yellow);
+    font-weight: 700;
+  }
+
+  .car-name {
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #ffffff;
+    line-height: 1.15;
+    margin-bottom: 3px;
+  }
+  .car-tagline {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.35;
+    margin-bottom: 10px;
+  }
+
+  .spec-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    border-top: 1px solid var(--border-dim);
+    border-bottom: 1px solid var(--border-dim);
+    padding: 7px 0;
+    margin-bottom: 9px;
+  }
+  .spec-cell {
+    display: flex;
+    flex-direction: column;
+  }
+  .spec-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+  }
+  .spec-val {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 800;
+    color: #ffffff;
+  }
+
+  .stat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .stat-row {
+    display: grid;
+    grid-template-columns: 68px 1fr 26px;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+  .stat-name {
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+  }
+  .stat-track {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    position: relative;
+  }
+  .stat-fill {
+    height: 100%;
+    width: 60%;
+    background: linear-gradient(90deg, var(--accent-orange), var(--accent-yellow));
+    transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .stat-num {
+    text-align: right;
+    color: var(--text-main);
+    font-weight: 700;
+  }
+
+  .orbit-tip {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.55);
+    background: rgba(9, 12, 18, 0.52);
+    padding: 5px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    align-self: flex-end;
+  }
+
+  /* 車庫底部控制列 */
+  .garage-bottom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dim);
+    padding: 8px 12px;
+    pointer-events: auto;
+    backdrop-filter: blur(8px);
+  }
+
+  .roster-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .roster-idx {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 800;
+    min-width: 44px;
+    text-align: center;
+    color: var(--accent-yellow);
+  }
+
+  .paint-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .paint-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+  }
+  #paintSwatches {
+    display: flex;
+    gap: 5px;
+  }
+  .swatch {
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    background: var(--sw-col, #ff5500);
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 1px 2px;
+  }
+  .swatch .sw-type {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 2px #000;
+  }
+  .swatch.active {
+    border-color: #ffffff;
+    transform: scale(1.14);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.65);
+  }
+
+  #customColorPicker {
+    width: 26px;
+    height: 24px;
+    border: 1px solid var(--border-dim);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .launch-btn {
+    appearance: none;
+    background: linear-gradient(135deg, #ff5500, #ff8800);
+    color: #07090e;
+    border: none;
+    padding: 9px 22px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    box-shadow: 0 0 18px rgba(255, 85, 0, 0.45);
+  }
+  .launch-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  /* ==================== 駕駛賽車儀表板 (DRIVING HUD - 佔比 <10%) ==================== */
+  #drivingHud {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  /* 左上角：單圈與分段計時器 */
+  .hud-top-left {
+    position: fixed;
+    top: 48px;
+    left: 14px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dim);
+    border-left: 4px solid var(--accent-yellow);
+    padding: 8px 12px;
+    min-width: 196px;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+    backdrop-filter: blur(6px);
+  }
+  .lap-header {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--accent-yellow);
+    margin-bottom: 3px;
+  }
+  .time-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--font-mono);
+    margin-bottom: 2px;
+  }
+  .time-label {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .time-val {
+    font-size: 15px;
+    font-weight: 900;
+    color: #ffffff;
+  }
+  .time-val.best {
+    color: var(--accent-cyan);
+    font-size: 13px;
+  }
+  .sector-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    border-top: 1px solid var(--border-dim);
+    padding-top: 4px;
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .sector-row strong {
+    color: var(--text-main);
+  }
+
+  /* 右上角：賽道小地圖與快捷控制 */
+  .hud-top-right {
+    position: fixed;
+    top: 48px;
+    right: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .minimap-box {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dim);
+    padding: 4px;
+    backdrop-filter: blur(6px);
+  }
+  #minimapCanvas {
+    display: block;
+    width: 124px;
+    height: 124px;
+  }
+  .hud-quick-btns {
+    display: flex;
+    gap: 5px;
+    pointer-events: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  #zoneJumpBar {
+    display: flex;
+    gap: 4px;
+    pointer-events: auto;
+    background: var(--bg-panel);
+    padding: 4px 6px;
+    border: 1px solid rgba(0, 229, 255, 0.35);
+  }
+  .zone-btn {
+    appearance: none;
+    background: rgba(0, 229, 255, 0.12);
+    border: 1px solid rgba(0, 229, 255, 0.4);
+    color: var(--accent-cyan);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 7px;
+    cursor: pointer;
+  }
+  .zone-btn:hover {
+    background: rgba(0, 229, 255, 0.28);
+  }
+
+  /* 中央起跑倒數橫幅 */
+  #countdownBanner {
+    position: fixed;
+    top: 32%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-mono);
+    font-size: 68px;
+    font-weight: 900;
+    color: var(--accent-yellow);
+    text-shadow: 0 0 26px rgba(255, 85, 0, 0.9), 0 4px 12px #000;
+    letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+
+  /* 右下角：90 年代街機轉速表、檔位與數位時速計 */
+  .hud-bottom-right {
+    position: fixed;
+    bottom: 14px;
+    right: 14px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dim);
+    border-right: 4px solid var(--accent-orange);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%, 0 12px);
+    backdrop-filter: blur(8px);
+  }
+
+  .tach-svg-wrap {
+    position: relative;
+    width: 108px;
+    height: 82px;
+  }
+  .tach-svg {
+    width: 108px;
+    height: 82px;
+    overflow: visible;
+  }
+  .gear-box {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+  .gear-num {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--accent-yellow);
+    line-height: 1;
+  }
+  .gear-num.rev {
+    color: var(--accent-red);
+  }
+  .rpm-sub {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-muted);
+  }
+
+  .speed-readout {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 92px;
+  }
+  .shift-pill {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.3);
+    margin-bottom: 2px;
+  }
+  .shift-pill.on {
+    background: var(--accent-red);
+    color: #ffffff;
+    box-shadow: 0 0 12px var(--accent-red);
+  }
+  .speed-digits {
+    font-family: var(--font-mono);
+    font-size: 38px;
+    font-weight: 900;
+    line-height: 0.95;
+    color: #ffffff;
+    letter-spacing: 0.03em;
+  }
+  .speed-unit {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--accent-orange);
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    margin-top: 2px;
+  }
+  .surface-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--accent-cyan);
+    margin-top: 3px;
+  }
+
+  /* 左下角極簡按鍵提示與手機觸控虛擬按鍵 */
+  .hud-bottom-left {
+    position: fixed;
+    bottom: 14px;
+    left: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .steer-hint-bar {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: rgba(9, 12, 18, 0.65);
+    border: 1px solid var(--border-dim);
+    padding: 5px 10px;
+  }
+
+  .touch-pad {
+    display: none;
+    pointer-events: auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .t-btn {
+    appearance: none;
+    width: 54px;
+    height: 48px;
+    background: rgba(15, 22, 34, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 800;
+    border-radius: 4px;
+  }
+  .t-btn:active {
+    background: var(--accent-orange);
+    color: #000;
+  }
+
+  /* 響應式窄螢幕與手機適配 (確保 390x844 零水平溢出) */
+  @media (max-width: 760px) {
+    .fan-note {
+      display: none;
+    }
+    #garageScreen {
+      padding: 46px 10px 10px;
+    }
+    .cls-tab {
+      padding: 4px 8px;
+    }
+    .cls-tab .cls-sub {
+      display: none;
+    }
+    .spec-card {
+      width: 100%;
+      max-width: 100%;
+      padding: 9px 11px;
+    }
+    .car-name {
+      font-size: 16px;
+    }
+    .orbit-tip {
+      display: none;
+    }
+    .garage-bottom-row {
+      padding: 7px 9px;
+      gap: 6px;
+    }
+    .launch-btn {
+      width: 100%;
+      text-align: center;
+      padding: 8px 12px;
+    }
+    #minimapCanvas {
+      width: 88px;
+      height: 88px;
+    }
+    .steer-hint-bar {
+      display: none;
+    }
+    .touch-pad {
+      display: flex;
+    }
+    .hud-bottom-right {
+      padding: 7px 10px;
+      gap: 8px;
+    }
+    .speed-digits {
+      font-size: 28px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<!-- 頂部系統狀態與致敬聲明列 -->
+<header class="top-strip">
+  <div class="brand-pill">
+    <span class="brand-title">APEX STAGE <em>'98</em></span>
+    <span id="fanNote" class="fan-note">非官方原創車款與賽道致敬作品，與任何車廠無關</span>
+  </div>
+  <div class="top-SysRight">
+    <span id="devBadge" class="sys-badge">KEYBOARD ACTIVE</span>
+    <button id="btnMute" class="arcade-btn" type="button">SOUND: ON [N]</button>
+  </div>
+</header>
+
+<!-- ==================== 3D 展示車庫與選車介面 ==================== -->
+<section id="garageScreen" aria-label="車庫選車與塗裝介面">
+  <div class="garage-top-row">
+    <div class="class-bar-wrap">
+      <div id="classTabs"></div>
+      <span id="hintClass" class="key-hint">Q / E</span>
+    </div>
+
+    <button id="btnTrackSelect" class="track-selector-btn" type="button">
+      <div class="track-meta">
+        <span id="trackNameLabel" class="track-title">TSUKUBA APEX CIRCUIT</span>
+        <span id="trackSubLabel" class="track-sub">筑波山道計時賽 · 全長 2.4 km</span>
+      </div>
+      <span id="hintTrack" class="key-hint">T 切換場地</span>
+    </button>
+  </div>
+
+  <div class="garage-mid-row">
+    <aside class="spec-card">
+      <div class="spec-head">
+        <span id="specClassBadge" class="class-badge">CLASS C</span>
+        <span id="specBrand" class="car-brand">KAZE</span>
+      </div>
+      <h1 id="specName" class="car-name">KAZE S15 SILHOUETTE</h1>
+      <p id="specTagline" class="car-tagline">均衡前置後驅底盤，天生為連續慣性甩尾而生。</p>
+
+      <div class="spec-grid">
+        <div class="spec-cell">
+          <span class="spec-label">ENGINE</span>
+          <span id="specEngine" class="spec-val">2.0L I4 Turbo</span>
+        </div>
+        <div class="spec-cell">
+          <span class="spec-label">POWER</span>
+          <span id="specPower" class="spec-val">250 HP</span>
+        </div>
+        <div class="spec-cell">
+          <span class="spec-label">WEIGHT</span>
+          <span id="specWeight" class="spec-val">1240 KG</span>
+        </div>
+        <div class="spec-cell">
+          <span class="spec-label">DRIVETRAIN</span>
+          <span id="specDrive" class="spec-val">RWD</span>
+        </div>
+        <div class="spec-cell">
+          <span class="spec-label">0-100 KM/H</span>
+          <span id="specZeroSixty" class="spec-val">5.5 s</span>
+        </div>
+        <div class="spec-cell">
+          <span class="spec-label">TOP SPEED</span>
+          <span id="specTopSpeed" class="spec-val">246 KM/H</span>
+        </div>
+      </div>
+
+      <div class="stat-list">
+        <div class="stat-row">
+          <span class="stat-name">SPEED</span>
+          <div class="stat-track"><div id="statFill-speed" class="stat-fill"></div></div>
+          <span id="statVal-speed" class="stat-num">68</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">ACCEL</span>
+          <div class="stat-track"><div id="statFill-acceleration" class="stat-fill"></div></div>
+          <span id="statVal-acceleration" class="stat-num">70</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">HANDLING</span>
+          <div class="stat-track"><div id="statFill-handling" class="stat-fill"></div></div>
+          <span id="statVal-handling" class="stat-num">82</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">BRAKING</span>
+          <div class="stat-track"><div id="statFill-braking" class="stat-fill"></div></div>
+          <span id="statVal-braking" class="stat-num">75</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">OFF-ROAD</span>
+          <div class="stat-track"><div id="statFill-offroad" class="stat-fill"></div></div>
+          <span id="statVal-offroad" class="stat-num">54</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="orbit-tip">DRAG OR R-STICK TO ORBIT 360° SHOWROOM</div>
+  </div>
+
+  <div class="garage-bottom-row">
+    <div class="roster-nav">
+      <button id="btnPrevCar" class="arcade-btn" type="button">◀ PREV</button>
+      <span id="carRosterIndex" class="roster-idx">1 / 2</span>
+      <button id="btnNextCar" class="arcade-btn" type="button">NEXT ▶</button>
+      <span id="hintCar" class="key-hint">◀ / ▶</span>
+    </div>
+
+    <div class="paint-bar">
+      <span class="paint-label">PAINT</span>
+      <div id="paintSwatches"></div>
+      <input id="customColorPicker" type="color" value="#0052ff" title="自訂烤漆色盤">
+      <span id="hintPaint" class="key-hint">P 換色</span>
+    </div>
+
+    <button id="btnStartDrive" class="launch-btn" type="button">
+      START DRIVE <span id="hintDriveBtn" class="key-hint" style="background:rgba(0,0,0,0.25);color:#fff;">ENTER 出賽</span>
+    </button>
+  </div>
+</section>
+
+<!-- ==================== 駕駛賽車極簡 HUD ==================== -->
+<section id="drivingHud" aria-label="賽道駕駛儀表板" hidden>
+  <!-- 左上：單圈與分段計時 -->
+  <div class="hud-top-left">
+    <div class="lap-header">
+      <span id="hudLapCount">LAP 1</span>
+      <span id="hudCpStatus">CP 1/6</span>
+    </div>
+    <div class="time-row">
+      <span class="time-label">CURRENT</span>
+      <span id="hudCurLap" class="time-val">00:00.000</span>
+    </div>
+    <div class="time-row">
+      <span class="time-label">BEST LAP</span>
+      <span id="hudBestLap" class="time-val best">--:--.---</span>
+    </div>
+    <div class="sector-row">
+      <span>S1 <strong id="hudS1">--.--</strong></span>
+      <span>S2 <strong id="hudS2">--.--</strong></span>
+      <span>S3 <strong id="hudS3">--.--</strong></span>
+    </div>
+  </div>
+
+  <!-- 右上：賽道小地圖與視角/排檔/車庫快捷鈕 -->
+  <div class="hud-top-right">
+    <div class="minimap-box">
+      <canvas id="minimapCanvas" width="136" height="136"></canvas>
+    </div>
+    <div class="hud-quick-btns">
+      <button id="btnHudCam" class="arcade-btn" type="button">CHASE [C]</button>
+      <button id="btnHudTrans" class="arcade-btn" type="button">AT [M]</button>
+      <button id="btnHudReset" class="arcade-btn" type="button">RESET [R]</button>
+      <button id="btnHudGarage" class="arcade-btn" type="button">GARAGE [G]</button>
+    </div>
+    <div id="zoneJumpBar" hidden>
+      <button class="zone-btn" data-zone="skidpad" type="button">SKIDPAD</button>
+      <button class="zone-btn" data-zone="ramps" type="button">RAMPS</button>
+      <button class="zone-btn" data-zone="offroad" type="button">RALLY DIRT</button>
+      <button class="zone-btn" data-zone="oval" type="button">OVAL</button>
+    </div>
+  </div>
+
+  <!-- 中央起跑倒數 -->
+  <div id="countdownBanner" hidden>3</div>
+
+  <!-- 左下：操作提示與行動端虛擬按鍵 -->
+  <div class="hud-bottom-left">
+    <div id="hudHintSteer" class="steer-hint-bar">
+      WASD/方向鍵 駕駛 · SPACE 手煞車 · SHIFT/CTRL 換檔
+    </div>
+    <div class="touch-pad">
+      <button id="tLeft" class="t-btn" type="button">◀</button>
+      <button id="tRight" class="t-btn" type="button">▶</button>
+      <button id="tBrake" class="t-btn" type="button">BRK</button>
+      <button id="tDrift" class="t-btn" type="button">E-BRK</button>
+      <button id="tGas" class="t-btn" type="button">GAS</button>
+    </div>
+  </div>
+
+  <!-- 右下：街機弧形轉速表與數位時速計 -->
+  <div class="hud-bottom-right">
+    <div class="tach-svg-wrap">
+      <svg class="tach-svg" viewBox="0 0 120 90">
+        <!-- 背景軌道弧 -->
+        <path d="M 16 78 A 48 48 0 1 1 104 78" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="9" stroke-linecap="butt" />
+        <!-- 紅線區標記 -->
+        <path id="tachRedZone" d="M 88 24 A 48 48 0 0 1 104 78" fill="none" stroke="rgba(255,31,90,0.45)" stroke-width="9" />
+        <!-- 動態轉速進度弧 (總弧長約 220) -->
+        <path id="tachArcFill" d="M 16 78 A 48 48 0 1 1 104 78" fill="none" stroke="#ff5500" stroke-width="9" stroke-dasharray="220" stroke-dashoffset="220" />
+      </svg>
+      <div class="gear-box">
+        <div id="hudGear" class="gear-num">1</div>
+        <div id="hudRpmNum" class="rpm-sub">1000 RPM</div>
+      </div>
+    </div>
+
+    <div class="speed-readout">
+      <span id="shiftLight" class="shift-pill">SHIFT</span>
+      <div id="hudSpeed" class="speed-digits">000</div>
+      <div class="speed-unit">KM/H</div>
+      <div id="hudSurface" class="surface-tag">ASPHALT</div>
+    </div>
+  </div>
+</section>
+
+<script>/*BUNDLE*/</script>
+</body>
+</html>

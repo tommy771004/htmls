@@ -1,0 +1,2695 @@
+{
+  "files": 336,
+  "savedMB": 6.657830238342285,
+  "sampleExact": true,
+  "entries": [
+    {
+      "id": 100,
+      "wav": 100724,
+      "flac": 65497,
+      "frames": 50304,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 101,
+      "wav": 79692,
+      "flac": 68545,
+      "frames": 39807,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 102,
+      "wav": 74868,
+      "flac": 56152,
+      "frames": 37376,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 103,
+      "wav": 32028,
+      "flac": 16662,
+      "frames": 15966,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 104,
+      "wav": 31284,
+      "flac": 24584,
+      "frames": 15584,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 105,
+      "wav": 75124,
+      "flac": 45047,
+      "frames": 37504,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 106,
+      "wav": 24474,
+      "flac": 14916,
+      "frames": 12188,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 107,
+      "wav": 44788,
+      "flac": 13501,
+      "frames": 22336,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 108,
+      "wav": 204916,
+      "flac": 123190,
+      "frames": 102400,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 109,
+      "wav": 61044,
+      "flac": 44063,
+      "frames": 30464,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 11,
+      "wav": 12038,
+      "flac": 8923,
+      "frames": 5962,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 110,
+      "wav": 63090,
+      "flac": 40566,
+      "frames": 31487,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 111,
+      "wav": 86518,
+      "flac": 68000,
+      "frames": 43201,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 113,
+      "wav": 78452,
+      "flac": 62058,
+      "frames": 39168,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 114,
+      "wav": 83826,
+      "flac": 57258,
+      "frames": 41855,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 115,
+      "wav": 72564,
+      "flac": 52660,
+      "frames": 36224,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 116,
+      "wav": 87372,
+      "flac": 70553,
+      "frames": 43647,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 117,
+      "wav": 82636,
+      "flac": 60779,
+      "frames": 41279,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 119,
+      "wav": 70770,
+      "flac": 54645,
+      "frames": 35327,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 12,
+      "wav": 12490,
+      "flac": 9373,
+      "frames": 6188,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 121,
+      "wav": 64370,
+      "flac": 43461,
+      "frames": 32127,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 122,
+      "wav": 132210,
+      "flac": 95844,
+      "frames": 66047,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 125,
+      "wav": 138354,
+      "flac": 81751,
+      "frames": 69119,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 126,
+      "wav": 86514,
+      "flac": 64232,
+      "frames": 43199,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 127,
+      "wav": 84852,
+      "flac": 64204,
+      "frames": 42368,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 128,
+      "wav": 108916,
+      "flac": 78175,
+      "frames": 54400,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 13,
+      "wav": 50450,
+      "flac": 19984,
+      "frames": 25186,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 130,
+      "wav": 80500,
+      "flac": 49931,
+      "frames": 40192,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 131,
+      "wav": 147058,
+      "flac": 99911,
+      "frames": 73471,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 132,
+      "wav": 81144,
+      "flac": 62808,
+      "frames": 40514,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 133,
+      "wav": 125556,
+      "flac": 74609,
+      "frames": 62720,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 136,
+      "wav": 176244,
+      "flac": 131256,
+      "frames": 88064,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 137,
+      "wav": 72692,
+      "flac": 64613,
+      "frames": 36288,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 138,
+      "wav": 94706,
+      "flac": 76006,
+      "frames": 47295,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 139,
+      "wav": 76530,
+      "flac": 47724,
+      "frames": 38207,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 14,
+      "wav": 69310,
+      "flac": 30002,
+      "frames": 34616,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 140,
+      "wav": 79986,
+      "flac": 51217,
+      "frames": 39935,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 141,
+      "wav": 77900,
+      "flac": 62687,
+      "frames": 38911,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 142,
+      "wav": 96882,
+      "flac": 60702,
+      "frames": 48383,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 144,
+      "wav": 17530,
+      "flac": 11175,
+      "frames": 8706,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 148,
+      "wav": 176242,
+      "flac": 142223,
+      "frames": 88063,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 149,
+      "wav": 90190,
+      "flac": 72455,
+      "frames": 45056,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 150,
+      "wav": 239182,
+      "flac": 197636,
+      "frames": 119552,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 151,
+      "wav": 92434,
+      "flac": 78272,
+      "frames": 46159,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 152,
+      "wav": 85618,
+      "flac": 61498,
+      "frames": 42751,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 153,
+      "wav": 51700,
+      "flac": 38561,
+      "frames": 25792,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 154,
+      "wav": 141938,
+      "flac": 107545,
+      "frames": 70911,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 155,
+      "wav": 89458,
+      "flac": 59799,
+      "frames": 44671,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 156,
+      "wav": 112100,
+      "flac": 67188,
+      "frames": 56011,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 157,
+      "wav": 135284,
+      "flac": 91712,
+      "frames": 67584,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 158,
+      "wav": 93940,
+      "flac": 64545,
+      "frames": 46912,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 159,
+      "wav": 28082,
+      "flac": 20174,
+      "frames": 13983,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 16,
+      "wav": 12052,
+      "flac": 10447,
+      "frames": 5969,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 161,
+      "wav": 131188,
+      "flac": 86871,
+      "frames": 65536,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 162,
+      "wav": 26996,
+      "flac": 19315,
+      "frames": 13440,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 163,
+      "wav": 33780,
+      "flac": 23713,
+      "frames": 16832,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 167,
+      "wav": 32692,
+      "flac": 21131,
+      "frames": 16288,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 168,
+      "wav": 36220,
+      "flac": 23800,
+      "frames": 18052,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 169,
+      "wav": 55540,
+      "flac": 32834,
+      "frames": 27712,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 171,
+      "wav": 73844,
+      "flac": 41574,
+      "frames": 36864,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 172,
+      "wav": 109326,
+      "flac": 57293,
+      "frames": 54624,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 173,
+      "wav": 113664,
+      "flac": 61408,
+      "frames": 56774,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 174,
+      "wav": 72050,
+      "flac": 39540,
+      "frames": 35968,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 175,
+      "wav": 48986,
+      "flac": 30574,
+      "frames": 24436,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 176,
+      "wav": 98164,
+      "flac": 53650,
+      "frames": 49024,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 177,
+      "wav": 108278,
+      "flac": 58024,
+      "frames": 54082,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 178,
+      "wav": 56690,
+      "flac": 32679,
+      "frames": 28288,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 179,
+      "wav": 47732,
+      "flac": 30974,
+      "frames": 23808,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 18,
+      "wav": 10354,
+      "flac": 6635,
+      "frames": 5120,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 180,
+      "wav": 54450,
+      "flac": 38588,
+      "frames": 27168,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 181,
+      "wav": 69458,
+      "flac": 40756,
+      "frames": 34672,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 182,
+      "wav": 36816,
+      "flac": 25041,
+      "frames": 18351,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 183,
+      "wav": 42306,
+      "flac": 27036,
+      "frames": 21096,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 184,
+      "wav": 55972,
+      "flac": 36170,
+      "frames": 27929,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 185,
+      "wav": 35820,
+      "flac": 21167,
+      "frames": 17853,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 186,
+      "wav": 35922,
+      "flac": 23873,
+      "frames": 17904,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 187,
+      "wav": 72306,
+      "flac": 35853,
+      "frames": 36096,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 189,
+      "wav": 45556,
+      "flac": 29271,
+      "frames": 22721,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 190,
+      "wav": 80752,
+      "flac": 45453,
+      "frames": 40319,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 191,
+      "wav": 98928,
+      "flac": 59427,
+      "frames": 49407,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 193,
+      "wav": 131252,
+      "flac": 74893,
+      "frames": 65569,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 194,
+      "wav": 71666,
+      "flac": 48689,
+      "frames": 35776,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 195,
+      "wav": 26224,
+      "flac": 19646,
+      "frames": 13055,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 196,
+      "wav": 26546,
+      "flac": 19271,
+      "frames": 13216,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 197,
+      "wav": 37808,
+      "flac": 28630,
+      "frames": 18847,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 198,
+      "wav": 37398,
+      "flac": 27134,
+      "frames": 18642,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 199,
+      "wav": 30596,
+      "flac": 25302,
+      "frames": 15241,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 206,
+      "wav": 16306,
+      "flac": 11120,
+      "frames": 8096,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 21,
+      "wav": 6208,
+      "flac": 4289,
+      "frames": 3047,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 211,
+      "wav": 19062,
+      "flac": 11314,
+      "frames": 9473,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 212,
+      "wav": 26352,
+      "flac": 16905,
+      "frames": 13119,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 213,
+      "wav": 15536,
+      "flac": 12952,
+      "frames": 7711,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 214,
+      "wav": 12550,
+      "flac": 10434,
+      "frames": 6218,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 215,
+      "wav": 60784,
+      "flac": 44255,
+      "frames": 30335,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 216,
+      "wav": 32242,
+      "flac": 22421,
+      "frames": 16064,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 217,
+      "wav": 43440,
+      "flac": 31873,
+      "frames": 21663,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 218,
+      "wav": 71374,
+      "flac": 49275,
+      "frames": 35648,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 219,
+      "wav": 91084,
+      "flac": 63892,
+      "frames": 45503,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 22,
+      "wav": 18878,
+      "flac": 10764,
+      "frames": 9380,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 220,
+      "wav": 36208,
+      "flac": 29140,
+      "frames": 18047,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 221,
+      "wav": 51312,
+      "flac": 40531,
+      "frames": 25599,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 222,
+      "wav": 59212,
+      "flac": 45950,
+      "frames": 29567,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 223,
+      "wav": 31948,
+      "flac": 26574,
+      "frames": 15935,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 225,
+      "wav": 18064,
+      "flac": 13166,
+      "frames": 8975,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 226,
+      "wav": 9232,
+      "flac": 7902,
+      "frames": 4559,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 227,
+      "wav": 79344,
+      "flac": 50234,
+      "frames": 39615,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 228,
+      "wav": 42800,
+      "flac": 28853,
+      "frames": 21343,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 229,
+      "wav": 16880,
+      "flac": 14241,
+      "frames": 8383,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 23,
+      "wav": 20628,
+      "flac": 13409,
+      "frames": 10255,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 230,
+      "wav": 39536,
+      "flac": 30972,
+      "frames": 19711,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 231,
+      "wav": 27120,
+      "flac": 21348,
+      "frames": 13503,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 233,
+      "wav": 46640,
+      "flac": 36765,
+      "frames": 23263,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 234,
+      "wav": 57456,
+      "flac": 39196,
+      "frames": 28671,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 235,
+      "wav": 16368,
+      "flac": 13892,
+      "frames": 8127,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 238,
+      "wav": 26612,
+      "flac": 5017,
+      "frames": 13247,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 24,
+      "wav": 7728,
+      "flac": 5692,
+      "frames": 3807,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 244,
+      "wav": 21292,
+      "flac": 17068,
+      "frames": 10607,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 245,
+      "wav": 85324,
+      "flac": 63276,
+      "frames": 42623,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 246,
+      "wav": 14354,
+      "flac": 10298,
+      "frames": 7120,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 247,
+      "wav": 25680,
+      "flac": 18799,
+      "frames": 12783,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 248,
+      "wav": 8354,
+      "flac": 6463,
+      "frames": 4120,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 249,
+      "wav": 8758,
+      "flac": 6283,
+      "frames": 4322,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 25,
+      "wav": 5978,
+      "flac": 4028,
+      "frames": 2932,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 250,
+      "wav": 24304,
+      "flac": 17025,
+      "frames": 12095,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 251,
+      "wav": 16624,
+      "flac": 12325,
+      "frames": 8255,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 252,
+      "wav": 35184,
+      "flac": 23701,
+      "frames": 17535,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 253,
+      "wav": 26320,
+      "flac": 19115,
+      "frames": 13103,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 254,
+      "wav": 21426,
+      "flac": 15328,
+      "frames": 10656,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 255,
+      "wav": 9722,
+      "flac": 6901,
+      "frames": 4804,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 256,
+      "wav": 60912,
+      "flac": 38924,
+      "frames": 30399,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 257,
+      "wav": 32104,
+      "flac": 17450,
+      "frames": 16013,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 258,
+      "wav": 62322,
+      "flac": 44073,
+      "frames": 31104,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 259,
+      "wav": 24176,
+      "flac": 18496,
+      "frames": 12031,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 26,
+      "wav": 17202,
+      "flac": 13701,
+      "frames": 8544,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 260,
+      "wav": 24624,
+      "flac": 18586,
+      "frames": 12255,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 261,
+      "wav": 21332,
+      "flac": 17461,
+      "frames": 10607,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 262,
+      "wav": 100980,
+      "flac": 77591,
+      "frames": 50431,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 263,
+      "wav": 27636,
+      "flac": 22015,
+      "frames": 13759,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 264,
+      "wav": 48756,
+      "flac": 39123,
+      "frames": 24319,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 266,
+      "wav": 97142,
+      "flac": 59936,
+      "frames": 48512,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 268,
+      "wav": 50036,
+      "flac": 27417,
+      "frames": 24959,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 27,
+      "wav": 82034,
+      "flac": 52076,
+      "frames": 40960,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 270,
+      "wav": 64244,
+      "flac": 43977,
+      "frames": 32063,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 271,
+      "wav": 52340,
+      "flac": 38614,
+      "frames": 26111,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 272,
+      "wav": 80500,
+      "flac": 53598,
+      "frames": 40191,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 273,
+      "wav": 44912,
+      "flac": 33010,
+      "frames": 22399,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 274,
+      "wav": 134772,
+      "flac": 80371,
+      "frames": 67327,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 275,
+      "wav": 37556,
+      "flac": 28459,
+      "frames": 18719,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 276,
+      "wav": 20788,
+      "flac": 15343,
+      "frames": 10335,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 277,
+      "wav": 70260,
+      "flac": 52870,
+      "frames": 35071,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 278,
+      "wav": 26224,
+      "flac": 20763,
+      "frames": 13055,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 279,
+      "wav": 41844,
+      "flac": 24304,
+      "frames": 20863,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 28,
+      "wav": 36690,
+      "flac": 26831,
+      "frames": 18288,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 280,
+      "wav": 41844,
+      "flac": 24304,
+      "frames": 20863,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 281,
+      "wav": 21254,
+      "flac": 15457,
+      "frames": 10570,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 282,
+      "wav": 24578,
+      "flac": 17964,
+      "frames": 12232,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 283,
+      "wav": 75380,
+      "flac": 52423,
+      "frames": 37631,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 285,
+      "wav": 24052,
+      "flac": 16069,
+      "frames": 11967,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 286,
+      "wav": 73588,
+      "flac": 49409,
+      "frames": 36735,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 287,
+      "wav": 66804,
+      "flac": 43769,
+      "frames": 33343,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 288,
+      "wav": 24252,
+      "flac": 16976,
+      "frames": 12067,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 289,
+      "wav": 49332,
+      "flac": 33708,
+      "frames": 24607,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 29,
+      "wav": 27122,
+      "flac": 23545,
+      "frames": 13504,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 290,
+      "wav": 36596,
+      "flac": 24154,
+      "frames": 18239,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 291,
+      "wav": 21524,
+      "flac": 14985,
+      "frames": 10703,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 292,
+      "wav": 43252,
+      "flac": 21694,
+      "frames": 21567,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 293,
+      "wav": 126836,
+      "flac": 85955,
+      "frames": 63359,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 294,
+      "wav": 19604,
+      "flac": 12699,
+      "frames": 9743,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 295,
+      "wav": 16500,
+      "flac": 13008,
+      "frames": 8191,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 296,
+      "wav": 20038,
+      "flac": 12741,
+      "frames": 9960,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 297,
+      "wav": 39028,
+      "flac": 21593,
+      "frames": 19455,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 298,
+      "wav": 19350,
+      "flac": 12967,
+      "frames": 9616,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 299,
+      "wav": 48628,
+      "flac": 31813,
+      "frames": 24255,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 30,
+      "wav": 56498,
+      "flac": 39370,
+      "frames": 28192,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 300,
+      "wav": 35442,
+      "flac": 10372,
+      "frames": 17664,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 301,
+      "wav": 35824,
+      "flac": 23274,
+      "frames": 17855,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 302,
+      "wav": 55472,
+      "flac": 35325,
+      "frames": 27679,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 31,
+      "wav": 20596,
+      "flac": 15245,
+      "frames": 10241,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 32,
+      "wav": 31354,
+      "flac": 22269,
+      "frames": 15620,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 324,
+      "wav": 45940,
+      "flac": 20184,
+      "frames": 22911,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 325,
+      "wav": 36108,
+      "flac": 22201,
+      "frames": 18015,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 326,
+      "wav": 115312,
+      "flac": 66753,
+      "frames": 57599,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 327,
+      "wav": 113008,
+      "flac": 66215,
+      "frames": 56447,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 328,
+      "wav": 129100,
+      "flac": 94425,
+      "frames": 64511,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 33,
+      "wav": 11570,
+      "flac": 8713,
+      "frames": 5728,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 34,
+      "wav": 102002,
+      "flac": 60356,
+      "frames": 50943,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 36,
+      "wav": 28594,
+      "flac": 19333,
+      "frames": 14240,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 37,
+      "wav": 25680,
+      "flac": 17961,
+      "frames": 12783,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 38,
+      "wav": 52636,
+      "flac": 29747,
+      "frames": 26261,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 39,
+      "wav": 14834,
+      "flac": 9812,
+      "frames": 7360,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 40,
+      "wav": 56818,
+      "flac": 40628,
+      "frames": 28352,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 401,
+      "wav": 29110,
+      "flac": 17380,
+      "frames": 14496,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 402,
+      "wav": 47028,
+      "flac": 30343,
+      "frames": 23455,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 403,
+      "wav": 32180,
+      "flac": 20184,
+      "frames": 16031,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 404,
+      "wav": 79476,
+      "flac": 53186,
+      "frames": 39679,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 405,
+      "wav": 17998,
+      "flac": 11786,
+      "frames": 8940,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 406,
+      "wav": 80116,
+      "flac": 50689,
+      "frames": 39999,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 407,
+      "wav": 83316,
+      "flac": 51523,
+      "frames": 41599,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 408,
+      "wav": 25236,
+      "flac": 13992,
+      "frames": 12559,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 409,
+      "wav": 128886,
+      "flac": 79780,
+      "frames": 64384,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 41,
+      "wav": 41842,
+      "flac": 13270,
+      "frames": 20864,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 410,
+      "wav": 18312,
+      "flac": 12665,
+      "frames": 9097,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 411,
+      "wav": 75764,
+      "flac": 47682,
+      "frames": 37823,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 414,
+      "wav": 67956,
+      "flac": 44717,
+      "frames": 33919,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 415,
+      "wav": 12980,
+      "flac": 8929,
+      "frames": 6431,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 416,
+      "wav": 41460,
+      "flac": 25153,
+      "frames": 20671,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 417,
+      "wav": 17006,
+      "flac": 10035,
+      "frames": 8446,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 418,
+      "wav": 65780,
+      "flac": 37573,
+      "frames": 32831,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 419,
+      "wav": 12820,
+      "flac": 9434,
+      "frames": 6351,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 420,
+      "wav": 10516,
+      "flac": 8008,
+      "frames": 5199,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 421,
+      "wav": 44468,
+      "flac": 30036,
+      "frames": 22175,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 422,
+      "wav": 28404,
+      "flac": 20747,
+      "frames": 14143,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 423,
+      "wav": 98804,
+      "flac": 61145,
+      "frames": 49343,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 424,
+      "wav": 101364,
+      "flac": 67763,
+      "frames": 50623,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 426,
+      "wav": 42230,
+      "flac": 16720,
+      "frames": 21056,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 427,
+      "wav": 35184,
+      "flac": 19312,
+      "frames": 17535,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 429,
+      "wav": 26544,
+      "flac": 17230,
+      "frames": 13215,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 43,
+      "wav": 17530,
+      "flac": 13320,
+      "frames": 8708,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 430,
+      "wav": 34354,
+      "flac": 22851,
+      "frames": 17120,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 431,
+      "wav": 42230,
+      "flac": 16720,
+      "frames": 21056,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 432,
+      "wav": 17686,
+      "flac": 12686,
+      "frames": 8784,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 433,
+      "wav": 71538,
+      "flac": 44191,
+      "frames": 35712,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 434,
+      "wav": 45106,
+      "flac": 29018,
+      "frames": 22496,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 435,
+      "wav": 46258,
+      "flac": 29197,
+      "frames": 23072,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 436,
+      "wav": 88306,
+      "flac": 61660,
+      "frames": 44096,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 438,
+      "wav": 28016,
+      "flac": 17744,
+      "frames": 13951,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 44,
+      "wav": 14194,
+      "flac": 9832,
+      "frames": 7040,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 440,
+      "wav": 35568,
+      "flac": 23564,
+      "frames": 17727,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 441,
+      "wav": 19956,
+      "flac": 13516,
+      "frames": 9919,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 442,
+      "wav": 80496,
+      "flac": 53598,
+      "frames": 40191,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 443,
+      "wav": 87920,
+      "flac": 57457,
+      "frames": 43903,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 444,
+      "wav": 95602,
+      "flac": 62311,
+      "frames": 47744,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 445,
+      "wav": 78450,
+      "flac": 53449,
+      "frames": 39168,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 446,
+      "wav": 87664,
+      "flac": 59225,
+      "frames": 43775,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 447,
+      "wav": 150384,
+      "flac": 94181,
+      "frames": 75135,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 448,
+      "wav": 173900,
+      "flac": 110483,
+      "frames": 86911,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 449,
+      "wav": 130162,
+      "flac": 68352,
+      "frames": 65024,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 45,
+      "wav": 42016,
+      "flac": 28156,
+      "frames": 20951,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 451,
+      "wav": 180810,
+      "flac": 109546,
+      "frames": 90366,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 452,
+      "wav": 187760,
+      "flac": 110193,
+      "frames": 93823,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 453,
+      "wav": 158796,
+      "flac": 108285,
+      "frames": 79359,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 454,
+      "wav": 85234,
+      "flac": 40336,
+      "frames": 42560,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 456,
+      "wav": 35122,
+      "flac": 21195,
+      "frames": 17504,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 457,
+      "wav": 37298,
+      "flac": 21704,
+      "frames": 18592,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 458,
+      "wav": 23792,
+      "flac": 14499,
+      "frames": 11839,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 46,
+      "wav": 21874,
+      "flac": 16967,
+      "frames": 10880,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 460,
+      "wav": 74352,
+      "flac": 45464,
+      "frames": 37119,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 464,
+      "wav": 250482,
+      "flac": 139835,
+      "frames": 125184,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 465,
+      "wav": 64112,
+      "flac": 37235,
+      "frames": 31999,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 466,
+      "wav": 33776,
+      "flac": 18886,
+      "frames": 16831,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 47,
+      "wav": 23090,
+      "flac": 15784,
+      "frames": 11488,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 471,
+      "wav": 45040,
+      "flac": 24014,
+      "frames": 22463,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 472,
+      "wav": 155674,
+      "flac": 63939,
+      "frames": 77780,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 473,
+      "wav": 302702,
+      "flac": 162226,
+      "frames": 151294,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 474,
+      "wav": 177228,
+      "flac": 112631,
+      "frames": 88575,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 475,
+      "wav": 289356,
+      "flac": 187494,
+      "frames": 144639,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 476,
+      "wav": 19568,
+      "flac": 6266,
+      "frames": 9727,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 477,
+      "wav": 19568,
+      "flac": 6266,
+      "frames": 9727,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 478,
+      "wav": 24852,
+      "flac": 7443,
+      "frames": 12367,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 479,
+      "wav": 24852,
+      "flac": 7443,
+      "frames": 12367,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 48,
+      "wav": 41586,
+      "flac": 30835,
+      "frames": 20736,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 480,
+      "wav": 45814,
+      "flac": 23915,
+      "frames": 22848,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 481,
+      "wav": 40884,
+      "flac": 21563,
+      "frames": 20383,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 482,
+      "wav": 40884,
+      "flac": 21563,
+      "frames": 20383,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 483,
+      "wav": 18198,
+      "flac": 6483,
+      "frames": 9040,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 484,
+      "wav": 18198,
+      "flac": 6419,
+      "frames": 9040,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 485,
+      "wav": 77300,
+      "flac": 40282,
+      "frames": 38591,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 486,
+      "wav": 97652,
+      "flac": 56674,
+      "frames": 48767,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 487,
+      "wav": 208372,
+      "flac": 124442,
+      "frames": 104127,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 488,
+      "wav": 46708,
+      "flac": 20101,
+      "frames": 23295,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 489,
+      "wav": 60660,
+      "flac": 32001,
+      "frames": 30271,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 49,
+      "wav": 25522,
+      "flac": 16410,
+      "frames": 12704,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 490,
+      "wav": 135796,
+      "flac": 74547,
+      "frames": 67839,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 491,
+      "wav": 54646,
+      "flac": 24402,
+      "frames": 27264,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 492,
+      "wav": 26934,
+      "flac": 18356,
+      "frames": 13408,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 493,
+      "wav": 36724,
+      "flac": 22778,
+      "frames": 18303,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 494,
+      "wav": 22924,
+      "flac": 14411,
+      "frames": 11403,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 496,
+      "wav": 101878,
+      "flac": 62801,
+      "frames": 50880,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 50,
+      "wav": 47090,
+      "flac": 34454,
+      "frames": 23488,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 503,
+      "wav": 37684,
+      "flac": 26862,
+      "frames": 18783,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 504,
+      "wav": 48756,
+      "flac": 27384,
+      "frames": 24319,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 505,
+      "wav": 30646,
+      "flac": 18731,
+      "frames": 15264,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 506,
+      "wav": 125300,
+      "flac": 78115,
+      "frames": 62591,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 51,
+      "wav": 13106,
+      "flac": 10323,
+      "frames": 6496,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 510,
+      "wav": 43316,
+      "flac": 29828,
+      "frames": 21599,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 511,
+      "wav": 35252,
+      "flac": 21262,
+      "frames": 17567,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 512,
+      "wav": 42804,
+      "flac": 17343,
+      "frames": 21343,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 513,
+      "wav": 16788,
+      "flac": 12003,
+      "frames": 8335,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 514,
+      "wav": 77172,
+      "flac": 41785,
+      "frames": 38527,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 515,
+      "wav": 50484,
+      "flac": 31600,
+      "frames": 25183,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 52,
+      "wav": 60018,
+      "flac": 44328,
+      "frames": 29952,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 53,
+      "wav": 34418,
+      "flac": 27118,
+      "frames": 17152,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 54,
+      "wav": 39922,
+      "flac": 31505,
+      "frames": 19904,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 55,
+      "wav": 17600,
+      "flac": 14000,
+      "frames": 8743,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 56,
+      "wav": 53906,
+      "flac": 40913,
+      "frames": 26896,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 57,
+      "wav": 20850,
+      "flac": 16230,
+      "frames": 10368,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 58,
+      "wav": 37234,
+      "flac": 26799,
+      "frames": 18560,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 59,
+      "wav": 23346,
+      "flac": 17594,
+      "frames": 11616,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 60,
+      "wav": 14372,
+      "flac": 11120,
+      "frames": 7129,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 61,
+      "wav": 38130,
+      "flac": 28980,
+      "frames": 19008,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 62,
+      "wav": 43122,
+      "flac": 29323,
+      "frames": 21504,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 63,
+      "wav": 52722,
+      "flac": 28205,
+      "frames": 26304,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 64,
+      "wav": 99186,
+      "flac": 64091,
+      "frames": 49536,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 65,
+      "wav": 132408,
+      "flac": 74204,
+      "frames": 66147,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 66,
+      "wav": 31952,
+      "flac": 24134,
+      "frames": 15919,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 67,
+      "wav": 17778,
+      "flac": 12730,
+      "frames": 8832,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 68,
+      "wav": 46642,
+      "flac": 30912,
+      "frames": 23264,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 69,
+      "wav": 31794,
+      "flac": 20877,
+      "frames": 15840,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 70,
+      "wav": 13436,
+      "flac": 9927,
+      "frames": 6661,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 71,
+      "wav": 48498,
+      "flac": 32739,
+      "frames": 24192,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 717,
+      "wav": 188276,
+      "flac": 124261,
+      "frames": 94079,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 72,
+      "wav": 12770,
+      "flac": 8558,
+      "frames": 6328,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 73,
+      "wav": 65906,
+      "flac": 41156,
+      "frames": 32896,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 74,
+      "wav": 44366,
+      "flac": 17845,
+      "frames": 22144,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 75,
+      "wav": 22108,
+      "flac": 11594,
+      "frames": 10993,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 76,
+      "wav": 57588,
+      "flac": 37909,
+      "frames": 28735,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 77,
+      "wav": 27764,
+      "flac": 18167,
+      "frames": 13823,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 78,
+      "wav": 100724,
+      "flac": 64729,
+      "frames": 50303,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 79,
+      "wav": 22280,
+      "flac": 9221,
+      "frames": 11079,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 80,
+      "wav": 56178,
+      "flac": 41469,
+      "frames": 28032,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 81,
+      "wav": 71922,
+      "flac": 58082,
+      "frames": 35904,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 82,
+      "wav": 27570,
+      "flac": 19116,
+      "frames": 13728,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 83,
+      "wav": 14068,
+      "flac": 9762,
+      "frames": 6976,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 84,
+      "wav": 81106,
+      "flac": 34263,
+      "frames": 40496,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 85,
+      "wav": 77426,
+      "flac": 39471,
+      "frames": 38656,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 86,
+      "wav": 39858,
+      "flac": 26362,
+      "frames": 19872,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 87,
+      "wav": 62778,
+      "flac": 39382,
+      "frames": 31350,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 88,
+      "wav": 24590,
+      "flac": 14815,
+      "frames": 12256,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 89,
+      "wav": 72436,
+      "flac": 34078,
+      "frames": 36160,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 92,
+      "wav": 6356,
+      "flac": 4939,
+      "frames": 3120,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 93,
+      "wav": 6466,
+      "flac": 4882,
+      "frames": 3175,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 94,
+      "wav": 11280,
+      "flac": 7091,
+      "frames": 5582,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 95,
+      "wav": 29202,
+      "flac": 8532,
+      "frames": 14543,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 97,
+      "wav": 47406,
+      "flac": 38511,
+      "frames": 23645,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 98,
+      "wav": 74354,
+      "flac": 47065,
+      "frames": 37119,
+      "rate": 22050,
+      "channels": 1
+    },
+    {
+      "id": 99,
+      "wav": 59380,
+      "flac": 36614,
+      "frames": 29632,
+      "rate": 22050,
+      "channels": 1
+    }
+  ]
+}
