@@ -984,6 +984,8 @@ export class LineageWorld {
     p.lastAttackAt = now;
     p.animState = 'attack';
     p.animStartedAt = now;
+    p.animDurationMs = Math.max(360, Math.round(cd * 0.9));
+    p.animStiffUntil = now + Math.max(220, Math.round(cd * 0.44));
     npc.animState = 'damage';
     npc.animStartedAt = now;
 
@@ -1362,6 +1364,14 @@ export class LineageWorld {
     return { ok: true };
   }
 
+  #startPlayerSpellAnim(now) {
+    const p = this.player;
+    p.animState = 'spell';
+    p.animStartedAt = now;
+    p.animDurationMs = 540;
+    p.animStiffUntil = now + 260;
+  }
+
   castSpell(spellId, explicitTarget = null) {
     const spell = (this.worldData.spells || []).find((s) => s.id === Number(spellId));
     if (!spell) return false;
@@ -1379,8 +1389,7 @@ export class LineageWorld {
       p.mp -= spell.mp;
       p.hp = clamp(p.hp + baseHeal, 1, p.maxHp);
       p.lastSpellAt = now;
-      p.animState = 'spell';
-      p.animStartedAt = now;
+      this.#startPlayerSpellAnim(now);
       this.spawnEffect(p.tx, p.ty, spell.effect || 744);
       this.spawnFloatingText(p.tx, p.ty, `+${baseHeal}`, '#6cf296');
       this.addLog(`施放 ${spell.name}，回復 ${baseHeal} 點體力。`, 'cyan');
@@ -1391,8 +1400,7 @@ export class LineageWorld {
     if (spell.name === '保護罩' || spell.name === '鎧甲護持') {
       p.mp -= spell.mp;
       p.lastSpellAt = now;
-      p.animState = 'spell';
-      p.animStartedAt = now;
+      this.#startPlayerSpellAnim(now);
       if (spell.name === '保護罩') p.buffs.shield = now + 600000;
       else p.buffs.blessedArmor = now + 600000;
       this.recomputePlayerStats();
@@ -1431,8 +1439,7 @@ export class LineageWorld {
     if (spell.name === '解毒術') {
       p.mp -= spell.mp;
       p.lastSpellAt = now;
-      p.animState = 'spell';
-      p.animStartedAt = now;
+      this.#startPlayerSpellAnim(now);
       const cured = this.curePoison();
       this.spawnEffect(p.tx, p.ty, spell.effect || 871);
       this.addLog(cured ? '施放解毒術，體內毒素已完全淨化。' : '施放解毒術（目前未處於中毒狀態）。', 'cyan');
@@ -1443,8 +1450,7 @@ export class LineageWorld {
     if (spell.name === '神聖武器' || spell.name === '擬似魔法武器') {
       p.mp -= spell.mp;
       p.lastSpellAt = now;
-      p.animState = 'spell';
-      p.animStartedAt = now;
+      this.#startPlayerSpellAnim(now);
       p.buffs.holyWeapon = now + 600000;
       this.recomputePlayerStats();
       this.spawnEffect(p.tx, p.ty, spell.effect || 747);
@@ -1458,8 +1464,7 @@ export class LineageWorld {
     if (buffCfg) {
       p.mp -= spell.mp;
       p.lastSpellAt = now;
-      p.animState = 'spell';
-      p.animStartedAt = now;
+      this.#startPlayerSpellAnim(now);
       p.buffs[buffCfg.key] = now + buffCfg.sec * 1000;
       this.recomputePlayerStats();
       this.spawnEffect(p.tx, p.ty, spell.effect || buffCfg.fx);
@@ -1486,8 +1491,7 @@ export class LineageWorld {
     p.lastSpellAt = now;
     p.targetId = target.id;
     p.heading = headingBetween(target.tx - p.tx, target.ty - p.ty);
-    p.animState = 'spell';
-    p.animStartedAt = now;
+    this.#startPlayerSpellAnim(now);
 
     this.spawnEffect(target.tx, target.ty, spell.effect || 167);
 
@@ -1966,12 +1970,14 @@ export class LineageWorld {
 
   #updateRemotePeers(dtMs) {
     const rate = Math.min(1, dtMs * 0.012);
+    const now = performance.now();
     for (const peer of this.remotePeers) {
       const dx = peer.targetWorldX - peer.worldX;
       const dy = peer.targetWorldY - peer.worldY;
       if (Math.hypot(dx, dy) > 1.2) {
         peer.worldX += dx * rate;
         peer.worldY += dy * rate;
+        if (peer.animState !== 'walk') peer.animStartedAt = now;
         peer.animState = 'walk';
       } else {
         peer.worldX = peer.targetWorldX;
@@ -1993,6 +1999,7 @@ export class LineageWorld {
       const wp = tileToWorld(pet.tx, pet.ty);
       pet.worldX = wp.x;
       pet.worldY = wp.y;
+      pet.animState = 'idle';
       return;
     }
 
@@ -2009,6 +2016,7 @@ export class LineageWorld {
       const wp = tileToWorld(pet.tx, pet.ty);
       pet.worldX = wp.x;
       pet.worldY = wp.y;
+      pet.animState = 'idle';
       return;
     }
 
@@ -2018,10 +2026,13 @@ export class LineageWorld {
         pet.lastActAt = now;
         pet.animState = 'attack';
         pet.animStartedAt = now;
+        pet.animDurationMs = 520;
         const [lo, hi] = pet.dmg || [5, 11];
         const dmg = randInt(lo + pet.level, hi + pet.level * 2);
         this.audio.playSound(246, 0.2);
         this.#applyDamageToMob(mobTarget, dmg, '寵物');
+      } else if (pet.animState === 'attack' && now - (pet.animStartedAt || 0) >= (pet.animDurationMs || 520)) {
+        pet.animState = 'idle';
       }
       pet.worldX += (targetWp.x - pet.worldX) * Math.min(1, dtMs * 0.015);
       pet.worldY += (targetWp.y - pet.worldY) * Math.min(1, dtMs * 0.015);
@@ -2035,29 +2046,51 @@ export class LineageWorld {
         pet.heading = headingBetween(step.x - pet.tx, step.y - pet.ty);
         pet.tx = step.x;
         pet.ty = step.y;
+        const wasWalking = pet.animState === 'walk';
         pet.animState = 'walk';
-        pet.animStartedAt = now;
+        if (!wasWalking) pet.animStartedAt = now;
       }
-    } else if (now - (pet.animStartedAt || 0) >= 420) {
-      pet.animState = 'idle';
     }
 
     const nextWp = tileToWorld(pet.tx, pet.ty);
     pet.worldX += (nextWp.x - pet.worldX) * Math.min(1, dtMs * 0.012);
     pet.worldY += (nextWp.y - pet.worldY) * Math.min(1, dtMs * 0.012);
+    const stillSliding = Math.hypot(nextWp.x - pet.worldX, nextWp.y - pet.worldY) > 1.5;
+    if (!stillSliding && pet.animState === 'walk') {
+      pet.animState = 'idle';
+    } else if (pet.animState === 'attack' && now - (pet.animStartedAt || 0) >= (pet.animDurationMs || 520)) {
+      pet.animState = 'idle';
+    }
   }
 
   buyFromShop(npcName, shopEntry, qty = 1) {
-    const total = shopEntry.price * qty;
+    const cleanQty = Math.floor(Number(qty));
+    if (!Number.isFinite(cleanQty) || cleanQty < 1) return false;
+    const clampedQty = Math.min(9999, cleanQty);
+    const total = shopEntry.price * clampedQty;
     if (this.player.gold < total) {
       this.addLog(`金幣不足（需要 ${total} 金幣）。`, 'warn');
       return false;
     }
-    if (!this.addItemToInventory(shopEntry.item, shopEntry.count * qty, shopEntry.plus || 0)) {
-      return false;
+    const def = this.worldData.items[shopEntry.item];
+    const totalUnits = Math.max(1, (shopEntry.count || 1) * clampedQty);
+    if (def?.stack || shopEntry.item === '金幣') {
+      if (!this.addItemToInventory(shopEntry.item, totalUnits, shopEntry.plus || 0)) {
+        return false;
+      }
+    } else {
+      if (this.player.inventory.length + totalUnits > 120) {
+        this.addLog('背包空間不足，無法購買這麼多裝備。', 'warn');
+        return false;
+      }
+      for (let i = 0; i < totalUnits; i += 1) {
+        if (!this.addItemToInventory(shopEntry.item, 1, shopEntry.plus || 0)) {
+          return false;
+        }
+      }
     }
     this.player.gold -= total;
-    this.addLog(`向 ${npcName} 購買了 ${shopEntry.item} x${shopEntry.count * qty}（花費 ${total} 金幣）。`, 'gold');
+    this.addLog(`向 ${npcName} 購買了 ${shopEntry.item} x${totalUnits}（花費 ${total} 金幣）。`, 'gold');
     this.audio.playSound(104, 0.35);
     this.dirtySave = true;
     this.saveWorld(true);
@@ -2168,8 +2201,10 @@ export class LineageWorld {
     const polyed = (p.buffs.poly || 0) > now;
     const polyMult = polyed ? (p.polyBonus?.atkMult ?? 1.15) : 1;
     const speedMult = (hasted ? 1.32 : 1) * (braved ? 1.12 : 1) * polyMult;
+    p.walkRate = Math.min(1.45, Math.max(0.85, speedMult));
 
     if (p.moveTo) {
+      if (p.animState !== 'walk') p.animStartedAt = now;
       p.animState = 'walk';
       const arrived = this.#stepEntityMovement(p, 4.2 * speedMult, dtMs);
       if (arrived) {
@@ -2179,9 +2214,13 @@ export class LineageWorld {
       return;
     }
 
-    // 處理攻擊或施法硬直
+    // 處理攻擊或施法動作（揮擊／收招流暢播完，硬直過後允許移動指令中斷收招）
     if (p.animState === 'attack' || p.animState === 'spell' || p.animState === 'damage') {
-      if (now - p.animStartedAt < 420) return;
+      const animDur = p.animDurationMs || 520;
+      const stiffUntil = p.animStiffUntil || (p.animStartedAt + 300);
+      if (now - p.animStartedAt < animDur) {
+        if (!(p.path.length && now >= stiffUntil)) return;
+      }
       p.animState = 'idle';
     }
 
@@ -2262,8 +2301,8 @@ export class LineageWorld {
         p.moveTo = { x: next.x, y: next.y };
         p.moveProgress = 0;
         p.heading = headingBetween(dx, dy);
+        if (p.animState !== 'walk') p.animStartedAt = now;
         p.animState = 'walk';
-        p.animStartedAt = now;
         return;
       }
       p.path = [];
@@ -2274,11 +2313,15 @@ export class LineageWorld {
 
   #performPlayerAttack(mob, now) {
     const p = this.player;
+    const speedMult = p.walkRate || 1;
+    const cd = Math.round(700 / speedMult);
     p.isHittingDummy = false;
     p.heading = headingBetween(mob.tx - p.tx, mob.ty - p.ty);
     p.lastAttackAt = now;
     p.animState = 'attack';
     p.animStartedAt = now;
+    p.animDurationMs = Math.max(360, Math.round(cd * 0.9));
+    p.animStiffUntil = now + Math.max(220, Math.round(cd * 0.44));
 
     if (p.weaponType === 'bow') {
       const arrow = p.inventory.find((i) => this.worldData.items[i.name]?.type === 'arrow' && i.count > 0);
@@ -2357,6 +2400,7 @@ export class LineageWorld {
     mob.aggroTarget = true;
     mob.animState = 'damage';
     mob.animStartedAt = performance.now();
+    mob.animDurationMs = 340;
     this.spawnFloatingText(mob.tx, mob.ty, `-${dmg}`, spellName ? '#ffe26a' : '#ff6b57');
 
     if (mob.hp <= 0) {
@@ -2499,13 +2543,17 @@ export class LineageWorld {
       const slowFactor = (mob.slowUntil || 0) > now ? 0.5 : 1;
 
       if (mob.moveTo) {
+        if (mob.animState !== 'walk') mob.animStartedAt = now;
         mob.animState = 'walk';
-        this.#stepEntityMovement(mob, 2.5 * slowFactor, dtMs);
+        const arrived = this.#stepEntityMovement(mob, 2.5 * slowFactor, dtMs);
+        if (arrived) mob.animState = 'idle';
         continue;
       }
 
       if (mob.animState === 'attack' || mob.animState === 'damage') {
-        if (now - mob.animStartedAt < 460) continue;
+        if (now - mob.animStartedAt < (mob.animDurationMs || 520)) continue;
+        mob.animState = 'idle';
+      } else if (mob.animState === 'walk') {
         mob.animState = 'idle';
       }
 
@@ -2530,6 +2578,7 @@ export class LineageWorld {
             mob.heading = headingBetween(p.tx - mob.tx, p.ty - mob.ty);
             mob.animState = 'attack';
             mob.animStartedAt = now;
+            mob.animDurationMs = 560;
             if (mob.attackMode === 'arrow' && distToPlayer > 1) {
               this.audio.playSound(248, 0.28);
               const from = tileToWorld(mob.tx, mob.ty);
@@ -2565,8 +2614,8 @@ export class LineageWorld {
             mob.moveTo = step;
             mob.moveProgress = 0;
             mob.heading = headingBetween(step.x - mob.tx, step.y - mob.ty);
+            if (mob.animState !== 'walk') mob.animStartedAt = now;
             mob.animState = 'walk';
-            mob.animStartedAt = now;
             continue;
           }
         }
@@ -2587,8 +2636,8 @@ export class LineageWorld {
           mob.moveTo = { x: nx, y: ny };
           mob.moveProgress = 0;
           mob.heading = headingBetween(dx, dy);
+          if (mob.animState !== 'walk') mob.animStartedAt = now;
           mob.animState = 'walk';
-          mob.animStartedAt = now;
         }
       }
     }

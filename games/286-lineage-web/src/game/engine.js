@@ -51,8 +51,10 @@ export class LineageGameEngine {
     this.viewW = 1280;
     this.viewH = 720;
     this.dpr = 1;
+    this.userZoomFactor = 1;
+    this.cameraZoom = 1.62;
     this.camX = this.world.player.worldX;
-    this.camY = this.world.player.worldY + 36;
+    this.camY = this.world.player.worldY + 32;
     this.hoverTile = null;
     this.hoverEntity = null;
     this.cursorKind = 'arrow';
@@ -68,6 +70,17 @@ export class LineageGameEngine {
     this.rafId = requestAnimationFrame(this.loop);
   }
 
+  #computeCameraZoom() {
+    const minSide = Math.min(this.viewW || 1280, this.viewH || 720);
+    const base =
+      this.viewW >= 1100
+        ? 1.62
+        : this.viewW >= 700
+          ? 1.48
+          : Math.max(1.25, Math.min(1.42, minSide / 310));
+    return Math.max(1.15, Math.min(2.05, Number((base * (this.userZoomFactor || 1)).toFixed(3))));
+  }
+
   #bindEvents() {
     this._onResize = () => this.#handleResize();
     this._onPointerMove = (ev) => this.#handlePointerMove(ev);
@@ -77,12 +90,21 @@ export class LineageGameEngine {
       this.audio?.unlock(this.world);
     };
     this._onKeyDown = (ev) => this.#handleKeyDown(ev);
+    this._onWheel = (ev) => {
+      if (this.hud.activeModal) return;
+      if (Math.abs(ev.deltaY) < 2) return;
+      ev.preventDefault();
+      const factor = ev.deltaY < 0 ? 1.08 : 0.92;
+      this.userZoomFactor = Math.max(0.76, Math.min(1.28, (this.userZoomFactor || 1) * factor));
+      this.cameraZoom = this.#computeCameraZoom();
+    };
 
     window.addEventListener('resize', this._onResize);
     window.addEventListener('keydown', this._onKeyDown);
     this.canvas.addEventListener('pointerdown', this._onPointerDown);
     this.canvas.addEventListener('pointermove', this._onPointerMove);
     this.canvas.addEventListener('pointerup', this._onPointerUp);
+    this.canvas.addEventListener('wheel', this._onWheel, { passive: false });
     this.canvas.addEventListener('contextmenu', (ev) => ev.preventDefault());
   }
 
@@ -91,6 +113,7 @@ export class LineageGameEngine {
     this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.viewW = Math.max(320, window.innerWidth);
     this.viewH = Math.max(240, window.innerHeight);
+    this.cameraZoom = this.#computeCameraZoom();
     this.canvas.width = Math.round(this.viewW * this.dpr);
     this.canvas.height = Math.round(this.viewH * this.dpr);
   }
@@ -104,10 +127,13 @@ export class LineageGameEngine {
   }
 
   #pickAtScreen(sx, sy) {
-    const camLeft = this.camX - this.viewW / 2;
-    const camTop = this.camY - this.viewH / 2;
-    const wx = camLeft + sx;
-    const wy = camTop + sy;
+    const zoom = this.cameraZoom || 1.62;
+    const visW = this.viewW / zoom;
+    const visH = this.viewH / zoom;
+    const camLeft = this.camX - visW / 2;
+    const camTop = this.camY - visH / 2;
+    const wx = camLeft + sx / zoom;
+    const wy = camTop + sy / zoom;
 
     // 1. 優先偵測活著的怪物（點擊身體範圍）
     let bestMob = null;
@@ -333,9 +359,10 @@ export class LineageGameEngine {
     this.world.step(dtMs, now);
     this.audio.update(this.world, now);
 
-    // 攝影機平滑跟隨主角，略微下移讓底部 HUD 不會遮住角色腳下
+    // 攝影機平滑跟隨主角，依縮放比例略微下移讓底部 HUD 不遮擋角色腳下
+    const zoom = this.cameraZoom || 1.62;
     const targetCamX = this.world.player.worldX;
-    const targetCamY = this.world.player.worldY + 34;
+    const targetCamY = this.world.player.worldY + Math.round(52 / zoom);
     this.camX += (targetCamX - this.camX) * Math.min(1, dtMs * 0.014);
     this.camY += (targetCamY - this.camY) * Math.min(1, dtMs * 0.014);
 
@@ -347,12 +374,17 @@ export class LineageGameEngine {
   render(now) {
     const ctx = this.ctx;
     const p = this.world.player;
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    const zoom = this.cameraZoom || 1.62;
+    const visW = this.viewW / zoom;
+    const visH = this.viewH / zoom;
+    ctx.setTransform(this.dpr * zoom, 0, 0, this.dpr * zoom, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.fillStyle = '#05070a';
-    ctx.fillRect(0, 0, this.viewW, this.viewH);
+    ctx.fillRect(0, 0, visW, visH);
 
-    const camLeft = this.camX - this.viewW / 2;
-    const camTop = this.camY - this.viewH / 2;
+    const camLeft = this.camX - visW / 2;
+    const camTop = this.camY - visH / 2;
     const neededChunks = this.isoMap.ensureVisibleChunks(p.map, p.tx, p.ty);
 
     // 1. 地面地磚層 (chunk 烘焙畫布)
@@ -372,7 +404,7 @@ export class LineageGameEngine {
         if (!obj.image) continue;
         const sx = obj.x - camLeft;
         const sy = obj.y - camTop;
-        if (sx + obj.w < -64 || sy + obj.h < -64 || sx > this.viewW + 64 || sy > this.viewH + 64) {
+        if (sx + obj.w < -64 || sy + obj.h < -64 || sx > visW + 64 || sy > visH + 64) {
           continue;
         }
         if (obj.isGroundFlat) {
@@ -389,7 +421,7 @@ export class LineageGameEngine {
       const wp = tileToWorld(portal.x, portal.y);
       const sx = wp.x - camLeft;
       const sy = wp.y - camTop;
-      if (sx < -40 || sy < -40 || sx > this.viewW + 40 || sy > this.viewH + 40) continue;
+      if (sx < -40 || sy < -40 || sx > visW + 40 || sy > visH + 40) continue;
       const pulse = 0.55 + Math.sin(now * 0.005) * 0.25;
       ctx.save();
       ctx.strokeStyle = `rgba(96, 218, 255, ${pulse})`;
@@ -428,7 +460,7 @@ export class LineageGameEngine {
       if (drop.map !== p.map) continue;
       const sx = drop.worldX - camLeft;
       const sy = drop.worldY - camTop;
-      if (sx < -40 || sy < -40 || sx > this.viewW + 40 || sy > this.viewH + 40) continue;
+      if (sx < -40 || sy < -40 || sx > visW + 40 || sy > visH + 40) continue;
       this.sprites.drawGroundDrop(ctx, drop, sx, sy);
     }
 
@@ -436,14 +468,14 @@ export class LineageGameEngine {
     for (const npc of this.world.npcs) {
       const sx = npc.worldX - camLeft;
       const sy = npc.worldY - camTop;
-      if (sx < -120 || sy < -160 || sx > this.viewW + 120 || sy > this.viewH + 160) continue;
+      if (sx < -120 || sy < -160 || sx > visW + 120 || sy > visH + 160) continue;
       renderList.push({ kind: 'npc', npc, sx, sy, sortY: npc.worldY });
     }
 
     for (const mob of this.world.mobs) {
       const sx = mob.worldX - camLeft;
       const sy = mob.worldY - camTop;
-      if (sx < -120 || sy < -160 || sx > this.viewW + 120 || sy > this.viewH + 160) continue;
+      if (sx < -120 || sy < -160 || sx > visW + 120 || sy > visH + 160) continue;
       renderList.push({ kind: 'mob', mob, sx, sy, sortY: mob.worldY });
     }
 
@@ -457,7 +489,7 @@ export class LineageGameEngine {
     if (p.pet && p.pet.hp > 0 && p.pet.map === p.map) {
       const psx = p.pet.worldX - camLeft;
       const psy = p.pet.worldY - camTop;
-      if (psx >= -120 && psy >= -160 && psx <= this.viewW + 120 && psy <= this.viewH + 160) {
+      if (psx >= -120 && psy >= -160 && psx <= visW + 120 && psy <= visH + 160) {
         renderList.push({ kind: 'pet', pet: p.pet, sx: psx, sy: psy, sortY: p.pet.worldY });
       }
     }
@@ -466,7 +498,7 @@ export class LineageGameEngine {
       if (peer.map !== p.map) continue;
       const rsx = peer.worldX - camLeft;
       const rsy = peer.worldY - camTop;
-      if (rsx < -120 || rsy < -160 || rsx > this.viewW + 120 || rsy > this.viewH + 160) continue;
+      if (rsx < -120 || rsy < -160 || rsx > visW + 120 || rsy > visH + 160) continue;
       renderList.push({ kind: 'peer', peer, sx: rsx, sy: rsy, sortY: peer.worldY });
     }
 
@@ -495,7 +527,9 @@ export class LineageGameEngine {
           gfx: n.renderGfx,
           animState: n.animState,
           heading: n.heading,
-          elapsedMs: now,
+          elapsedMs: n.animState === 'idle' ? now : now - (n.animStartedAt || 0),
+          durationMs: n.animState === 'damage' ? 340 : 0,
+          viewZoom: zoom,
           screenX: item.sx,
           screenY: item.sy,
           name: n.name,
@@ -510,6 +544,9 @@ export class LineageGameEngine {
           animState: m.animState,
           heading: m.heading,
           elapsedMs: now - (m.animStartedAt || 0),
+          durationMs: m.animDurationMs || 0,
+          walkRate: (m.slowUntil || 0) > now ? 0.65 : 1,
+          viewZoom: zoom,
           screenX: item.sx,
           screenY: item.sy,
           name: `${statusPrefix}${m.name}`,
@@ -523,6 +560,8 @@ export class LineageGameEngine {
           animState: pet.animState || 'idle',
           heading: pet.heading ?? 4,
           elapsedMs: now - (pet.animStartedAt || 0),
+          durationMs: pet.animDurationMs || 0,
+          viewZoom: zoom,
           screenX: item.sx,
           screenY: item.sy,
           name: `Lv.${pet.level} ${pet.name}`,
@@ -536,17 +575,19 @@ export class LineageGameEngine {
           gfx: peer.gfx,
           animState: peer.animState || 'idle',
           heading: peer.heading ?? 4,
-          elapsedMs: now,
+          elapsedMs: now - (peer.animStartedAt || 0),
+          viewZoom: zoom,
           screenX: item.sx,
           screenY: item.sy,
           name: peerLabel,
           isPlayer: true,
         });
         if (peer.chatText) {
+          const chatPx = Math.max(8, Math.round((12 / Math.pow(Math.max(1, zoom), 0.65)) * 10) / 10);
           ctx.save();
-          ctx.font = 'bold 12px "Noto Sans TC", sans-serif';
+          ctx.font = `bold ${chatPx}px "Noto Sans TC", sans-serif`;
           ctx.textAlign = 'center';
-          ctx.lineWidth = 3;
+          ctx.lineWidth = Math.max(1.8, 3 / zoom);
           ctx.strokeStyle = 'rgba(0,0,0,0.88)';
           ctx.strokeText(peer.chatText, item.sx, item.sy - 68);
           ctx.fillStyle = '#fff4c2';
@@ -561,6 +602,9 @@ export class LineageGameEngine {
           animState: p.animState,
           heading: p.heading,
           elapsedMs: now - (p.animStartedAt || 0),
+          durationMs: p.animDurationMs || 0,
+          walkRate: p.walkRate || 1,
+          viewZoom: zoom,
           weaponType: activeGfx === p.gfx ? p.weaponType : 'unarmed',
           screenX: item.sx,
           screenY: item.sy,
@@ -580,13 +624,14 @@ export class LineageGameEngine {
       this.sprites.drawEffect(ctx, fx, fx.x - camLeft, fx.y - camTop, now - fx.bornAt);
     }
 
+    const dmgFontPx = Math.max(9.5, Math.round((14 / Math.pow(Math.max(1, zoom), 0.55)) * 10) / 10);
     for (const ft of this.world.floatingTexts) {
       const progress = Math.min(1, (now - ft.bornAt) / ft.duration);
       ctx.save();
       ctx.globalAlpha = Math.max(0, 1 - progress * progress);
-      ctx.font = 'bold 14px "Noto Sans TC", sans-serif';
+      ctx.font = `bold ${dmgFontPx}px "Noto Sans TC", sans-serif`;
       ctx.textAlign = 'center';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = Math.max(1.8, 3 / zoom);
       ctx.strokeStyle = 'rgba(0,0,0,0.88)';
       const sx = ft.x - camLeft;
       const sy = ft.y - camTop - progress * 26;
@@ -613,6 +658,7 @@ export class LineageGameEngine {
       gold: p.gold,
       ac: p.ac,
       weaponType: p.weaponType,
+      cameraZoom: Number((this.cameraZoom || 1).toFixed(2)),
       autoEnabled: p.autoConfig.enabled,
       autoStatus: this.autoHunt.statusLabel,
       npcsCount: this.world.npcs.length,
@@ -634,6 +680,7 @@ export class LineageGameEngine {
     this.canvas.removeEventListener('pointerdown', this._onPointerDown);
     this.canvas.removeEventListener('pointermove', this._onPointerMove);
     this.canvas.removeEventListener('pointerup', this._onPointerUp);
+    this.canvas.removeEventListener('wheel', this._onWheel);
 
     this.world.dirtySave = true;
     this.world.saveWorld(true);

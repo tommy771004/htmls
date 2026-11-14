@@ -131,6 +131,7 @@ export class GameHud {
     this.spellCircle = 'all'; // 'all' | 1..6
     this.selectedSpellId = null;
     this.npcSession = null; // { npc, mode: 'talk'|'buy'|'sell'|'deposit'|'withdraw'|'teleport', dialogueKey }
+    this.npcShopQty = {}; // { [entryIdx]: qty }
     this.chatExpanded = false;
     this.chatTab = 'all'; // 'all' | 'combat' | 'chat'
     this.tlCollapsed = false;
@@ -384,6 +385,15 @@ export class GameHud {
 
     modalLayer.addEventListener('click', (ev) => this.#handleModalClick(ev));
     modalLayer.addEventListener('input', (ev) => this.#handleModalInput(ev));
+    modalLayer.addEventListener('change', (ev) => this.#handleModalChange(ev));
+    modalLayer.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter') return;
+      const qtyInput = ev.target.closest('[data-shop-qty]');
+      if (!qtyInput || !this.npcSession) return;
+      ev.preventDefault();
+      const idx = Number(qtyInput.dataset.shopQty);
+      this.#buyShopRow(idx);
+    });
 
     return {
       topStrip,
@@ -455,6 +465,7 @@ export class GameHud {
     this.invFilter = 'all';
     this.spellCircle = 'all';
     this.npcSession = null;
+    this.npcShopQty = {};
     this.elements.modalLayer.hidden = true;
     this.elements.modalLayer.innerHTML = '';
   }
@@ -467,6 +478,7 @@ export class GameHud {
     else if (npc.type === 'PetShop') defaultMode = 'pet';
     else if (npc.type === 'ClanRegistrar') defaultMode = 'clan';
     this.npcSession = { npc, mode: defaultMode, dialogueKey: key };
+    this.npcShopQty = {};
     this.activeModal = 'npc';
     this.renderModal();
     this.sync(true);
@@ -1301,6 +1313,43 @@ export class GameHud {
     return HARBOR_DESTINATIONS_BY_MAP[m] || HARBOR_DESTINATIONS_BY_MAP[0] || [];
   }
 
+  #getShopQty(idx) {
+    const raw = Number(this.npcShopQty?.[idx] ?? 1);
+    if (!Number.isFinite(raw)) return 1;
+    return Math.max(1, Math.min(9999, Math.floor(raw)));
+  }
+
+  #setShopQtyDom(idx, entry, nextQty) {
+    const clamped = Math.max(1, Math.min(9999, Math.floor(Number(nextQty) || 1)));
+    this.npcShopQty[idx] = clamped;
+    const modal = this.elements.modalLayer;
+    const input = modal.querySelector(`[data-shop-qty="${idx}"]`);
+    if (input && Number(input.value) !== clamped) {
+      input.value = String(clamped);
+    }
+    this.#refreshShopTotalDom(idx, entry, clamped);
+    return clamped;
+  }
+
+  #refreshShopTotalDom(idx, entry, qty) {
+    const totalEl = this.elements.modalLayer.querySelector(`[data-shop-total="${idx}"]`);
+    if (!totalEl || !entry) return;
+    const total = entry.price * qty;
+    totalEl.textContent = `總計 ${total.toLocaleString()} 金幣`;
+    totalEl.classList.toggle('insufficient', total > this.world.player.gold);
+  }
+
+  #buyShopRow(idx, explicitQty = null) {
+    if (!this.npcSession) return;
+    const entries = this.#resolveNpcShopList(this.npcSession.npc);
+    const entry = entries[idx];
+    if (!entry) return;
+    const qty = explicitQty !== null ? Math.max(1, Math.min(9999, Math.floor(Number(explicitQty) || 1))) : this.#getShopQty(idx);
+    this.world.buyFromShop(this.npcSession.npc.name, entry, qty);
+    this.renderModal();
+    this.sync(true);
+  }
+
   #renderNpcModalHtml() {
     const sess = this.npcSession;
     if (!sess) return '';
@@ -1316,18 +1365,38 @@ export class GameHud {
           .map((e, i) => {
             const def = this.world.worldData.items[e.item];
             const iconUrl = this.world.assets.itemIconUrl(def?.icon);
+            const qty = this.#getShopQty(i);
+            const total = e.price * qty;
+            const insufficient = total > p.gold;
             return `
-              <div class="ll-list-row">
+              <div class="ll-list-row ll-shop-row">
                 <div class="ll-list-left">
                   <img src="${esc(iconUrl)}" alt="" />
                   <div>
                     <div style="font-weight:700;">${esc(e.item)}${e.count > 1 ? ` x${e.count}` : ''}</div>
-                    <div style="font-size:11px;color:#ffd872;">價格：${e.price.toLocaleString()} 金幣</div>
+                    <div style="font-size:11px;color:#ffd872;">單價：${e.price.toLocaleString()} 金幣</div>
                   </div>
                 </div>
-                <div style="display:flex;gap:4px;">
-                  <button type="button" class="ll-act-btn" data-shop-buy="${i}:1">買 1</button>
-                  ${def?.stack ? `<button type="button" class="ll-act-btn secondary" data-shop-buy="${i}:10">買 10</button>` : ''}
+                <div class="ll-shop-ctrl">
+                  <div class="ll-shop-stepper">
+                    <button type="button" class="ll-qty-step" data-shop-step="${i}:-1" title="減少 1" aria-label="減少 1">-1</button>
+                    <input
+                      type="number"
+                      class="ll-qty-input"
+                      min="1"
+                      max="9999"
+                      inputmode="numeric"
+                      value="${qty}"
+                      data-shop-qty="${i}"
+                      aria-label="${esc(e.item)} 購買數量"
+                    />
+                    <button type="button" class="ll-qty-step" data-shop-step="${i}:1" title="增加 1" aria-label="增加 1">+1</button>
+                    ${def?.stack ? `<button type="button" class="ll-qty-step secondary" data-shop-step="${i}:10" title="增加 10">+10</button>` : ''}
+                  </div>
+                  <div class="ll-shop-buy-group">
+                    <span class="ll-shop-total${insufficient ? ' insufficient' : ''}" data-shop-total="${i}">總計 ${total.toLocaleString()} 金幣</span>
+                    <button type="button" class="ll-act-btn" data-shop-buy="${i}">購買</button>
+                  </div>
                 </div>
               </div>
             `;
@@ -2033,14 +2102,25 @@ export class GameHud {
       return;
     }
 
+    const stepBtn = ev.target.closest('[data-shop-step]');
+    if (stepBtn && this.npcSession) {
+      const [idxStr, deltaStr] = stepBtn.dataset.shopStep.split(':');
+      const idx = Number(idxStr);
+      const delta = Number(deltaStr);
+      const entries = this.#resolveNpcShopList(this.npcSession.npc);
+      const entry = entries[idx];
+      const cur = this.#getShopQty(idx);
+      const next = cur === 1 && delta === 10 ? 10 : cur + delta;
+      this.#setShopQtyDom(idx, entry, next);
+      return;
+    }
+
     const buyBtn = ev.target.closest('[data-shop-buy]');
     if (buyBtn && this.npcSession) {
-      const [idxStr, qtyStr] = buyBtn.dataset.shopBuy.split(':');
-      const entries = this.#resolveNpcShopList(this.npcSession.npc);
-      const entry = entries[Number(idxStr)];
-      if (entry) this.world.buyFromShop(this.npcSession.npc.name, entry, Number(qtyStr));
-      this.renderModal();
-      this.sync(true);
+      const parts = buyBtn.dataset.shopBuy.split(':');
+      const idx = Number(parts[0]);
+      const explicitQty = parts.length > 1 ? Number(parts[1]) : null;
+      this.#buyShopRow(idx, explicitQty);
       return;
     }
 
@@ -2144,12 +2224,33 @@ export class GameHud {
   }
 
   #handleModalInput(ev) {
+    const qtyInput = ev.target.closest('[data-shop-qty]');
+    if (qtyInput && this.npcSession) {
+      const idx = Number(qtyInput.dataset.shopQty);
+      const entries = this.#resolveNpcShopList(this.npcSession.npc);
+      const entry = entries[idx];
+      const raw = qtyInput.value.trim();
+      if (!raw) return;
+      const parsed = Math.max(1, Math.min(9999, Math.floor(Number(raw) || 1)));
+      this.npcShopQty[idx] = parsed;
+      this.#refreshShopTotalDom(idx, entry, parsed);
+      return;
+    }
+
     const rng = ev.target.closest('[data-auto-range]');
     if (!rng) return;
     const key = rng.dataset.autoRange;
     this.world.player.autoConfig[key] = Number(rng.value);
     this.world.dirtySave = true;
     this.renderModal();
+  }
+
+  #handleModalChange(ev) {
+    const qtyInput = ev.target.closest('[data-shop-qty]');
+    if (!qtyInput || !this.npcSession) return;
+    const idx = Number(qtyInput.dataset.shopQty);
+    const entries = this.#resolveNpcShopList(this.npcSession.npc);
+    this.#setShopQtyDom(idx, entries[idx], qtyInput.value || 1);
   }
 
   sync(force = false) {

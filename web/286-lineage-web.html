@@ -3696,6 +3696,89 @@ body.ll-stage-only:has(#ll-game-frame) {
   color: #d6dfeb;
 }
 
+.ll-shop-row {
+  flex-wrap: wrap;
+}
+
+.ll-shop-ctrl {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.ll-shop-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ll-qty-step {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid #8a6c3b;
+  background: linear-gradient(180deg, #352816, #1d150b);
+  color: #f8e6be;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ll-qty-step:hover {
+  border-color: #f3ce7b;
+}
+
+.ll-qty-step.secondary {
+  border-color: #4b5a6e;
+  background: #1a222d;
+  color: #cbd5e1;
+}
+
+.ll-qty-input {
+  width: 52px;
+  height: 26px;
+  padding: 0 4px;
+  border-radius: 4px;
+  border: 1px solid #8a6c3b;
+  background: #0d0a06;
+  color: #fff2cc;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.ll-qty-input::-webkit-inner-spin-button,
+.ll-qty-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ll-qty-input:focus {
+  outline: none;
+  border-color: #f3ce7b;
+  box-shadow: 0 0 0 1px rgba(243, 206, 123, 0.35);
+}
+
+.ll-shop-buy-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ll-shop-total {
+  font-size: 11px;
+  color: #ffd872;
+  white-space: nowrap;
+}
+
+.ll-shop-total.insufficient {
+  color: #f87171;
+}
+
 /* NPC 對話內文連結 */
 .ll-npc-html {
   background: rgba(8, 7, 5, 0.78);
@@ -5830,30 +5913,87 @@ var SpriteRenderer = class {
   /**
    * 挑選指定動作與方向之當前影格資訊。
    */
-  resolveFrame(gfx, animState, heading, elapsedMs, weaponType = "unarmed") {
+  resolveFrame(gfx, animState, heading, elapsedMs, weaponType = "unarmed", opts = {}) {
     const g = String(gfx);
     const meta = this.metaMap[g];
     if (!meta) return null;
     this.preloadActor(gfx);
     const h = (Math.round(heading) % 8 + 8) % 8;
     if (meta.kind === "player") {
-      return this.#resolvePlayerFrame(meta, animState, h, elapsedMs, weaponType);
+      return this.#resolvePlayerFrame(meta, animState, h, elapsedMs, weaponType, opts);
     }
-    return this.#resolveActorFrame(meta, animState, h, elapsedMs);
+    return this.#resolveActorFrame(meta, animState, h, elapsedMs, opts);
   }
-  #resolvePlayerFrame(meta, animState, h, elapsedMs, weaponType) {
+  #filterValidSteps(meta, seqFrames, h, animState, walkBase = null) {
+    if (!seqFrames?.length) return [];
+    const hasKey = (baseOff) => {
+      if (baseOff < 0) return false;
+      const key = String(baseOff + h);
+      return meta.kind === "player" ? Boolean(meta.atlas?.[key]?.r?.length) : Boolean(meta.acts?.[key]);
+    };
+    let valid = seqFrames.filter(([baseOff]) => hasKey(baseOff));
+    if (!valid.length) return [];
+    if (animState === "attack" && valid.length >= 3) {
+      const leadWalk = walkBase !== null ? walkBase : 0;
+      const firstWalk = valid[0][0] === leadWalk;
+      const nonWalkCount = valid.filter(([b]) => b !== leadWalk).length;
+      if (firstWalk && nonWalkCount >= 2) {
+        valid = valid.filter(([b], idx) => idx > 0 || b !== leadWalk);
+      }
+    }
+    return valid;
+  }
+  #resolvePlayerFrame(meta, animState, h, elapsedMs, weaponType, opts = {}) {
     const wCfg = WEAPON_ACTION_BASE[weaponType] || WEAPON_ACTION_BASE.unarmed;
+    const durationMs = opts.durationMs || 0;
+    const walkRate = opts.walkRate || 1;
+    if (animState === "idle") {
+      const idleCandidates = [wCfg.idle, 27, 7, 3, 14, 23, 43];
+      for (const actCode of idleCandidates) {
+        const valid = this.#filterValidSteps(meta, meta.seq?.[String(actCode)], h, "idle");
+        if (valid.length) {
+          const picked = this.#pickSequenceSlot(valid, elapsedMs, true, 0);
+          const atl = meta.atlas?.[String(picked[0] + h)];
+          if (atl && atl.r?.length) {
+            const [rx2, ry2] = atl.r[picked[1] % atl.r.length];
+            return { path: `/lineage163/player-atlases/${atl.f}`, sx: rx2, sy: ry2, sw: atl.w, sh: atl.h, ax: atl.x, ay: atl.y };
+          }
+        }
+      }
+      for (const walkCode of [wCfg.walk, 4, 0, 24]) {
+        const valid = this.#filterValidSteps(meta, meta.seq?.[String(walkCode)], h, "idle");
+        if (valid.length) {
+          const standStep = valid.length === 4 ? valid[1] : valid[0];
+          const atl = meta.atlas?.[String(standStep[0] + h)];
+          if (atl && atl.r?.length) {
+            const [rx2, ry2] = atl.r[standStep[1] % atl.r.length];
+            return { path: `/lineage163/player-atlases/${atl.f}`, sx: rx2, sy: ry2, sw: atl.w, sh: atl.h, ax: atl.x, ay: atl.y };
+          }
+        }
+        for (const directOff of [walkCode * 8, walkCode]) {
+          const atl = meta.atlas?.[String(directOff + h)];
+          if (atl && atl.r?.length) {
+            const standIdx = atl.r.length === 4 ? 1 : 0;
+            const [rx2, ry2] = atl.r[standIdx];
+            return { path: `/lineage163/player-atlases/${atl.f}`, sx: rx2, sy: ry2, sw: atl.w, sh: atl.h, ax: atl.x, ay: atl.y };
+          }
+        }
+      }
+    }
     const candidates = [];
     if (animState === "walk") candidates.push(wCfg.walk, 4, 0);
     else if (animState === "attack") candidates.push(wCfg.atk, 5, 1);
     else if (animState === "spell") candidates.push(19, 18, wCfg.atk, 1);
     else if (animState === "damage") candidates.push(wCfg.dmg, 6, 2);
     else if (animState === "die") candidates.push(8);
-    else candidates.push(wCfg.idle, wCfg.walk, 7, 3, 4, 0);
+    else candidates.push(wCfg.idle, 27, 7, 3);
+    const loop = animState === "walk";
+    const effElapsed = animState === "walk" ? elapsedMs * walkRate : elapsedMs;
+    const effDuration = animState === "attack" || animState === "spell" || animState === "damage" ? durationMs : 0;
     for (const actCode of candidates) {
-      const seqFrames = meta.seq?.[String(actCode)];
-      if (seqFrames?.length) {
-        const picked = this.#pickSequenceSlot(seqFrames, elapsedMs, animState !== "die" && animState !== "attack" && animState !== "spell");
+      const valid = this.#filterValidSteps(meta, meta.seq?.[String(actCode)], h, animState, wCfg.walk);
+      if (valid.length) {
+        const picked = this.#pickSequenceSlot(valid, effElapsed, loop, effDuration);
         const key = String(picked[0] + h);
         const atl = meta.atlas?.[key];
         if (atl && atl.r?.length) {
@@ -5873,7 +6013,7 @@ var SpriteRenderer = class {
       for (const directOff of [actCode * 8, actCode]) {
         const atl = meta.atlas?.[String(directOff + h)];
         if (atl && atl.r?.length) {
-          const fi = Math.floor(elapsedMs / (TICK_MS * 4)) % atl.r.length;
+          const fi = effDuration > 0 ? Math.min(atl.r.length - 1, Math.floor(Math.max(0, effElapsed) / effDuration * atl.r.length)) : loop ? Math.floor(effElapsed / (TICK_MS * 4)) % atl.r.length : Math.min(atl.r.length - 1, Math.floor(effElapsed / (TICK_MS * 4)));
           const [rx2, ry2] = atl.r[fi];
           return {
             path: `/lineage163/player-atlases/${atl.f}`,
@@ -5900,41 +6040,54 @@ var SpriteRenderer = class {
       ay: first.y
     };
   }
-  #resolveActorFrame(meta, animState, h, elapsedMs) {
+  #resolveActorFrame(meta, animState, h, elapsedMs, opts = {}) {
     if (!meta.dir || !meta.acts) return null;
+    const durationMs = opts.durationMs || 0;
+    const walkRate = opts.walkRate || 1;
     const wantMap = {
-      walk: [0, 4],
-      attack: [1, 5, 12, 18],
-      spell: [18, 19, 1],
-      damage: [2, 6],
+      walk: [0, 24, 20, 4],
+      attack: [1, 5, 12, 25, 18],
+      spell: [18, 19, 30, 1],
+      damage: [2, 6, 26],
       die: [8],
-      idle: [3, 0, 17, 19]
+      idle: [3, 27, 7, 14, 23, 43, 17, 19]
     };
-    const candidates = wantMap[animState] || [3, 0];
+    const candidates = wantMap[animState] || wantMap.idle;
+    const loop = animState === "walk" || animState === "idle";
+    const effElapsed = animState === "walk" ? elapsedMs * walkRate : elapsedMs;
+    const effDuration = animState === "attack" || animState === "spell" || animState === "damage" ? durationMs : 0;
     for (const actCode of candidates) {
-      const seqFrames = meta.seq?.[String(actCode)];
-      if (seqFrames?.length) {
-        const loop = animState !== "die" && animState !== "attack" && animState !== "spell" && animState !== "damage";
-        const picked = this.#pickSequenceSlot(seqFrames, elapsedMs, loop);
+      const valid = this.#filterValidSteps(meta, meta.seq?.[String(actCode)], h, animState, 0);
+      if (valid.length) {
+        const picked = this.#pickSequenceSlot(valid, effElapsed, loop, effDuration);
         const key = String(picked[0] + h);
         if (meta.acts[key]) {
           return this.#actorGeomFrame(meta, key, picked[1]);
         }
       }
     }
-    const fallbackBases = animState === "idle" ? [8, 0, 24] : animState === "attack" ? [8, 16, 0] : animState === "die" ? [16, 24, 32] : [0, 8];
+    if (animState === "idle") {
+      const walkValid = this.#filterValidSteps(meta, meta.seq?.["0"], h, "idle");
+      if (walkValid.length) {
+        const standStep = walkValid.length === 4 ? walkValid[1] : walkValid[0];
+        const key = String(standStep[0] + h);
+        if (meta.acts[key]) return this.#actorGeomFrame(meta, key, standStep[1]);
+      }
+    }
+    const fallbackBases = animState === "idle" ? [8, 24, 0] : animState === "attack" ? [8, 16, 0] : animState === "die" ? [16, 24, 32] : [0, 8, 24];
     for (const base of fallbackBases) {
       const key = String(base + h);
       if (meta.acts[key]) {
         const geom = meta.geom?.[key];
-        const fi = animState === "idle" && base === 0 ? 0 : Math.floor(elapsedMs / (TICK_MS * 4)) % Math.max(1, geom?.n || 1);
+        const n = Math.max(1, geom?.n || 1);
+        const fi = animState === "idle" ? n === 4 && base === 0 ? 1 : 0 : Math.floor(effElapsed / (TICK_MS * 4)) % n;
         return this.#actorGeomFrame(meta, key, fi);
       }
     }
     const availKeys = Object.keys(meta.acts).sort((a, b) => Number(a) - Number(b));
     if (!availKeys.length) return null;
     const pickedKey = meta.acts[String(h % Math.max(1, availKeys.length))] ? String(h % Math.max(1, availKeys.length)) : availKeys[0];
-    return this.#actorGeomFrame(meta, pickedKey, animState === "idle" ? 0 : Math.floor(elapsedMs / (TICK_MS * 4)));
+    return this.#actorGeomFrame(meta, pickedKey, animState === "idle" ? 0 : Math.floor(effElapsed / (TICK_MS * 4)));
   }
   #actorGeomFrame(meta, actKey, frameIndex) {
     const ext = meta.acts[actKey];
@@ -5950,9 +6103,15 @@ var SpriteRenderer = class {
       ay: g.y
     };
   }
-  #pickSequenceSlot(seqList, elapsedMs, loop) {
+  #pickSequenceSlot(seqList, elapsedMs, loop, durationMs = 0) {
     const totalTicks = seqList.reduce((sum, item) => sum + (item[2] || 4), 0) || 1;
-    let tick = Math.floor(elapsedMs / TICK_MS);
+    let tick;
+    if (durationMs > 0) {
+      const progress = Math.min(1, Math.max(0, elapsedMs / durationMs));
+      tick = progress >= 1 ? totalTicks : Math.min(totalTicks - 1e-4, progress * totalTicks);
+    } else {
+      tick = Math.max(0, Math.floor(elapsedMs / TICK_MS));
+    }
     if (loop) {
       tick %= totalTicks;
     } else if (tick >= totalTicks) {
@@ -5967,8 +6126,25 @@ var SpriteRenderer = class {
     const last = seqList[seqList.length - 1];
     return [last[0], last[1]];
   }
-  drawActor(ctx, { gfx, animState, heading, elapsedMs, weaponType, screenX, screenY, isTarget, hpRatio, name, isPlayer, isNpc, alpha = 1 }) {
-    const frame = this.resolveFrame(gfx, animState, heading, elapsedMs, weaponType);
+  drawActor(ctx, {
+    gfx,
+    animState,
+    heading,
+    elapsedMs,
+    weaponType,
+    durationMs = 0,
+    walkRate = 1,
+    viewZoom = 1,
+    screenX,
+    screenY,
+    isTarget,
+    hpRatio,
+    name,
+    isPlayer,
+    isNpc,
+    alpha = 1
+  }) {
+    const frame = this.resolveFrame(gfx, animState, heading, elapsedMs, weaponType, { durationMs, walkRate });
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.fillStyle = isTarget ? "rgba(255, 210, 74, 0.42)" : "rgba(6, 10, 16, 0.48)";
@@ -6004,20 +6180,24 @@ var SpriteRenderer = class {
       ctx.arc(screenX, screenY - 22, 10, 0, Math.PI * 2);
       ctx.fill();
     }
+    const labelScale = Math.max(0.6, Math.min(1, 1 / Math.pow(Math.max(1, viewZoom), 0.72)));
     if (hpRatio !== null && hpRatio < 1 && animState !== "die") {
-      const barW = 36;
+      const barW = Math.round(36 * labelScale);
+      const barH = Math.max(3, Math.round(4 * labelScale));
+      const pad = Math.max(0.7, labelScale);
       const bx = Math.round(screenX - barW / 2);
-      const by = Math.round(screenY - 58);
+      const by = Math.round(screenY - 56);
       ctx.fillStyle = "rgba(0,0,0,0.78)";
-      ctx.fillRect(bx - 1, by - 1, barW + 2, 6);
+      ctx.fillRect(bx - pad, by - pad, barW + pad * 2, barH + pad * 2);
       ctx.fillStyle = hpRatio > 0.5 ? "#d93829" : hpRatio > 0.25 ? "#e67e22" : "#ff2e2e";
-      ctx.fillRect(bx, by, Math.max(1, Math.round(barW * Math.max(0, Math.min(1, hpRatio)))), 4);
+      ctx.fillRect(bx, by, Math.max(1, Math.round(barW * Math.max(0, Math.min(1, hpRatio)))), barH);
     }
     if (name && (isPlayer || isNpc || isTarget)) {
-      ctx.font = 'bold 12px "Noto Sans TC", "PingFang TC", sans-serif';
+      const fontPx = Math.max(8, Math.round(12.5 * labelScale * 10) / 10);
+      ctx.font = `bold ${fontPx}px "Noto Sans TC", "PingFang TC", sans-serif`;
       ctx.textAlign = "center";
-      const labelY = Math.round(screenY + 18);
-      ctx.lineWidth = 3;
+      const labelY = Math.round(screenY + 14);
+      ctx.lineWidth = Math.max(1.8, 3 * labelScale);
       ctx.strokeStyle = "rgba(0, 0, 0, 0.88)";
       ctx.strokeText(name, screenX, labelY);
       ctx.fillStyle = isPlayer ? "#ffe28a" : isNpc ? "#8cd6ff" : "#ffb499";
@@ -6958,6 +7138,8 @@ var LineageWorld = class {
     p.lastAttackAt = now;
     p.animState = "attack";
     p.animStartedAt = now;
+    p.animDurationMs = Math.max(360, Math.round(cd * 0.9));
+    p.animStiffUntil = now + Math.max(220, Math.round(cd * 0.44));
     npc.animState = "damage";
     npc.animStartedAt = now;
     this.audio.playSound(p.weaponType === "bow" ? 248 : 247, 0.3);
@@ -7299,6 +7481,13 @@ var LineageWorld = class {
     this.addLog(`\u4F7F\u7528\u4E86 ${item.name}\u3002`, "info");
     return { ok: true };
   }
+  #startPlayerSpellAnim(now) {
+    const p = this.player;
+    p.animState = "spell";
+    p.animStartedAt = now;
+    p.animDurationMs = 540;
+    p.animStiffUntil = now + 260;
+  }
   castSpell(spellId, explicitTarget = null) {
     const spell = (this.worldData.spells || []).find((s) => s.id === Number(spellId));
     if (!spell) return false;
@@ -7314,8 +7503,7 @@ var LineageWorld = class {
       p.mp -= spell.mp;
       p.hp = clamp(p.hp + baseHeal, 1, p.maxHp);
       p.lastSpellAt = now;
-      p.animState = "spell";
-      p.animStartedAt = now;
+      this.#startPlayerSpellAnim(now);
       this.spawnEffect(p.tx, p.ty, spell.effect || 744);
       this.spawnFloatingText(p.tx, p.ty, `+${baseHeal}`, "#6cf296");
       this.addLog(`\u65BD\u653E ${spell.name}\uFF0C\u56DE\u5FA9 ${baseHeal} \u9EDE\u9AD4\u529B\u3002`, "cyan");
@@ -7325,8 +7513,7 @@ var LineageWorld = class {
     if (spell.name === "\u4FDD\u8B77\u7F69" || spell.name === "\u93A7\u7532\u8B77\u6301") {
       p.mp -= spell.mp;
       p.lastSpellAt = now;
-      p.animState = "spell";
-      p.animStartedAt = now;
+      this.#startPlayerSpellAnim(now);
       if (spell.name === "\u4FDD\u8B77\u7F69") p.buffs.shield = now + 6e5;
       else p.buffs.blessedArmor = now + 6e5;
       this.recomputePlayerStats();
@@ -7362,8 +7549,7 @@ var LineageWorld = class {
     if (spell.name === "\u89E3\u6BD2\u8853") {
       p.mp -= spell.mp;
       p.lastSpellAt = now;
-      p.animState = "spell";
-      p.animStartedAt = now;
+      this.#startPlayerSpellAnim(now);
       const cured = this.curePoison();
       this.spawnEffect(p.tx, p.ty, spell.effect || 871);
       this.addLog(cured ? "\u65BD\u653E\u89E3\u6BD2\u8853\uFF0C\u9AD4\u5167\u6BD2\u7D20\u5DF2\u5B8C\u5168\u6DE8\u5316\u3002" : "\u65BD\u653E\u89E3\u6BD2\u8853\uFF08\u76EE\u524D\u672A\u8655\u65BC\u4E2D\u6BD2\u72C0\u614B\uFF09\u3002", "cyan");
@@ -7373,8 +7559,7 @@ var LineageWorld = class {
     if (spell.name === "\u795E\u8056\u6B66\u5668" || spell.name === "\u64EC\u4F3C\u9B54\u6CD5\u6B66\u5668") {
       p.mp -= spell.mp;
       p.lastSpellAt = now;
-      p.animState = "spell";
-      p.animStartedAt = now;
+      this.#startPlayerSpellAnim(now);
       p.buffs.holyWeapon = now + 6e5;
       this.recomputePlayerStats();
       this.spawnEffect(p.tx, p.ty, spell.effect || 747);
@@ -7386,8 +7571,7 @@ var LineageWorld = class {
     if (buffCfg) {
       p.mp -= spell.mp;
       p.lastSpellAt = now;
-      p.animState = "spell";
-      p.animStartedAt = now;
+      this.#startPlayerSpellAnim(now);
       p.buffs[buffCfg.key] = now + buffCfg.sec * 1e3;
       this.recomputePlayerStats();
       this.spawnEffect(p.tx, p.ty, spell.effect || buffCfg.fx);
@@ -7408,8 +7592,7 @@ var LineageWorld = class {
     p.lastSpellAt = now;
     p.targetId = target.id;
     p.heading = headingBetween(target.tx - p.tx, target.ty - p.ty);
-    p.animState = "spell";
-    p.animStartedAt = now;
+    this.#startPlayerSpellAnim(now);
     this.spawnEffect(target.tx, target.ty, spell.effect || 167);
     if (spell.id === 18) {
       if (UNDEAD_MOBS.has(target.name)) {
@@ -7842,12 +8025,14 @@ var LineageWorld = class {
   }
   #updateRemotePeers(dtMs) {
     const rate = Math.min(1, dtMs * 0.012);
+    const now = performance.now();
     for (const peer of this.remotePeers) {
       const dx = peer.targetWorldX - peer.worldX;
       const dy = peer.targetWorldY - peer.worldY;
       if (Math.hypot(dx, dy) > 1.2) {
         peer.worldX += dx * rate;
         peer.worldY += dy * rate;
+        if (peer.animState !== "walk") peer.animStartedAt = now;
         peer.animState = "walk";
       } else {
         peer.worldX = peer.targetWorldX;
@@ -7867,6 +8052,7 @@ var LineageWorld = class {
       const wp = tileToWorld(pet.tx, pet.ty);
       pet.worldX = wp.x;
       pet.worldY = wp.y;
+      pet.animState = "idle";
       return;
     }
     const mobTarget = p.targetId ? this.mobs.find((m) => m.id === p.targetId && m.hp > 0) : null;
@@ -7880,6 +8066,7 @@ var LineageWorld = class {
       const wp = tileToWorld(pet.tx, pet.ty);
       pet.worldX = wp.x;
       pet.worldY = wp.y;
+      pet.animState = "idle";
       return;
     }
     if (mobTarget && tileDistance(pet.tx, pet.ty, mobTarget.tx, mobTarget.ty) <= 1) {
@@ -7888,10 +8075,13 @@ var LineageWorld = class {
         pet.lastActAt = now;
         pet.animState = "attack";
         pet.animStartedAt = now;
+        pet.animDurationMs = 520;
         const [lo, hi] = pet.dmg || [5, 11];
         const dmg = randInt(lo + pet.level, hi + pet.level * 2);
         this.audio.playSound(246, 0.2);
         this.#applyDamageToMob(mobTarget, dmg, "\u5BF5\u7269");
+      } else if (pet.animState === "attack" && now - (pet.animStartedAt || 0) >= (pet.animDurationMs || 520)) {
+        pet.animState = "idle";
       }
       pet.worldX += (targetWp.x - pet.worldX) * Math.min(1, dtMs * 0.015);
       pet.worldY += (targetWp.y - pet.worldY) * Math.min(1, dtMs * 0.015);
@@ -7904,27 +8094,49 @@ var LineageWorld = class {
         pet.heading = headingBetween(step.x - pet.tx, step.y - pet.ty);
         pet.tx = step.x;
         pet.ty = step.y;
+        const wasWalking = pet.animState === "walk";
         pet.animState = "walk";
-        pet.animStartedAt = now;
+        if (!wasWalking) pet.animStartedAt = now;
       }
-    } else if (now - (pet.animStartedAt || 0) >= 420) {
-      pet.animState = "idle";
     }
     const nextWp = tileToWorld(pet.tx, pet.ty);
     pet.worldX += (nextWp.x - pet.worldX) * Math.min(1, dtMs * 0.012);
     pet.worldY += (nextWp.y - pet.worldY) * Math.min(1, dtMs * 0.012);
+    const stillSliding = Math.hypot(nextWp.x - pet.worldX, nextWp.y - pet.worldY) > 1.5;
+    if (!stillSliding && pet.animState === "walk") {
+      pet.animState = "idle";
+    } else if (pet.animState === "attack" && now - (pet.animStartedAt || 0) >= (pet.animDurationMs || 520)) {
+      pet.animState = "idle";
+    }
   }
   buyFromShop(npcName, shopEntry, qty = 1) {
-    const total = shopEntry.price * qty;
+    const cleanQty = Math.floor(Number(qty));
+    if (!Number.isFinite(cleanQty) || cleanQty < 1) return false;
+    const clampedQty = Math.min(9999, cleanQty);
+    const total = shopEntry.price * clampedQty;
     if (this.player.gold < total) {
       this.addLog(`\u91D1\u5E63\u4E0D\u8DB3\uFF08\u9700\u8981 ${total} \u91D1\u5E63\uFF09\u3002`, "warn");
       return false;
     }
-    if (!this.addItemToInventory(shopEntry.item, shopEntry.count * qty, shopEntry.plus || 0)) {
-      return false;
+    const def = this.worldData.items[shopEntry.item];
+    const totalUnits = Math.max(1, (shopEntry.count || 1) * clampedQty);
+    if (def?.stack || shopEntry.item === "\u91D1\u5E63") {
+      if (!this.addItemToInventory(shopEntry.item, totalUnits, shopEntry.plus || 0)) {
+        return false;
+      }
+    } else {
+      if (this.player.inventory.length + totalUnits > 120) {
+        this.addLog("\u80CC\u5305\u7A7A\u9593\u4E0D\u8DB3\uFF0C\u7121\u6CD5\u8CFC\u8CB7\u9019\u9EBC\u591A\u88DD\u5099\u3002", "warn");
+        return false;
+      }
+      for (let i = 0; i < totalUnits; i += 1) {
+        if (!this.addItemToInventory(shopEntry.item, 1, shopEntry.plus || 0)) {
+          return false;
+        }
+      }
     }
     this.player.gold -= total;
-    this.addLog(`\u5411 ${npcName} \u8CFC\u8CB7\u4E86 ${shopEntry.item} x${shopEntry.count * qty}\uFF08\u82B1\u8CBB ${total} \u91D1\u5E63\uFF09\u3002`, "gold");
+    this.addLog(`\u5411 ${npcName} \u8CFC\u8CB7\u4E86 ${shopEntry.item} x${totalUnits}\uFF08\u82B1\u8CBB ${total} \u91D1\u5E63\uFF09\u3002`, "gold");
     this.audio.playSound(104, 0.35);
     this.dirtySave = true;
     this.saveWorld(true);
@@ -8028,7 +8240,9 @@ var LineageWorld = class {
     const polyed = (p.buffs.poly || 0) > now;
     const polyMult = polyed ? p.polyBonus?.atkMult ?? 1.15 : 1;
     const speedMult = (hasted ? 1.32 : 1) * (braved ? 1.12 : 1) * polyMult;
+    p.walkRate = Math.min(1.45, Math.max(0.85, speedMult));
     if (p.moveTo) {
+      if (p.animState !== "walk") p.animStartedAt = now;
       p.animState = "walk";
       const arrived = this.#stepEntityMovement(p, 4.2 * speedMult, dtMs);
       if (arrived) {
@@ -8038,7 +8252,11 @@ var LineageWorld = class {
       return;
     }
     if (p.animState === "attack" || p.animState === "spell" || p.animState === "damage") {
-      if (now - p.animStartedAt < 420) return;
+      const animDur = p.animDurationMs || 520;
+      const stiffUntil = p.animStiffUntil || p.animStartedAt + 300;
+      if (now - p.animStartedAt < animDur) {
+        if (!(p.path.length && now >= stiffUntil)) return;
+      }
       p.animState = "idle";
     }
     if (p.pendingPickupId) {
@@ -8108,8 +8326,8 @@ var LineageWorld = class {
         p.moveTo = { x: next.x, y: next.y };
         p.moveProgress = 0;
         p.heading = headingBetween(dx, dy);
+        if (p.animState !== "walk") p.animStartedAt = now;
         p.animState = "walk";
-        p.animStartedAt = now;
         return;
       }
       p.path = [];
@@ -8118,11 +8336,15 @@ var LineageWorld = class {
   }
   #performPlayerAttack(mob, now) {
     const p = this.player;
+    const speedMult = p.walkRate || 1;
+    const cd = Math.round(700 / speedMult);
     p.isHittingDummy = false;
     p.heading = headingBetween(mob.tx - p.tx, mob.ty - p.ty);
     p.lastAttackAt = now;
     p.animState = "attack";
     p.animStartedAt = now;
+    p.animDurationMs = Math.max(360, Math.round(cd * 0.9));
+    p.animStiffUntil = now + Math.max(220, Math.round(cd * 0.44));
     if (p.weaponType === "bow") {
       const arrow = p.inventory.find((i) => this.worldData.items[i.name]?.type === "arrow" && i.count > 0);
       if (!arrow) {
@@ -8188,6 +8410,7 @@ var LineageWorld = class {
     mob.aggroTarget = true;
     mob.animState = "damage";
     mob.animStartedAt = performance.now();
+    mob.animDurationMs = 340;
     this.spawnFloatingText(mob.tx, mob.ty, `-${dmg}`, spellName ? "#ffe26a" : "#ff6b57");
     if (mob.hp <= 0) {
       this.#handleMobDeath(mob);
@@ -8304,12 +8527,16 @@ var LineageWorld = class {
       }
       const slowFactor = (mob.slowUntil || 0) > now ? 0.5 : 1;
       if (mob.moveTo) {
+        if (mob.animState !== "walk") mob.animStartedAt = now;
         mob.animState = "walk";
-        this.#stepEntityMovement(mob, 2.5 * slowFactor, dtMs);
+        const arrived = this.#stepEntityMovement(mob, 2.5 * slowFactor, dtMs);
+        if (arrived) mob.animState = "idle";
         continue;
       }
       if (mob.animState === "attack" || mob.animState === "damage") {
-        if (now - mob.animStartedAt < 460) continue;
+        if (now - mob.animStartedAt < (mob.animDurationMs || 520)) continue;
+        mob.animState = "idle";
+      } else if (mob.animState === "walk") {
         mob.animState = "idle";
       }
       const guardTown = !mob.spawn?.villageAnimal;
@@ -8332,6 +8559,7 @@ var LineageWorld = class {
             mob.heading = headingBetween(p.tx - mob.tx, p.ty - mob.ty);
             mob.animState = "attack";
             mob.animStartedAt = now;
+            mob.animDurationMs = 560;
             if (mob.attackMode === "arrow" && distToPlayer > 1) {
               this.audio.playSound(248, 0.28);
               const from = tileToWorld(mob.tx, mob.ty);
@@ -8366,8 +8594,8 @@ var LineageWorld = class {
             mob.moveTo = step;
             mob.moveProgress = 0;
             mob.heading = headingBetween(step.x - mob.tx, step.y - mob.ty);
+            if (mob.animState !== "walk") mob.animStartedAt = now;
             mob.animState = "walk";
-            mob.animStartedAt = now;
             continue;
           }
         }
@@ -8383,8 +8611,8 @@ var LineageWorld = class {
           mob.moveTo = { x: nx, y: ny };
           mob.moveProgress = 0;
           mob.heading = headingBetween(dx, dy);
+          if (mob.animState !== "walk") mob.animStartedAt = now;
           mob.animState = "walk";
-          mob.animStartedAt = now;
         }
       }
     }
@@ -8747,6 +8975,7 @@ var GameHud = class {
     this.spellCircle = "all";
     this.selectedSpellId = null;
     this.npcSession = null;
+    this.npcShopQty = {};
     this.chatExpanded = false;
     this.chatTab = "all";
     this.tlCollapsed = false;
@@ -8988,6 +9217,15 @@ var GameHud = class {
     });
     modalLayer.addEventListener("click", (ev) => this.#handleModalClick(ev));
     modalLayer.addEventListener("input", (ev) => this.#handleModalInput(ev));
+    modalLayer.addEventListener("change", (ev) => this.#handleModalChange(ev));
+    modalLayer.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Enter") return;
+      const qtyInput = ev.target.closest("[data-shop-qty]");
+      if (!qtyInput || !this.npcSession) return;
+      ev.preventDefault();
+      const idx = Number(qtyInput.dataset.shopQty);
+      this.#buyShopRow(idx);
+    });
     return {
       topStrip,
       modalLayer,
@@ -9055,6 +9293,7 @@ var GameHud = class {
     this.invFilter = "all";
     this.spellCircle = "all";
     this.npcSession = null;
+    this.npcShopQty = {};
     this.elements.modalLayer.hidden = true;
     this.elements.modalLayer.innerHTML = "";
   }
@@ -9066,6 +9305,7 @@ var GameHud = class {
     else if (npc.type === "PetShop") defaultMode = "pet";
     else if (npc.type === "ClanRegistrar") defaultMode = "clan";
     this.npcSession = { npc, mode: defaultMode, dialogueKey: key };
+    this.npcShopQty = {};
     this.activeModal = "npc";
     this.renderModal();
     this.sync(true);
@@ -9797,6 +10037,39 @@ var GameHud = class {
     const m = Number(this.world.player.map);
     return HARBOR_DESTINATIONS_BY_MAP[m] || HARBOR_DESTINATIONS_BY_MAP[0] || [];
   }
+  #getShopQty(idx) {
+    const raw = Number(this.npcShopQty?.[idx] ?? 1);
+    if (!Number.isFinite(raw)) return 1;
+    return Math.max(1, Math.min(9999, Math.floor(raw)));
+  }
+  #setShopQtyDom(idx, entry, nextQty) {
+    const clamped = Math.max(1, Math.min(9999, Math.floor(Number(nextQty) || 1)));
+    this.npcShopQty[idx] = clamped;
+    const modal = this.elements.modalLayer;
+    const input = modal.querySelector(`[data-shop-qty="${idx}"]`);
+    if (input && Number(input.value) !== clamped) {
+      input.value = String(clamped);
+    }
+    this.#refreshShopTotalDom(idx, entry, clamped);
+    return clamped;
+  }
+  #refreshShopTotalDom(idx, entry, qty) {
+    const totalEl = this.elements.modalLayer.querySelector(`[data-shop-total="${idx}"]`);
+    if (!totalEl || !entry) return;
+    const total = entry.price * qty;
+    totalEl.textContent = `\u7E3D\u8A08 ${total.toLocaleString()} \u91D1\u5E63`;
+    totalEl.classList.toggle("insufficient", total > this.world.player.gold);
+  }
+  #buyShopRow(idx, explicitQty = null) {
+    if (!this.npcSession) return;
+    const entries = this.#resolveNpcShopList(this.npcSession.npc);
+    const entry = entries[idx];
+    if (!entry) return;
+    const qty = explicitQty !== null ? Math.max(1, Math.min(9999, Math.floor(Number(explicitQty) || 1))) : this.#getShopQty(idx);
+    this.world.buyFromShop(this.npcSession.npc.name, entry, qty);
+    this.renderModal();
+    this.sync(true);
+  }
   #renderNpcModalHtml() {
     const sess = this.npcSession;
     if (!sess) return "";
@@ -9810,18 +10083,38 @@ var GameHud = class {
         ${entries.map((e, i) => {
         const def = this.world.worldData.items[e.item];
         const iconUrl = this.world.assets.itemIconUrl(def?.icon);
+        const qty = this.#getShopQty(i);
+        const total = e.price * qty;
+        const insufficient = total > p.gold;
         return `
-              <div class="ll-list-row">
+              <div class="ll-list-row ll-shop-row">
                 <div class="ll-list-left">
                   <img src="${esc(iconUrl)}" alt="" />
                   <div>
                     <div style="font-weight:700;">${esc(e.item)}${e.count > 1 ? ` x${e.count}` : ""}</div>
-                    <div style="font-size:11px;color:#ffd872;">\u50F9\u683C\uFF1A${e.price.toLocaleString()} \u91D1\u5E63</div>
+                    <div style="font-size:11px;color:#ffd872;">\u55AE\u50F9\uFF1A${e.price.toLocaleString()} \u91D1\u5E63</div>
                   </div>
                 </div>
-                <div style="display:flex;gap:4px;">
-                  <button type="button" class="ll-act-btn" data-shop-buy="${i}:1">\u8CB7 1</button>
-                  ${def?.stack ? `<button type="button" class="ll-act-btn secondary" data-shop-buy="${i}:10">\u8CB7 10</button>` : ""}
+                <div class="ll-shop-ctrl">
+                  <div class="ll-shop-stepper">
+                    <button type="button" class="ll-qty-step" data-shop-step="${i}:-1" title="\u6E1B\u5C11 1" aria-label="\u6E1B\u5C11 1">-1</button>
+                    <input
+                      type="number"
+                      class="ll-qty-input"
+                      min="1"
+                      max="9999"
+                      inputmode="numeric"
+                      value="${qty}"
+                      data-shop-qty="${i}"
+                      aria-label="${esc(e.item)} \u8CFC\u8CB7\u6578\u91CF"
+                    />
+                    <button type="button" class="ll-qty-step" data-shop-step="${i}:1" title="\u589E\u52A0 1" aria-label="\u589E\u52A0 1">+1</button>
+                    ${def?.stack ? `<button type="button" class="ll-qty-step secondary" data-shop-step="${i}:10" title="\u589E\u52A0 10">+10</button>` : ""}
+                  </div>
+                  <div class="ll-shop-buy-group">
+                    <span class="ll-shop-total${insufficient ? " insufficient" : ""}" data-shop-total="${i}">\u7E3D\u8A08 ${total.toLocaleString()} \u91D1\u5E63</span>
+                    <button type="button" class="ll-act-btn" data-shop-buy="${i}">\u8CFC\u8CB7</button>
+                  </div>
                 </div>
               </div>
             `;
@@ -10464,14 +10757,24 @@ var GameHud = class {
       this.renderModal();
       return;
     }
+    const stepBtn = ev.target.closest("[data-shop-step]");
+    if (stepBtn && this.npcSession) {
+      const [idxStr, deltaStr] = stepBtn.dataset.shopStep.split(":");
+      const idx = Number(idxStr);
+      const delta = Number(deltaStr);
+      const entries = this.#resolveNpcShopList(this.npcSession.npc);
+      const entry = entries[idx];
+      const cur = this.#getShopQty(idx);
+      const next = cur === 1 && delta === 10 ? 10 : cur + delta;
+      this.#setShopQtyDom(idx, entry, next);
+      return;
+    }
     const buyBtn = ev.target.closest("[data-shop-buy]");
     if (buyBtn && this.npcSession) {
-      const [idxStr, qtyStr] = buyBtn.dataset.shopBuy.split(":");
-      const entries = this.#resolveNpcShopList(this.npcSession.npc);
-      const entry = entries[Number(idxStr)];
-      if (entry) this.world.buyFromShop(this.npcSession.npc.name, entry, Number(qtyStr));
-      this.renderModal();
-      this.sync(true);
+      const parts = buyBtn.dataset.shopBuy.split(":");
+      const idx = Number(parts[0]);
+      const explicitQty = parts.length > 1 ? Number(parts[1]) : null;
+      this.#buyShopRow(idx, explicitQty);
       return;
     }
     const sellBtn = ev.target.closest("[data-shop-sell]");
@@ -10567,12 +10870,31 @@ var GameHud = class {
     }
   }
   #handleModalInput(ev) {
+    const qtyInput = ev.target.closest("[data-shop-qty]");
+    if (qtyInput && this.npcSession) {
+      const idx = Number(qtyInput.dataset.shopQty);
+      const entries = this.#resolveNpcShopList(this.npcSession.npc);
+      const entry = entries[idx];
+      const raw = qtyInput.value.trim();
+      if (!raw) return;
+      const parsed = Math.max(1, Math.min(9999, Math.floor(Number(raw) || 1)));
+      this.npcShopQty[idx] = parsed;
+      this.#refreshShopTotalDom(idx, entry, parsed);
+      return;
+    }
     const rng = ev.target.closest("[data-auto-range]");
     if (!rng) return;
     const key = rng.dataset.autoRange;
     this.world.player.autoConfig[key] = Number(rng.value);
     this.world.dirtySave = true;
     this.renderModal();
+  }
+  #handleModalChange(ev) {
+    const qtyInput = ev.target.closest("[data-shop-qty]");
+    if (!qtyInput || !this.npcSession) return;
+    const idx = Number(qtyInput.dataset.shopQty);
+    const entries = this.#resolveNpcShopList(this.npcSession.npc);
+    this.#setShopQtyDom(idx, entries[idx], qtyInput.value || 1);
   }
   sync(force = false) {
     const p = this.world.player;
@@ -10796,8 +11118,10 @@ var LineageGameEngine = class {
     this.viewW = 1280;
     this.viewH = 720;
     this.dpr = 1;
+    this.userZoomFactor = 1;
+    this.cameraZoom = 1.62;
     this.camX = this.world.player.worldX;
-    this.camY = this.world.player.worldY + 36;
+    this.camY = this.world.player.worldY + 32;
     this.hoverTile = null;
     this.hoverEntity = null;
     this.cursorKind = "arrow";
@@ -10810,6 +11134,11 @@ var LineageGameEngine = class {
     this.loop = this.loop.bind(this);
     this.rafId = requestAnimationFrame(this.loop);
   }
+  #computeCameraZoom() {
+    const minSide = Math.min(this.viewW || 1280, this.viewH || 720);
+    const base = this.viewW >= 1100 ? 1.62 : this.viewW >= 700 ? 1.48 : Math.max(1.25, Math.min(1.42, minSide / 310));
+    return Math.max(1.15, Math.min(2.05, Number((base * (this.userZoomFactor || 1)).toFixed(3))));
+  }
   #bindEvents() {
     this._onResize = () => this.#handleResize();
     this._onPointerMove = (ev) => this.#handlePointerMove(ev);
@@ -10819,11 +11148,20 @@ var LineageGameEngine = class {
       this.audio?.unlock(this.world);
     };
     this._onKeyDown = (ev) => this.#handleKeyDown(ev);
+    this._onWheel = (ev) => {
+      if (this.hud.activeModal) return;
+      if (Math.abs(ev.deltaY) < 2) return;
+      ev.preventDefault();
+      const factor = ev.deltaY < 0 ? 1.08 : 0.92;
+      this.userZoomFactor = Math.max(0.76, Math.min(1.28, (this.userZoomFactor || 1) * factor));
+      this.cameraZoom = this.#computeCameraZoom();
+    };
     window.addEventListener("resize", this._onResize);
     window.addEventListener("keydown", this._onKeyDown);
     this.canvas.addEventListener("pointerdown", this._onPointerDown);
     this.canvas.addEventListener("pointermove", this._onPointerMove);
     this.canvas.addEventListener("pointerup", this._onPointerUp);
+    this.canvas.addEventListener("wheel", this._onWheel, { passive: false });
     this.canvas.addEventListener("contextmenu", (ev) => ev.preventDefault());
   }
   #handleResize() {
@@ -10831,6 +11169,7 @@ var LineageGameEngine = class {
     this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.viewW = Math.max(320, window.innerWidth);
     this.viewH = Math.max(240, window.innerHeight);
+    this.cameraZoom = this.#computeCameraZoom();
     this.canvas.width = Math.round(this.viewW * this.dpr);
     this.canvas.height = Math.round(this.viewH * this.dpr);
   }
@@ -10842,10 +11181,13 @@ var LineageGameEngine = class {
     };
   }
   #pickAtScreen(sx, sy) {
-    const camLeft = this.camX - this.viewW / 2;
-    const camTop = this.camY - this.viewH / 2;
-    const wx = camLeft + sx;
-    const wy = camTop + sy;
+    const zoom = this.cameraZoom || 1.62;
+    const visW = this.viewW / zoom;
+    const visH = this.viewH / zoom;
+    const camLeft = this.camX - visW / 2;
+    const camTop = this.camY - visH / 2;
+    const wx = camLeft + sx / zoom;
+    const wy = camTop + sy / zoom;
     let bestMob = null;
     let bestMobScore = 1e9;
     for (const m of this.world.mobs) {
@@ -11042,8 +11384,9 @@ var LineageGameEngine = class {
     this.autoHunt.step(now);
     this.world.step(dtMs, now);
     this.audio.update(this.world, now);
+    const zoom = this.cameraZoom || 1.62;
     const targetCamX = this.world.player.worldX;
-    const targetCamY = this.world.player.worldY + 34;
+    const targetCamY = this.world.player.worldY + Math.round(52 / zoom);
     this.camX += (targetCamX - this.camX) * Math.min(1, dtMs * 0.014);
     this.camY += (targetCamY - this.camY) * Math.min(1, dtMs * 0.014);
     this.render(now);
@@ -11053,11 +11396,16 @@ var LineageGameEngine = class {
   render(now) {
     const ctx = this.ctx;
     const p = this.world.player;
-    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    const zoom = this.cameraZoom || 1.62;
+    const visW = this.viewW / zoom;
+    const visH = this.viewH / zoom;
+    ctx.setTransform(this.dpr * zoom, 0, 0, this.dpr * zoom, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.fillStyle = "#05070a";
-    ctx.fillRect(0, 0, this.viewW, this.viewH);
-    const camLeft = this.camX - this.viewW / 2;
-    const camTop = this.camY - this.viewH / 2;
+    ctx.fillRect(0, 0, visW, visH);
+    const camLeft = this.camX - visW / 2;
+    const camTop = this.camY - visH / 2;
     const neededChunks = this.isoMap.ensureVisibleChunks(p.map, p.tx, p.ty);
     for (const ref of neededChunks) {
       const rec = this.isoMap.renderedChunks.get(ref.key);
@@ -11073,7 +11421,7 @@ var LineageGameEngine = class {
         if (!obj.image) continue;
         const sx = obj.x - camLeft;
         const sy = obj.y - camTop;
-        if (sx + obj.w < -64 || sy + obj.h < -64 || sx > this.viewW + 64 || sy > this.viewH + 64) {
+        if (sx + obj.w < -64 || sy + obj.h < -64 || sx > visW + 64 || sy > visH + 64) {
           continue;
         }
         if (obj.isGroundFlat) {
@@ -11088,7 +11436,7 @@ var LineageGameEngine = class {
       const wp = tileToWorld(portal.x, portal.y);
       const sx = wp.x - camLeft;
       const sy = wp.y - camTop;
-      if (sx < -40 || sy < -40 || sx > this.viewW + 40 || sy > this.viewH + 40) continue;
+      if (sx < -40 || sy < -40 || sx > visW + 40 || sy > visH + 40) continue;
       const pulse = 0.55 + Math.sin(now * 5e-3) * 0.25;
       ctx.save();
       ctx.strokeStyle = `rgba(96, 218, 255, ${pulse})`;
@@ -11122,19 +11470,19 @@ var LineageGameEngine = class {
       if (drop.map !== p.map) continue;
       const sx = drop.worldX - camLeft;
       const sy = drop.worldY - camTop;
-      if (sx < -40 || sy < -40 || sx > this.viewW + 40 || sy > this.viewH + 40) continue;
+      if (sx < -40 || sy < -40 || sx > visW + 40 || sy > visH + 40) continue;
       this.sprites.drawGroundDrop(ctx, drop, sx, sy);
     }
     for (const npc of this.world.npcs) {
       const sx = npc.worldX - camLeft;
       const sy = npc.worldY - camTop;
-      if (sx < -120 || sy < -160 || sx > this.viewW + 120 || sy > this.viewH + 160) continue;
+      if (sx < -120 || sy < -160 || sx > visW + 120 || sy > visH + 160) continue;
       renderList.push({ kind: "npc", npc, sx, sy, sortY: npc.worldY });
     }
     for (const mob of this.world.mobs) {
       const sx = mob.worldX - camLeft;
       const sy = mob.worldY - camTop;
-      if (sx < -120 || sy < -160 || sx > this.viewW + 120 || sy > this.viewH + 160) continue;
+      if (sx < -120 || sy < -160 || sx > visW + 120 || sy > visH + 160) continue;
       renderList.push({ kind: "mob", mob, sx, sy, sortY: mob.worldY });
     }
     renderList.push({
@@ -11146,7 +11494,7 @@ var LineageGameEngine = class {
     if (p.pet && p.pet.hp > 0 && p.pet.map === p.map) {
       const psx = p.pet.worldX - camLeft;
       const psy = p.pet.worldY - camTop;
-      if (psx >= -120 && psy >= -160 && psx <= this.viewW + 120 && psy <= this.viewH + 160) {
+      if (psx >= -120 && psy >= -160 && psx <= visW + 120 && psy <= visH + 160) {
         renderList.push({ kind: "pet", pet: p.pet, sx: psx, sy: psy, sortY: p.pet.worldY });
       }
     }
@@ -11154,7 +11502,7 @@ var LineageGameEngine = class {
       if (peer.map !== p.map) continue;
       const rsx = peer.worldX - camLeft;
       const rsy = peer.worldY - camTop;
-      if (rsx < -120 || rsy < -160 || rsx > this.viewW + 120 || rsy > this.viewH + 160) continue;
+      if (rsx < -120 || rsy < -160 || rsx > visW + 120 || rsy > visH + 160) continue;
       renderList.push({ kind: "peer", peer, sx: rsx, sy: rsy, sortY: peer.worldY });
     }
     renderList.sort((a, b) => a.sortY - b.sortY);
@@ -11176,7 +11524,9 @@ var LineageGameEngine = class {
           gfx: n.renderGfx,
           animState: n.animState,
           heading: n.heading,
-          elapsedMs: now,
+          elapsedMs: n.animState === "idle" ? now : now - (n.animStartedAt || 0),
+          durationMs: n.animState === "damage" ? 340 : 0,
+          viewZoom: zoom,
           screenX: item.sx,
           screenY: item.sy,
           name: n.name,
@@ -11191,6 +11541,9 @@ var LineageGameEngine = class {
           animState: m.animState,
           heading: m.heading,
           elapsedMs: now - (m.animStartedAt || 0),
+          durationMs: m.animDurationMs || 0,
+          walkRate: (m.slowUntil || 0) > now ? 0.65 : 1,
+          viewZoom: zoom,
           screenX: item.sx,
           screenY: item.sy,
           name: `${statusPrefix}${m.name}`,
@@ -11204,6 +11557,8 @@ var LineageGameEngine = class {
           animState: pet.animState || "idle",
           heading: pet.heading ?? 4,
           elapsedMs: now - (pet.animStartedAt || 0),
+          durationMs: pet.animDurationMs || 0,
+          viewZoom: zoom,
           screenX: item.sx,
           screenY: item.sy,
           name: `Lv.${pet.level} ${pet.name}`,
@@ -11217,17 +11572,19 @@ var LineageGameEngine = class {
           gfx: peer.gfx,
           animState: peer.animState || "idle",
           heading: peer.heading ?? 4,
-          elapsedMs: now,
+          elapsedMs: now - (peer.animStartedAt || 0),
+          viewZoom: zoom,
           screenX: item.sx,
           screenY: item.sy,
           name: peerLabel,
           isPlayer: true
         });
         if (peer.chatText) {
+          const chatPx = Math.max(8, Math.round(12 / Math.pow(Math.max(1, zoom), 0.65) * 10) / 10);
           ctx.save();
-          ctx.font = 'bold 12px "Noto Sans TC", sans-serif';
+          ctx.font = `bold ${chatPx}px "Noto Sans TC", sans-serif`;
           ctx.textAlign = "center";
-          ctx.lineWidth = 3;
+          ctx.lineWidth = Math.max(1.8, 3 / zoom);
           ctx.strokeStyle = "rgba(0,0,0,0.88)";
           ctx.strokeText(peer.chatText, item.sx, item.sy - 68);
           ctx.fillStyle = "#fff4c2";
@@ -11242,6 +11599,9 @@ var LineageGameEngine = class {
           animState: p.animState,
           heading: p.heading,
           elapsedMs: now - (p.animStartedAt || 0),
+          durationMs: p.animDurationMs || 0,
+          walkRate: p.walkRate || 1,
+          viewZoom: zoom,
           weaponType: activeGfx === p.gfx ? p.weaponType : "unarmed",
           screenX: item.sx,
           screenY: item.sy,
@@ -11257,13 +11617,14 @@ var LineageGameEngine = class {
     for (const fx of this.world.effects) {
       this.sprites.drawEffect(ctx, fx, fx.x - camLeft, fx.y - camTop, now - fx.bornAt);
     }
+    const dmgFontPx = Math.max(9.5, Math.round(14 / Math.pow(Math.max(1, zoom), 0.55) * 10) / 10);
     for (const ft of this.world.floatingTexts) {
       const progress = Math.min(1, (now - ft.bornAt) / ft.duration);
       ctx.save();
       ctx.globalAlpha = Math.max(0, 1 - progress * progress);
-      ctx.font = 'bold 14px "Noto Sans TC", sans-serif';
+      ctx.font = `bold ${dmgFontPx}px "Noto Sans TC", sans-serif`;
       ctx.textAlign = "center";
-      ctx.lineWidth = 3;
+      ctx.lineWidth = Math.max(1.8, 3 / zoom);
       ctx.strokeStyle = "rgba(0,0,0,0.88)";
       const sx = ft.x - camLeft;
       const sy = ft.y - camTop - progress * 26;
@@ -11289,6 +11650,7 @@ var LineageGameEngine = class {
       gold: p.gold,
       ac: p.ac,
       weaponType: p.weaponType,
+      cameraZoom: Number((this.cameraZoom || 1).toFixed(2)),
       autoEnabled: p.autoConfig.enabled,
       autoStatus: this.autoHunt.statusLabel,
       npcsCount: this.world.npcs.length,
@@ -11309,6 +11671,7 @@ var LineageGameEngine = class {
     this.canvas.removeEventListener("pointerdown", this._onPointerDown);
     this.canvas.removeEventListener("pointermove", this._onPointerMove);
     this.canvas.removeEventListener("pointerup", this._onPointerUp);
+    this.canvas.removeEventListener("wheel", this._onWheel);
     this.world.dirtySave = true;
     this.world.saveWorld(true);
     this.audio.dispose();

@@ -2098,6 +2098,89 @@
   color: #d6dfeb;
 }
 
+.ll-shop-row {
+  flex-wrap: wrap;
+}
+
+.ll-shop-ctrl {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.ll-shop-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ll-qty-step {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid #8a6c3b;
+  background: linear-gradient(180deg, #352816, #1d150b);
+  color: #f8e6be;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ll-qty-step:hover {
+  border-color: #f3ce7b;
+}
+
+.ll-qty-step.secondary {
+  border-color: #4b5a6e;
+  background: #1a222d;
+  color: #cbd5e1;
+}
+
+.ll-qty-input {
+  width: 52px;
+  height: 26px;
+  padding: 0 4px;
+  border-radius: 4px;
+  border: 1px solid #8a6c3b;
+  background: #0d0a06;
+  color: #fff2cc;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.ll-qty-input::-webkit-inner-spin-button,
+.ll-qty-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ll-qty-input:focus {
+  outline: none;
+  border-color: #f3ce7b;
+  box-shadow: 0 0 0 1px rgba(243, 206, 123, 0.35);
+}
+
+.ll-shop-buy-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ll-shop-total {
+  font-size: 11px;
+  color: #ffd872;
+  white-space: nowrap;
+}
+
+.ll-shop-total.insufficient {
+  color: #f87171;
+}
+
 /* NPC 對話內文連結 */
 .ll-npc-html {
   background: rgba(8, 7, 5, 0.78);

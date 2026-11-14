@@ -1077,6 +1077,105 @@ try {
   await page.waitForTimeout(220);
   await page.screenshot({ path: path.join(scratchDir, 'lineage-game-pet-clan.png') });
 
+  // 驗證鏡頭拉近、待機腳不亂動、揮擊動畫流暢完整，以及商店自由輸入數量 / -1 / +1 購買
+  const polishChecks = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const sp = eng.sprites;
+    const snap = eng.getSnapshot();
+
+    const uniqueFrames = (arr) => new Set(arr.map((f) => `${f?.path}:${f?.sx},${f?.sy}`)).size;
+    const idleKnight = [0, 260, 520, 780].map((t) => sp.resolveFrame(61, 'idle', 4, t, 'sword'));
+    const idleElf = [0, 260, 520].map((t) => sp.resolveFrame(37, 'idle', 4, t, 'bow'));
+    const walkKnight = [0, 220, 440, 660].map((t) => sp.resolveFrame(61, 'walk', 4, t, 'sword'));
+    const atkKnight = [0, 220, 420, 580].map((t) => sp.resolveFrame(61, 'attack', 4, t, 'sword', { durationMs: 630 }));
+    const dkIdle = sp.resolveFrame(110, 'idle', 4, 150, 'unarmed');
+
+    // 驗證怪物結束 moveTo 後會立刻切回 idle，不會原地踏步
+    const idleMob = w.mobs.find((m) => m.hp > 0 && m.map === w.player.map && !m.moveTo);
+    let mobResetToIdle = true;
+    if (idleMob) {
+      idleMob.animState = 'walk';
+      w.step(16, performance.now());
+      mobResetToIdle = idleMob.animState === 'idle' || Boolean(idleMob.moveTo);
+    }
+
+    // 開啟商店介面驗證數量調整控制
+    const pandora = w.npcs.find((n) => n.name === '潘朵拉') || w.npcs.find((n) => n.type === 'Merchant');
+    w.player.gold += 50000;
+    if (pandora) {
+      eng.hud.openNpc(pandora);
+      eng.hud.npcSession.mode = 'buy';
+      eng.hud.renderModal();
+    }
+    const entries = pandora ? (w.worldData.shops?.[pandora.shopKey || pandora.name] || []) : [];
+    const firstEntry = entries[0] || { item: '紅色藥水', price: 30, count: 1 };
+    const beforeCount = w.player.inventory
+      .filter((it) => it.name === firstEntry.item)
+      .reduce((acc, it) => acc + it.count, 0);
+
+    return {
+      cameraZoom: snap.cameraZoom,
+      idleKnightUnique: uniqueFrames(idleKnight),
+      idleElfUnique: uniqueFrames(idleElf),
+      walkKnightUnique: uniqueFrames(walkKnight),
+      atkKnightUnique: uniqueFrames(atkKnight),
+      dkIdlePath: dkIdle?.path || '',
+      mobResetToIdle,
+      hasShopStepper: Boolean(document.querySelector('[data-shop-step="0:1"]') && document.querySelector('[data-shop-step="0:-1"]')),
+      hasShopQtyInput: Boolean(document.querySelector('[data-shop-qty="0"]')),
+      goldBefore: w.player.gold,
+      firstItemName: firstEntry.item,
+      firstItemPrice: firstEntry.price,
+      firstItemCount: firstEntry.count || 1,
+      beforeCount,
+    };
+  });
+  assert(polishChecks.cameraZoom >= 1.45, `Desktop camera zoom should be zoomed closer (>=1.45): ${polishChecks.cameraZoom}`);
+  assert(
+    polishChecks.idleKnightUnique === 1 && polishChecks.idleElfUnique === 1,
+    `Idle poses must stay completely still without leg walking: ${JSON.stringify(polishChecks)}`
+  );
+  assert(polishChecks.walkKnightUnique >= 2, `Walk cycle must animate legs: ${polishChecks.walkKnightUnique}`);
+  assert(polishChecks.atkKnightUnique >= 3, `Combat attack swing must play full sequence smoothly: ${polishChecks.atkKnightUnique}`);
+  assert(polishChecks.dkIdlePath.includes('/110-12.'), `Dark Knight 110 heading 4 idle should use seq 27 (8+4=12): ${polishChecks.dkIdlePath}`);
+  assert(polishChecks.mobResetToIdle, 'Idle monsters should not keep walk animation when stationary');
+  assert(polishChecks.hasShopStepper && polishChecks.hasShopQtyInput, `Missing shop qty controls: ${JSON.stringify(polishChecks)}`);
+
+  await page.click('[data-shop-step="0:1"]');
+  await page.click('[data-shop-step="0:1"]');
+  await page.click('[data-shop-step="0:-1"]');
+  const afterStepVal = await page.inputValue('[data-shop-qty="0"]');
+  assert(afterStepVal === '2', `Shop +1/+1/-1 step should yield 2, got ${afterStepVal}`);
+
+  await page.fill('[data-shop-qty="0"]', '25');
+  await page.dispatchEvent('[data-shop-qty="0"]', 'input');
+  await page.waitForTimeout(80);
+  const totalLabel = await page.textContent('[data-shop-total="0"]');
+  const expectedCost = polishChecks.firstItemPrice * 25;
+  assert(
+    totalLabel && totalLabel.includes(expectedCost.toLocaleString()),
+    `Live shop total should reflect qty 25 (${expectedCost.toLocaleString()}): ${totalLabel}`
+  );
+  await page.screenshot({ path: path.join(scratchDir, 'lineage-game-shop.png') });
+  await page.click('[data-shop-buy="0"]');
+  await page.waitForTimeout(100);
+
+  const afterBuyRes = await page.evaluate((itemName) => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const count = w.player.inventory
+      .filter((it) => it.name === itemName)
+      .reduce((acc, it) => acc + it.count, 0);
+    eng.hud.closeModal();
+    return { gold: w.player.gold, count };
+  }, polishChecks.firstItemName);
+  assert(
+    afterBuyRes.gold === polishChecks.goldBefore - expectedCost &&
+      afterBuyRes.count === polishChecks.beforeCount + 25 * polishChecks.firstItemCount,
+    `Shop custom qty purchase mismatch: ${JSON.stringify(afterBuyRes)} vs ${JSON.stringify(polishChecks)}`
+  );
+
   // 驗證打木人不切換戰鬥音樂、打真怪時 battle 取代原本背景音樂不重疊、同時最多只有 1 軌 <audio> 播放
   const bgmCheck = await page.evaluate(async () => {
     const eng = window.__lineage.engine();
