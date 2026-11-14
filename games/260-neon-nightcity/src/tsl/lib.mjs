@@ -395,8 +395,10 @@ export default {
   	const done_ = bool( false ).toVar();
   	const ret_ = vec2( 0 ).toVar();
   	const amb = float( 1. ).toVar(), sun = float( 1. ).toVar();
+  	// 最後一格 uOccA[NOCC_T − 1] 不是車人，是這幀車人底面高度的範圍 (最低, 最高)（28-sky.js 的 occUpdate）：範圍外的點（牆、屋頂、車身上半）整段跳過
+  	const band = uOccA.element( NOCC_T.sub( 1 ) ).toVar();
 
-  	If( p.y.greaterThan( .4 ), () => {
+  	If( p.y.lessThan( band.x.sub( 1.5 ) ).or( p.y.greaterThan( band.y.add( .5 ) ) ), () => {
 
   		ret_.assign( vec2( 1. ) );
   		done_.assign( true );
@@ -408,11 +410,14 @@ export default {
   		const sd = select( uSun.y.greaterThan( .06 ), uSun.xz.div( uSun.y ), vec2( 0. ) ).toVar();
   		const lit = uSunCol.r.add( uSunCol.g ).greaterThan( .001 ).toVar();
 
-  		Loop( NOCC_T, ( { i } ) => {
+  		Loop( NOCC_T.sub( 1 ), ( { i } ) => {
 
   			const A = uOccA.element( i ).toVar(), B = uOccB.element( i ).toVar();
 
-  			If( B.x.lessThanEqual( 0. ), () => {
+  			// 只遮離自己底面（B.w）−1.5～+0.5 m 的點：高架、山路、甲板上的車只影響同一層的地面
+  			const dy = p.y.sub( B.w ).toVar();
+
+  			If( B.x.lessThanEqual( 0. ).or( dy.greaterThan( .5 ) ).or( dy.lessThan( - 1.5 ) ), () => {
 
   				Continue();
 
@@ -426,14 +431,16 @@ export default {
 
   			} );
 
-  			const f = vec2( A.w, A.z ).toVar(), r = vec2( A.z, A.w.negate() ).toVar();
+  			// A.zw = (cos, sin) × 淡入淡出（28-sky.js 的 occUpdate：排到最後幾名的車人陰影慢慢消失，換人時不會跳）
+  			const fd = length( A.zw ).toVar();
+  			const f = vec2( A.w, A.z ).div( fd ).toVar(), r = vec2( A.z, A.w.negate() ).div( fd ).toVar();
   			const l = vec2( dot( d, f ), dot( d, r ) ).toVar();
   			const ext = length( max( abs( l ).sub( B.xy ), 0. ) ).toVar();
-  			amb.assign( min( amb, mix( .3, 1., smoothstep( 0., add( .35, B.y.mul( .5 ) ), ext ) ) ) );
+  			amb.assign( min( amb, mix( 1., mix( .3, 1., smoothstep( 0., add( .35, B.y.mul( .5 ) ), ext ) ), fd ) ) );
 
   			If( lit, () => {
 
-  				const a = vec2( dot( d, f ), dot( d, r ) ).toVar(), b = a.add( vec2( dot( sd, f ), dot( sd, r ) ).mul( B.z ) ).toVar();
+  				const a = vec2( dot( d, f ), dot( d, r ) ).toVar(), b = a.add( vec2( dot( sd, f ), dot( sd, r ) ).mul( max( B.z.sub( dy ), 0. ) ) ).toVar();
   				const t0 = float( 0. ).toVar(), t1 = float( 1. ).toVar();
 
   				Loop( { start: 0, end: 4, name: 's' }, () => {
@@ -452,7 +459,7 @@ export default {
 
   				} );
 
-  				sun.assign( min( sun, smoothstep( 0., .2, length( max( abs( mix( a, b, t0.add( t1 ).mul( .5 ) ) ).sub( B.xy ), 0. ) ) ) ) );
+  				sun.assign( min( sun, mix( 1., smoothstep( 0., .2, length( max( abs( mix( a, b, t0.add( t1 ).mul( .5 ) ) ).sub( B.xy ), 0. ) ) ), fd ) ) );
 
   			} );
 
@@ -516,17 +523,14 @@ export default {
 
   const gSun = float( -1 ), gAmb = float( -1 ), gOccS = float( 1. ), gSky = float( -1 );
 
-  const shade =  Fn( ( [ p, n, v, alb, rough, metal ] ) => {
+  // shadeO 多一個參數 oc = occlude(p)（x 環境、y 日光的車人遮擋）：同一個片段呼叫好幾次 shade 的材質可以在 main_ 開頭算一次傳進來（m-water）；
+  // m-facade 傳常數 vec2(1.)：它有 occlude 就讓 Metal 編譯器（AGX）當掉，只算一次也一樣（2026-11-13，XPC_ERROR_CONNECTION_INTERRUPTED）
+  const shadeO =  Fn( ( [ p, n, v, alb, rough, metal, oc ] ) => {
 
   	const shin = mix( 300., 5., rough ).toVar();
 
-  	If( gAmb.lessThan( 0. ), () => {
-
-  		const oc = occlude( p ).toVar();
-  		gAmb.assign( oc.x );
-  		gOccS.assign( oc.y );
-
-  	} );
+  	// 車與行人的遮擋 oc 是參數：原本寫進模組層的 gAmb／gOccS，TSL 在日光那個分支裡會把 gOccS 重新初始化成 1，
+  	// 編出來的 WGSL 用到前就蓋掉，車、人在地上從來沒有日光陰影（2026-11-13 從 road 材質的 WGSL 查到）
 
   	If( gSky.lessThan( 0. ), () => {
 
@@ -549,8 +553,8 @@ export default {
   	const lg = lampGrid( p, n, v, shin ).toVar(), pl = pointLights( p, n, v, shin ).toVar();
   	dif.addAssign( lg[ 0 ].add( pl[ 0 ] ) );
   	spc.addAssign( lg[ 1 ].add( pl[ 1 ] ) );
-  	dif.mulAssign( gAmb );
-  	spc.mulAssign( gAmb );
+  	dif.mulAssign( oc.x );
+  	spc.mulAssign( oc.x );
 
   	If( uAirB.x.greaterThan( 0. ), () => {
 
@@ -574,7 +578,7 @@ export default {
 
   			If( gSun.lessThan( 0. ), () => {
 
-  				gSun.assign( sunVis( p, n ).mul( gOccS ) );
+  				gSun.assign( sunVis( p, n ).mul( mix( 1., oc.y, smoothstep( .5, .9, n.y ) ) ) );
 
   			} );
 
@@ -592,7 +596,9 @@ export default {
 
   	return alb.mul( sub( 1., metal ) ).mul( dif ).add( ks.mul( spc ) );
 
-  }, { p: 'vec3', n: 'vec3', v: 'vec3', alb: 'vec3', rough: 'float', metal: 'float', return: 'vec3' } );
+  }, { p: 'vec3', n: 'vec3', v: 'vec3', alb: 'vec3', rough: 'float', metal: 'float', oc: 'vec2', return: 'vec3' } );
+
+  const shade = ( p, n, v, alb, rough, metal ) => shadeO( p, n, v, alb, rough, metal, occlude( p ) );
 
   // s：窗格平滑（0 原樣、1 淡成平均的城市光帶）。車漆這種彎曲的鏡面反射窗格會碎成一塊塊彩色方塊，車身的材質傳 1（envMapS）
   const envMapS =  Fn( ( [ r, s ] ) => {
@@ -634,6 +640,80 @@ export default {
 
   }, { r: 'vec3', s: 'float', return: 'vec3' } );
   const envMap =  Fn( ( [ r ] ) => envMapS( r, 1. ), { r: 'vec3', return: 'vec3' } );   // 使用者：晚上地面與物體映出奇怪的七彩色塊（夜景窗格每格隨機鈉黃／青／洋紅，護欄、濕路面上一格一格跳色）：全部改用平滑的城市光帶
+  // 車漆映出的街景（質感改善第 6 項，2026-11-14）：envMapS 是程式畫的天空與城市光帶，白天車身側面映出來只是天空漸層，看不到兩旁的樓。
+  // coat > 0.3（車漆，m-glb 的 coat、m-uberTraf 的車身材質）才沿反射方向在建築高度圖（hmAt，和日照陰影同一張）上走 12 步（1.5 m 起、每步 ×1.45，約 90 m）：
+  // 打到樓就畫一面立面（深淺兩種牆色、3.3 m 一層的窗格映天，窗緣是軟的），越遠越淡回 envMapS；往下打到地面、沒打到都照舊 envMapS。
+  // 只在白天：夜裡不畫亮燈的窗（使用者嫌過一格一格的跳色，見 envMap 的註解），uDay 0.5→0.15 整面淡回 envMapS 的城市光帶。
+  // m-glb 的車與 m-uberTraf 的車流車身都用。車流低模原本是減面後的面法線、一面一面的，樓的輪廓在車身上碎成黑斑；traffic.mjs 改成轉移原檔法線後才正常
+  const envCity =  Fn( ( [ p, r, coat ] ) => {
+
+  	const col = envMapS( r, 1. ).toVar();
+
+  	If( coat.greaterThan( .3 ).and( r.y.lessThan( .55 ) ).and( uDay.greaterThan( .15 ) ).and( hmAt( p.xz ).lessThan( p.y.add( .5 ) ) ), () => {   // 車本身在樓的佔地裡（車行、CHROME WORKS、車庫）不走：第一步就在屋頂下，整台會映出假的立面
+
+  		const hit = float( 0. ).toVar(), t = float( 1.5 ).toVar(), q = vec3( 0. ).toVar();
+
+  		Loop( 12, () => {
+
+  			q.assign( p.add( r.mul( t ) ) );
+
+  			If( q.y.lessThan( 0. ).or( q.y.greaterThan( uHM.w ) ), () => {
+
+  				Break();
+
+  			} );
+
+  			If( q.y.lessThan( hmAt( q.xz ) ), () => {
+
+  				hit.assign( 1. );
+  				Break();
+
+  			} );
+
+  			t.mulAssign( 1.45 );
+
+  		} );
+
+  		If( hit.greaterThan( .5 ), () => {
+
+  			// 二分 4 次找到穿進樓的那一點，不然每步 ×1.45 的跳格讓樓的輪廓和窗格在車身上碎成一塊一塊
+  			const ta = t.div( 1.45 ).toVar(), tb = t.toVar();
+
+  			Loop( 4, () => {
+
+  				const tm = ta.add( tb ).mul( .5 ).toVar(), qm = p.add( r.mul( tm ) ).toVar();
+
+  				If( qm.y.lessThan( hmAt( qm.xz ) ), () => {
+
+  					tb.assign( tm );
+
+  				} ).Else( () => {
+
+  					ta.assign( tm );
+
+  				} );
+
+  			} );
+
+  			t.assign( tb );
+  			q.assign( p.add( r.mul( tb ) ) );
+
+  			const nf = normalize( vec3( r.x.negate(), 0., r.z.negate() ).add( vec3( 1e-4, 0., 0. ) ) ).toVar();
+  			const cell = floor( q.xz.div( 14. ) ).toVar();
+  			const wall = mix( vec3( .3, .28, .26 ), vec3( .55, .44, .35 ), h21( cell ) ).toVar();
+  			const lit = wall.mul( uSkyHor.mul( .7 ).add( uAmbTop.mul( .5 ) ).add( uSunCol.mul( max( dot( nf, uSun ), 0. ).mul( .6 ) ) ) ).toVar();   // 牆的亮度跟著天空走（太暗的話在車身上是一塊塊黑斑）
+  			const fl = fract( q.y.div( 3.3 ) ).toVar(), u = fract( q.x.add( q.z ).div( 2.7 ) ).toVar();
+  			const win = smoothstep( .22, .34, fl ).mul( smoothstep( .84, .72, fl ) ).mul( smoothstep( .12, .26, u ) ).mul( smoothstep( .88, .74, u ) ).mul( step( 2.4, q.y ) ).mul( smoothstep( 40., 12., t ).mul( .8 ) ).toVar();   // 遠的樓窗格比車身上一個像素還細，留著會變成一圈圈的疊紋
+  			const wc = uSkyHor.mul( .6 ).add( lit.mul( .25 ) ).toVar();
+  			col.assign( mix( mix( lit, wc, win ), col, max( smoothstep( 35., 95., t ), smoothstep( .5, .15, uDay ) ) ) );
+
+  		} );
+
+  	} );
+
+  	return col;
+
+  }, { p: 'vec3', r: 'vec3', coat: 'float', return: 'vec3' } );
 
   const applyFog =  Fn( ( [ c_immutable, p ] ) => {
 
@@ -681,7 +761,7 @@ export default {
 
   }, { k: 'float', return: 'float' } );
 
-  return { h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK };
+  return { h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, shadeO, envMap, envMapS, envCity, applyFog, farK };
 },
 "[[\"FAR\",\"*\"]]NL_T,NOCC_T,SH_N_T,VOL_N_T,FAR": (TSL, E) => {
   const { sin, fract, Fn, vec2, dot, vec3, floor, mul, sub, mix, float, Loop, bool, If, sqrt, smoothstep, add, normalize, max, pow, mat3, ivec2, int, Break, select, Continue, min, length, clamp, abs, cos, inverseSqrt, atan, exp, step } = TSL;
@@ -1077,8 +1157,10 @@ export default {
   	const done_ = bool( false ).toVar();
   	const ret_ = vec2( 0 ).toVar();
   	const amb = float( 1. ).toVar(), sun = float( 1. ).toVar();
+  	// 最後一格 uOccA[NOCC_T − 1] 不是車人，是這幀車人底面高度的範圍 (最低, 最高)（28-sky.js 的 occUpdate）：範圍外的點（牆、屋頂、車身上半）整段跳過
+  	const band = uOccA.element( NOCC_T.sub( 1 ) ).toVar();
 
-  	If( p.y.greaterThan( .4 ), () => {
+  	If( p.y.lessThan( band.x.sub( 1.5 ) ).or( p.y.greaterThan( band.y.add( .5 ) ) ), () => {
 
   		ret_.assign( vec2( 1. ) );
   		done_.assign( true );
@@ -1090,11 +1172,14 @@ export default {
   		const sd = select( uSun.y.greaterThan( .06 ), uSun.xz.div( uSun.y ), vec2( 0. ) ).toVar();
   		const lit = uSunCol.r.add( uSunCol.g ).greaterThan( .001 ).toVar();
 
-  		Loop( NOCC_T, ( { i } ) => {
+  		Loop( NOCC_T.sub( 1 ), ( { i } ) => {
 
   			const A = uOccA.element( i ).toVar(), B = uOccB.element( i ).toVar();
 
-  			If( B.x.lessThanEqual( 0. ), () => {
+  			// 只遮離自己底面（B.w）−1.5～+0.5 m 的點：高架、山路、甲板上的車只影響同一層的地面
+  			const dy = p.y.sub( B.w ).toVar();
+
+  			If( B.x.lessThanEqual( 0. ).or( dy.greaterThan( .5 ) ).or( dy.lessThan( - 1.5 ) ), () => {
 
   				Continue();
 
@@ -1108,14 +1193,16 @@ export default {
 
   			} );
 
-  			const f = vec2( A.w, A.z ).toVar(), r = vec2( A.z, A.w.negate() ).toVar();
+  			// A.zw = (cos, sin) × 淡入淡出（28-sky.js 的 occUpdate：排到最後幾名的車人陰影慢慢消失，換人時不會跳）
+  			const fd = length( A.zw ).toVar();
+  			const f = vec2( A.w, A.z ).div( fd ).toVar(), r = vec2( A.z, A.w.negate() ).div( fd ).toVar();
   			const l = vec2( dot( d, f ), dot( d, r ) ).toVar();
   			const ext = length( max( abs( l ).sub( B.xy ), 0. ) ).toVar();
-  			amb.assign( min( amb, mix( .3, 1., smoothstep( 0., add( .35, B.y.mul( .5 ) ), ext ) ) ) );
+  			amb.assign( min( amb, mix( 1., mix( .3, 1., smoothstep( 0., add( .35, B.y.mul( .5 ) ), ext ) ), fd ) ) );
 
   			If( lit, () => {
 
-  				const a = vec2( dot( d, f ), dot( d, r ) ).toVar(), b = a.add( vec2( dot( sd, f ), dot( sd, r ) ).mul( B.z ) ).toVar();
+  				const a = vec2( dot( d, f ), dot( d, r ) ).toVar(), b = a.add( vec2( dot( sd, f ), dot( sd, r ) ).mul( max( B.z.sub( dy ), 0. ) ) ).toVar();
   				const t0 = float( 0. ).toVar(), t1 = float( 1. ).toVar();
 
   				Loop( { start: 0, end: 4, name: 's' }, () => {
@@ -1134,7 +1221,7 @@ export default {
 
   				} );
 
-  				sun.assign( min( sun, smoothstep( 0., .2, length( max( abs( mix( a, b, t0.add( t1 ).mul( .5 ) ) ).sub( B.xy ), 0. ) ) ) ) );
+  				sun.assign( min( sun, mix( 1., smoothstep( 0., .2, length( max( abs( mix( a, b, t0.add( t1 ).mul( .5 ) ) ).sub( B.xy ), 0. ) ) ), fd ) ) );
 
   			} );
 
@@ -1198,17 +1285,14 @@ export default {
 
   const gSun = float( -1 ), gAmb = float( -1 ), gOccS = float( 1. ), gSky = float( -1 );
 
-  const shade =  Fn( ( [ p, n, v, alb, rough, metal ] ) => {
+  // shadeO 多一個參數 oc = occlude(p)（x 環境、y 日光的車人遮擋）：同一個片段呼叫好幾次 shade 的材質可以在 main_ 開頭算一次傳進來（m-water）；
+  // m-facade 傳常數 vec2(1.)：它有 occlude 就讓 Metal 編譯器（AGX）當掉，只算一次也一樣（2026-11-13，XPC_ERROR_CONNECTION_INTERRUPTED）
+  const shadeO =  Fn( ( [ p, n, v, alb, rough, metal, oc ] ) => {
 
   	const shin = mix( 300., 5., rough ).toVar();
 
-  	If( gAmb.lessThan( 0. ), () => {
-
-  		const oc = occlude( p ).toVar();
-  		gAmb.assign( oc.x );
-  		gOccS.assign( oc.y );
-
-  	} );
+  	// 車與行人的遮擋 oc 是參數：原本寫進模組層的 gAmb／gOccS，TSL 在日光那個分支裡會把 gOccS 重新初始化成 1，
+  	// 編出來的 WGSL 用到前就蓋掉，車、人在地上從來沒有日光陰影（2026-11-13 從 road 材質的 WGSL 查到）
 
   	If( gSky.lessThan( 0. ), () => {
 
@@ -1231,8 +1315,8 @@ export default {
   	const lg = lampGrid( p, n, v, shin ).toVar(), pl = pointLights( p, n, v, shin ).toVar();
   	dif.addAssign( lg[ 0 ].add( pl[ 0 ] ) );
   	spc.addAssign( lg[ 1 ].add( pl[ 1 ] ) );
-  	dif.mulAssign( gAmb );
-  	spc.mulAssign( gAmb );
+  	dif.mulAssign( oc.x );
+  	spc.mulAssign( oc.x );
 
   	If( uAirB.x.greaterThan( 0. ), () => {
 
@@ -1256,7 +1340,7 @@ export default {
 
   			If( gSun.lessThan( 0. ), () => {
 
-  				gSun.assign( sunVis( p, n ).mul( gOccS ) );
+  				gSun.assign( sunVis( p, n ).mul( mix( 1., oc.y, smoothstep( .5, .9, n.y ) ) ) );
 
   			} );
 
@@ -1274,7 +1358,9 @@ export default {
 
   	return alb.mul( sub( 1., metal ) ).mul( dif ).add( ks.mul( spc ) );
 
-  }, { p: 'vec3', n: 'vec3', v: 'vec3', alb: 'vec3', rough: 'float', metal: 'float', return: 'vec3' } );
+  }, { p: 'vec3', n: 'vec3', v: 'vec3', alb: 'vec3', rough: 'float', metal: 'float', oc: 'vec2', return: 'vec3' } );
+
+  const shade = ( p, n, v, alb, rough, metal ) => shadeO( p, n, v, alb, rough, metal, occlude( p ) );
 
   // s：窗格平滑（0 原樣、1 淡成平均的城市光帶）。車漆這種彎曲的鏡面反射窗格會碎成一塊塊彩色方塊，車身的材質傳 1（envMapS）
   const envMapS =  Fn( ( [ r, s ] ) => {
@@ -1316,6 +1402,80 @@ export default {
 
   }, { r: 'vec3', s: 'float', return: 'vec3' } );
   const envMap =  Fn( ( [ r ] ) => envMapS( r, 1. ), { r: 'vec3', return: 'vec3' } );   // 使用者：晚上地面與物體映出奇怪的七彩色塊（夜景窗格每格隨機鈉黃／青／洋紅，護欄、濕路面上一格一格跳色）：全部改用平滑的城市光帶
+  // 車漆映出的街景（質感改善第 6 項，2026-11-14）：envMapS 是程式畫的天空與城市光帶，白天車身側面映出來只是天空漸層，看不到兩旁的樓。
+  // coat > 0.3（車漆，m-glb 的 coat、m-uberTraf 的車身材質）才沿反射方向在建築高度圖（hmAt，和日照陰影同一張）上走 12 步（1.5 m 起、每步 ×1.45，約 90 m）：
+  // 打到樓就畫一面立面（深淺兩種牆色、3.3 m 一層的窗格映天，窗緣是軟的），越遠越淡回 envMapS；往下打到地面、沒打到都照舊 envMapS。
+  // 只在白天：夜裡不畫亮燈的窗（使用者嫌過一格一格的跳色，見 envMap 的註解），uDay 0.5→0.15 整面淡回 envMapS 的城市光帶。
+  // m-glb 的車與 m-uberTraf 的車流車身都用。車流低模原本是減面後的面法線、一面一面的，樓的輪廓在車身上碎成黑斑；traffic.mjs 改成轉移原檔法線後才正常
+  const envCity =  Fn( ( [ p, r, coat ] ) => {
+
+  	const col = envMapS( r, 1. ).toVar();
+
+  	If( coat.greaterThan( .3 ).and( r.y.lessThan( .55 ) ).and( uDay.greaterThan( .15 ) ).and( hmAt( p.xz ).lessThan( p.y.add( .5 ) ) ), () => {   // 車本身在樓的佔地裡（車行、CHROME WORKS、車庫）不走：第一步就在屋頂下，整台會映出假的立面
+
+  		const hit = float( 0. ).toVar(), t = float( 1.5 ).toVar(), q = vec3( 0. ).toVar();
+
+  		Loop( 12, () => {
+
+  			q.assign( p.add( r.mul( t ) ) );
+
+  			If( q.y.lessThan( 0. ).or( q.y.greaterThan( uHM.w ) ), () => {
+
+  				Break();
+
+  			} );
+
+  			If( q.y.lessThan( hmAt( q.xz ) ), () => {
+
+  				hit.assign( 1. );
+  				Break();
+
+  			} );
+
+  			t.mulAssign( 1.45 );
+
+  		} );
+
+  		If( hit.greaterThan( .5 ), () => {
+
+  			// 二分 4 次找到穿進樓的那一點，不然每步 ×1.45 的跳格讓樓的輪廓和窗格在車身上碎成一塊一塊
+  			const ta = t.div( 1.45 ).toVar(), tb = t.toVar();
+
+  			Loop( 4, () => {
+
+  				const tm = ta.add( tb ).mul( .5 ).toVar(), qm = p.add( r.mul( tm ) ).toVar();
+
+  				If( qm.y.lessThan( hmAt( qm.xz ) ), () => {
+
+  					tb.assign( tm );
+
+  				} ).Else( () => {
+
+  					ta.assign( tm );
+
+  				} );
+
+  			} );
+
+  			t.assign( tb );
+  			q.assign( p.add( r.mul( tb ) ) );
+
+  			const nf = normalize( vec3( r.x.negate(), 0., r.z.negate() ).add( vec3( 1e-4, 0., 0. ) ) ).toVar();
+  			const cell = floor( q.xz.div( 14. ) ).toVar();
+  			const wall = mix( vec3( .3, .28, .26 ), vec3( .55, .44, .35 ), h21( cell ) ).toVar();
+  			const lit = wall.mul( uSkyHor.mul( .7 ).add( uAmbTop.mul( .5 ) ).add( uSunCol.mul( max( dot( nf, uSun ), 0. ).mul( .6 ) ) ) ).toVar();   // 牆的亮度跟著天空走（太暗的話在車身上是一塊塊黑斑）
+  			const fl = fract( q.y.div( 3.3 ) ).toVar(), u = fract( q.x.add( q.z ).div( 2.7 ) ).toVar();
+  			const win = smoothstep( .22, .34, fl ).mul( smoothstep( .84, .72, fl ) ).mul( smoothstep( .12, .26, u ) ).mul( smoothstep( .88, .74, u ) ).mul( step( 2.4, q.y ) ).mul( smoothstep( 40., 12., t ).mul( .8 ) ).toVar();   // 遠的樓窗格比車身上一個像素還細，留著會變成一圈圈的疊紋
+  			const wc = uSkyHor.mul( .6 ).add( lit.mul( .25 ) ).toVar();
+  			col.assign( mix( mix( lit, wc, win ), col, max( smoothstep( 35., 95., t ), smoothstep( .5, .15, uDay ) ) ) );
+
+  		} );
+
+  	} );
+
+  	return col;
+
+  }, { p: 'vec3', r: 'vec3', coat: 'float', return: 'vec3' } );
 
   const applyFog =  Fn( ( [ c_immutable, p ] ) => {
 
@@ -1361,6 +1521,6 @@ export default {
 
   }, { k: 'float', return: 'float' } );
 
-  return { h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK };
+  return { h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, shadeO, envMap, envMapS, envCity, applyFog, farK };
 },
 };

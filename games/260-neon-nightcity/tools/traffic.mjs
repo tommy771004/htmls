@@ -287,11 +287,12 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id, w
   const P = [], N = [], C = [], M = [], IDX = [];
   for (const u of units.values()) {
     // 依「位置（1 mm）＋材質」焊接：原檔的硬邊把面板拆成互不相連的小片，不焊接的話減面只能退回 sloppy，整台會被撕碎
-    const wid = new Map(), wsrc = [], wpos = [], ix = new Uint32Array(u.idx.length);
+    const wid = new Map(), wsrc = [], wall = [], wpos = [], ix = new Uint32Array(u.idx.length);   // wall：每個焊接頂點 → 焊進來的原檔頂點（法線轉移用）
     u.idx.forEach((v, i) => {
       const key = `${Math.round(u.pos[v * 3] * 1000)},${Math.round(u.pos[v * 3 + 1] * 1000)},${Math.round(u.pos[v * 3 + 2] * 1000)},${u.mat[v]}` + (cfg.flat ? `,${u.col.slice(v * 3, v * 3 + 3).map((c) => Math.round(c * 255)).join(',')}` : '');
       let w = wid.get(key);
-      if (w == null) { w = wsrc.length; wid.set(key, w); wsrc.push(v); wpos.push(u.pos[v * 3], u.pos[v * 3 + 1], u.pos[v * 3 + 2]); }
+      if (w == null) { w = wsrc.length; wid.set(key, w); wsrc.push(v); wall.push([]); wpos.push(u.pos[v * 3], u.pos[v * 3 + 1], u.pos[v * 3 + 2]); }
+      if (!wall[w].includes(v)) wall[w].push(v);
       ix[i] = w;
     });
     const pos = new Float32Array(wpos), target = (u.wheel ? wheelTris : bodyTris) * 3;
@@ -351,6 +352,14 @@ async function bake(cfg, tris = cfg.tris, wheelTris = WHEEL_TRIS, id = cfg.id, w
         const w = out[t + k], src = wsrc[w];
         const n = [0, 0, 0];
         for (const g of adj.get(w)) { const h = fn[g]; if (h[0] * f[0] + h[1] * f[1] + h[2] * f[2] > .766) { n[0] += h[0]; n[1] += h[1]; n[2] += h[2]; } }
+        // 法線轉移（2026-11-14）：減面後的面法線平均是一面一面的（4000 面的車身在車漆反射裡碎成色塊、看起來就是低模）。
+        // 減面只會留下原檔的頂點，所以直接用原檔在這一點的法線：焊進這個頂點的原檔頂點裡，和這個面同側（夾角 60° 內）的平均；
+        // 原檔的硬邊（兩側法線差很多）照樣分開。都不同側（減面把彎處拉成一大片）才退回上面的面法線平均。TRAFFIC_NORM=0 用舊做法
+        if (process.env.TRAFFIC_NORM !== '0') {
+          const s = [0, 0, 0];
+          for (const sv of wall[w]) { const a = u.nor[sv * 3], b = u.nor[sv * 3 + 1], c = u.nor[sv * 3 + 2], q = Math.hypot(a, b, c) || 1; if ((a * f[0] + b * f[1] + c * f[2]) / q > .5) { s[0] += a / q; s[1] += b / q; s[2] += c / q; } }
+          if (Math.hypot(...s) > .1) { n[0] = s[0]; n[1] = s[1]; n[2] = s[2]; }
+        }
         const l = Math.hypot(...n) || 1;
         const key = `${w}|${tm}|${Math.round(n[0] / l * 20)},${Math.round(n[1] / l * 20)},${Math.round(n[2] / l * 20)}`;
         let o = vmap.get(key);

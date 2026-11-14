@@ -589,6 +589,23 @@ const weeds = { grass: [], fern: [] };
     }
   }
 }
+// 公園樹下的林下層（質感改善第 4 項之二，2026-11-14）：草皮修到樹幹邊一圈光禿禿，改成樹根周圍留一圈沒割到的長草、偶爾一小片野花，
+// 少數再多一株灌木。只擺在樹自己 claim 的 2.4 m 內（不用 free()，也就碰不到步道、長椅），沒有碰撞。另一個亂數，上面的序列不變；
+// 草叢併進 weeds.grass（同一個 InstancedMesh，不多 draw call），野花是 weeds.flower（nat_forest 的 flower_patch，40 m 內）
+weeds.flower = [];
+{
+  const r = rng(2631);
+  for (const t of trees) {
+    if (!t.park) continue;
+    const y = (t.y || 0) - .02;
+    if (r() < .75) for (let n = 1 + Math.floor(r() * 2); n > 0; n--) {   // 整片 4 × 3.5 m 的草縮成 1.2～1.8 m 一叢（壓得太窄太矮會變成一塊塊深色方塊）
+      const a = r() * 6.28, d = .8 + r() * 1.1, k = .3 + r() * .15;
+      weeds.grass.push({ x: t.x + Math.cos(a) * d, y, z: t.z + Math.sin(a) * d, ry: r() * 6.28, sx: k, sy: .38 + r() * .2, sz: k * (.85 + r() * .3), zn: t.zn });
+    }
+    if (r() < .14) { const a = r() * 6.28, d = 1.2 + r() * 1; weeds.flower.push({ x: t.x + Math.cos(a) * d, y, z: t.z + Math.sin(a) * d, ry: r() * 6.28, sx: .26 + r() * .12, sy: .5 + r() * .25, sz: .26 + r() * .12, zn: t.zn }); }
+    if (r() < .3) { const a = r() * 6.28, d = 1 + r() * 1.2; shrubs.push({ x: t.x + Math.cos(a) * d, z: t.z + Math.sin(a) * d, y: t.y || 0, ry: r() * 6.3, s: .7 + r() * .5, zn: t.zn, kind: Math.floor(r() * 3) }); }
+  }
+}
 // 路燈下的暗塊（#10）：不做點光陰影，改在路燈附近的人行道設施底下放一片橢圓的暗影，往遠離最近那盞燈頭的方向拉長
 // （長度照「物件高 × 離燈水平距離 ÷ (燈高 − 物件高)」估），離燈越遠越淡；只在夜裡看得到（28-sky.js 依 atm.day 調 MAT.blob 的不透明度）。
 // 開場就換成世界座標（zn: null）：燈頭表 LAMP_HEADS 是世界座標；快速道路的燈（帶 y，立在橋面上）不算
@@ -698,14 +715,14 @@ let treeMesh;
       nr.setXYZ(v, nx / m, ny / m, nz / m);
     }
     const a = i / 8 * 6.28 + r2(), rr = i === 0 ? 0 : i < 5 ? 1.05 + r2() * .4 : 1.6 + r2() * .4, y = i === 0 ? 6.3 : i < 5 ? 5.6 + r2() * .9 : 4.8 + r2() * .8;
-    const col = new T.Color().setHSL(.22 + r2() * .06, .36, .15 + r2() * .05);
+    const col = new T.Color().setHSL(.2 + r2() * .05, .32, .09 + r2() * .03);   // 2026-11-14 從 (.22～.28, .36, .15～.2) 壓暗：http 下只畫在模型樹外圈，原本一片粉綠，和 27-props.js 改色後的模型樹接不起來
     k.add(g, col, 2, tf(Math.cos(a) * rr, y, Math.sin(a) * rr));
     if (i) k.rod(0, 3.6 + r2() * .5, 0, Math.cos(a) * rr * .8, y - .5, Math.sin(a) * rr * .8, .07, 5, 0x3a2c20, 2, .03);   // 枝
   }
   for (let v = c0; v < k.pos.length / 3; v++) {
     if (k.mat[v] !== 2 || k.col[v * 3 + 1] < k.col[v * 3]) continue;   // 只調葉團（枝是棕色）
     const x = k.pos[v * 3], y = k.pos[v * 3 + 1], z = k.pos[v * 3 + 2];
-    const up = Math.min(1, Math.max(0, (y - 4) / 3.4)), out = Math.min(1, Math.hypot(x, z) / 2.6), f = .5 + .45 * up + .25 * out;
+    const up = Math.min(1, Math.max(0, (y - 4) / 3.4)), out = Math.min(1, Math.hypot(x, z) / 2.6), f = .42 + .33 * up + .2 * out;   // 2026-11-14 從 .5 + .45 up + .25 out 收：樹頂朝天吃滿天空環境光，原本 ×1.2 整片發白
     for (let c = 0; c < 3; c++) k.col[v * 3 + c] *= f;
   }
   treeMesh = instanced(k.build(), MAT.uber, trees);

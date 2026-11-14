@@ -129,6 +129,58 @@
       return vec4(min(max(out, vec3(0)), vec3(60)), 1);
     })());
   });
+  // 時間抗鋸齒（70-render.js 的 mTAA）：現在這幀（偏移過的）3×3 鄰域在 YCoCg 算平均與標準差，上一幀的結果照深度反推回去取（Catmull-Rom 五點，不會一幀一幀糊掉），
+  // 裁進「平均 ± 1.25σ」的盒子（比最小／最大值的盒子穩：次像素的電線一幀有一幀沒有時不會跟著閃），再和現在這幀混。
+  // 都在 Karis 的可逆壓縮（c / (1 + 亮度)）裡做，一顆特別亮的像素不會拖出一片；輸出前解壓回線性 HDR。反推用 3×3 裡最近的深度（物體邊緣跟著前景走）
+  gfxPort(mTAA, m => {
+    const u = m.uniforms, tC = gfxT(u.tScene), tH = gfxT(u.tHist), tD = gfxT(u.tDepth), invVP = gfxU(u.uInvVP), prevVP = gfxU(u.uPrevVP), tx = gfxU(u.uTexel), prm = gfxU(u.uPrm), jit = gfxU(u.uJit);
+    const san = c => min(max(TSL.select(TSL.any(c.notEqual(c)), vec3(0), c), vec3(0)), vec3(60));   // 歷史是回饋的：一個 NaN 會一直留著，每次讀寫都擋
+    const tm = c => c.div(dot(c, LUM).add(1)), itm = c => c.div(max(float(1).sub(dot(c, LUM)), .02));
+    const ycc = c => vec3(dot(c, vec3(.25, .5, .25)), dot(c, vec3(.5, 0, -.5)), dot(c, vec3(-.25, .5, -.25)));
+    const rgb = y => vec3(y.x.add(y.y).sub(y.z), y.x.add(y.z), y.x.sub(y.y).sub(y.z));
+    // Catmull-Rom 九點濾波化成五次雙線性取樣（Jimenez 2016）
+    const catm = q => {
+      const sz = vec2(1).div(tx), sp = q.mul(sz), p1 = TSL.floor(sp.sub(.5)).add(.5), f = sp.sub(p1);
+      const w0 = f.mul(f.mul(f.mul(-.5).add(1)).sub(.5)), w1 = f.mul(f).mul(f.mul(1.5).sub(2.5)).add(1), w2 = f.mul(f.mul(f.mul(-1.5).add(2)).add(.5)), w3 = f.mul(f).mul(f.mul(.5).sub(.5));
+      const w12 = w1.add(w2), p0 = p1.sub(1).mul(tx), p3 = p1.add(2).mul(tx), p12 = p1.add(w2.div(w12)).mul(tx);
+      const s = (x, y) => san(tH(vec2(x, y), 0).rgb);
+      const a = w0.x.mul(w12.y), b = w12.x.mul(w0.y), c = w12.x.mul(w12.y), d = w3.x.mul(w12.y), e = w12.x.mul(w3.y);
+      return s(p0.x, p12.y).mul(a).add(s(p12.x, p0.y).mul(b)).add(s(p12.x, p12.y).mul(c)).add(s(p3.x, p12.y).mul(d)).add(s(p12.x, p3.y).mul(e)).div(a.add(b).add(c).add(d).add(e));
+    };
+    return passMat(Fn(() => {
+      // 現在這幀：3×3 依離「沒偏移的像素中心」（jit，像素）的距離加權（Blackman-Harris 的高斯近似，Unreal 的做法），不然這幀的偏移會透過混合比例在每條邊上抖
+      const cw = vec3(0).toVar(), ws = float(0).toVar(), m1 = vec3(0).toVar(), m2 = vec3(0).toVar(), dmin = float(2).toVar(), dq = Q.toVar();
+      for (let y = -1; y <= 1; y++) for (let x = -1; x <= 1; x++) {
+        const q = Q.add(tx.mul(vec2(x, y))), c = ycc(tm(san(tC(q, 0).rgb))).toVar(), d = tD(q, 0).x;
+        const dd = vec2(x, y).sub(jit), wt = exp(dot(dd, dd).mul(-3));
+        cw.addAssign(c.mul(wt)); ws.addAssign(wt);
+        m1.addAssign(c); m2.addAssign(c.mul(c));
+        dq.assign(TSL.select(d.lessThan(dmin), q, dq)); dmin.assign(min(d, dmin));
+      }
+      const cur = cw.div(ws).toVar(), out = cur.toVar();
+      const wp = invVP.mul(vec4(ndcOf(dq), gfxZ(dmin), 1)).toVar(); wp.divAssign(wp.w);
+      const pc = prevVP.mul(wp), pq = uvOf(pc.xy.div(pc.w)).add(Q.sub(dq)).toVar();
+      const ok = pc.w.greaterThan(1e-4).and(pq.x.greaterThan(0)).and(pq.x.lessThan(1)).and(pq.y.greaterThan(0)).and(pq.y.lessThan(1));
+      If(prm.y.lessThan(.5), () => {
+        // 兩個歷史候選：照深度反推的（不動的世界）與同一個畫面位置的（跟著鏡頭走的東西：追車鏡頭裡的玩家車、車內視角的車廂），取離這幀近的。
+        // 只有反推的那個時，玩家車的歷史落在後面的路面上，被裁到 3×3 的平均（等於方框模糊），車牌與尾燈糊成一片（2026-11-14 追車對照）
+        const hR = ycc(tm(catm(pq))).toVar(), hS = ycc(tm(san(tH(Q, 0).rgb))).toVar();
+        const useS = ok.not().or(length(hS.sub(cur)).lessThan(length(hR.sub(cur))));
+        const hist = TSL.select(useS, hS, hR).toVar(), px = TSL.select(useS, float(0), length(pq.sub(Q).div(tx))).toVar();
+        // 盒子的寬度：畫面不動時放寬到 3σ（次像素的亮點、遠處窗燈每幀因偏移時有時無，盒子太緊會把歷史拉回這一幀，偏移本身就變成閃爍；2026-11-14 夜景量到比沒開還閃 5 倍），
+        // 動起來（每幀超過 4 px）收回 1σ，免得拖影
+        const mean = m1.div(9), sd = TSL.sqrt(max(m2.div(9).sub(mean.mul(mean)), vec3(0))).mul(mix(3, 1, smoothstep(.5, 4, px)));
+        // 裁切：從盒子中心往歷史值的方向，超出盒子就拉回盒面（Playdead 的 clip，比逐分量夾住少偏色）
+        const v = hist.sub(mean), ex = sd.add(1e-4), a = abs(v.div(ex)), ma = max(a.x, max(a.y, a.z));
+        If(ma.greaterThan(1), () => { hist.assign(mean.add(v.div(ma))); });
+        // 現在這幀的權重：平常 prm.x；歷史被裁得多（對不上）時加大，裁過的歷史是鄰域平均、會糊；鏡頭帶著畫面動得快時加大（歷史一直在重新取樣、會越來越軟）；下雨時加大（雨絲每幀換位置）
+        const k = max(max(prm.x, mix(prm.x, .3, smoothstep(2, 40, px))), max(prm.z.mul(.3), smoothstep(1, 2.5, ma).mul(.85)));   // 對不上的（動的車、鏡頭晃）幾乎只用這一幀：銳利但有一點鋸齒，比糊掉好
+        out.assign(mix(hist, cur, k));
+      });
+      If(prm.w.greaterThan(1.5), () => { out.assign(ycc(tm(vec3(TSL.select(prm.y.greaterThan(.5), 1, 0), 0, 0)))); });   // dbg 2：重設的那幀標紅
+      return vec4(san(itm(rgb(out))), 1);
+    })());
+  });
   // 眼睛適應：縮圖的 log 亮度，再整張平均（取樣的上下翻轉不影響平均）
   gfxPort(mEyeLum, m => {
     const u = m.uniforms, src = gfxT(u.tSrc), tx = gfxU(u.uTexel);
@@ -148,7 +200,7 @@
     const u = m.uniforms, G = k => gfxU(u[k]);
     const tScene = gfxT(u.tScene), tDepth = gfxT(u.tDepth), tBloom = gfxT(u.tBloom), tVol = gfxT(u.tVol), tAO = gfxT(u.tAO), tEye = gfxT(u.tEye);
     const volOn = G('uVolOn'), aoOn = G('uAOOn'), aoThr = G('uAOThr'), eyeOn = G('uEyeOn'), volT = G('uVolT'), invVP = G('uInvVP'), prevVP = G('uPrevVP'), blur = G('uBlur'), ex = G('uExp'), time = G('uTime'), wob = G('uWob'), flash = G('uFlash'),
-      bloomK = G('uBloomK'), gray = G('uGray'), vig = G('uVig'), hurt = G('uHurt'), tint = G('uTint'), fx7 = G('uFx7'), res = G('uRes'), fx = G('uFx'), hi = G('uHi'), heat = gfxU(u.uHeat, 'vec4');
+      bloomK = G('uBloomK'), gray = G('uGray'), vig = G('uVig'), hurt = G('uHurt'), tint = G('uTint'), dayG = G('uDayG'), fx7 = G('uFx7'), res = G('uRes'), fx = G('uFx'), hi = G('uHi'), sharp = G('uSharp'), texel = G('uTexel'), heat = gfxU(u.uHeat, 'vec4');
     const h = p => fract(sin(dot(p, vec2(12.9898, 78.233))).mul(43758.5453));
     const aces = x => clamp(x.mul(x.mul(2.51).add(.03)).div(x.mul(x.mul(2.43).add(.59)).add(.14)), 0, 1);
     return passMat(Fn(() => {
@@ -163,6 +215,12 @@
       Loop(9, ({ i }) => { const t = float(i).add(j).div(8).sub(.5), w = float(1).sub(abs(t).mul(.8)); c.addAssign(tScene(p.add(vel.mul(t))).rgb.mul(w)); ws.addAssign(w); });
       c.divAssign(ws);
       c.assign(TSL.select(TSL.any(c.notEqual(c)), vec3(0), c));
+      // 時間抗鋸齒開著時的銳化（只加在畫面上、不回寫歷史，不然會一幀一幀疊出光暈）：中心減上下左右平均，在 Karis 壓縮的亮度裡算，亮點旁邊不出黑邊；動態模糊大時淡掉
+      If(sharp.greaterThan(0), () => {
+        const k0 = tScene(p).rgb, nb = tScene(p.add(vec2(texel.x, 0))).rgb.add(tScene(p.sub(vec2(texel.x, 0))).rgb).add(tScene(p.add(vec2(0, texel.y))).rgb).add(tScene(p.sub(vec2(0, texel.y))).rgb).mul(.25);
+        const t0 = dot(k0, LUM), tn = dot(nb, LUM), d = t0.div(t0.add(1)).sub(tn.div(tn.add(1)));
+        c.mulAssign(max(float(1).add(d.mul(sharp).div(max(t0.div(t0.add(1)), .02)).mul(float(1).sub(smoothstep(.002, .01, vl)))), 0));
+      });
       // 邊緣的色散
       const cc = p.sub(.5), edge = dot(cc, cc);
       c.assign(vec3(mix(c.r, tScene(p.sub(cc.mul(edge).mul(.012))).r, fx.x.mul(.6)), c.g, mix(c.b, tScene(p.add(cc.mul(edge).mul(.012))).b, fx.x.mul(.6))));
@@ -182,7 +240,7 @@
       c.assign(aces(c));
       // 調色：暗部偏青、亮部偏暖
       const l = dot(c, LUM).toVar();
-      c.assign(mix(c, c.mul(vec3(.86, 1.02, 1.08)), float(1).sub(l).mul(.35)));
+      c.assign(mix(c, c.mul(vec3(.86, 1.02, 1.08)), float(1).sub(l).mul(mix(.35, dayG.y, dayG.x))));   // 白天（uDayG.x）換成 28-sky.js DAYG.cyan
       c.assign(mix(c, c.mul(vec3(1.06, 1, .9)), l.mul(.25)));
       c.mulAssign(float(1).sub(edge.mul(.9)));
       If(tint.w.greaterThan(0), () => { c.assign(mix(c, vec3(dot(c, LUM)).mul(tint.rgb).add(c.mul(.25)), tint.w)); });
@@ -205,7 +263,10 @@
         c.mulAssign(float(1).sub(vig.mul(smoothstep(.25, 1.05, r)).mul(.92)));
         c.assign(mix(c, vec3(.42, .02, .03), hurt.mul(smoothstep(.45, 1.15, r)).mul(.85)));
       });
+      // 白天的飽和度（線性）與對比（gamma 空間的 S 曲線），28-sky.js 的 DAYG
+      c.assign(mix(vec3(dot(c, LUM)), c, mix(1, dayG.w, dayG.x)));
       c.assign(pow(max(c, vec3(0)), vec3(1 / 2.2)));
+      c.assign(mix(c, smoothstep(0, 1, c), dayG.z.mul(dayG.x)));
       c.addAssign(h(p.mul(res).add(fract(time.mul(7)))).sub(.5).mul(fx.y.mul(.035)));
       return vec4(c, 1);
     })());

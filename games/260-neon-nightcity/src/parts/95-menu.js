@@ -74,7 +74,7 @@ function setApply(k) {
   if (k === 'blur') post.blur = .5 * SET.blur;
   if (k === 'res') { post.scale = resScale(); detail.k = 1; detail.v++; makeTargets(); }   // 切回自動從 1080p 那一檔開始，太慢再往下降
   if (k === 'gpu') { tierSet(SET.gpu); tierDpr(); detail.v++; setSave(); }   // 00-core.js 的畫質等級：MSAA、幀率、距離、倒影換成那一級，tierDpr 重做渲染目標；menuSet 是先存檔再套用，換完要再存一次，舊等級下改過的值才不會留在設定檔裡
-  if (k === 'msaa' || k === 'refl') makeTargets();
+  if (k === 'msaa' || k === 'refl' || k === 'taa') makeTargets();
   if (k === 'dist') detail.v++;
   if (k === 'camFar') camState.far = SET.camFar;
   if (k === 'fov') { const d = SET.fov - menu.fovBase; menu.fovBase = SET.fov; camState.fov += d; camera.fov += d; camera.updateProjectionMatrix(); }
@@ -154,6 +154,7 @@ const MENU = {
       { k: 'reflMin', n: '倒影小物剔除', o: { 0: '關閉', 1: '1 px', 2: '2 px', 3: '3 px' }, d: '倒影裡不畫半徑小於這麼多倒影像素的不透明小東西（遠處的車、人、小道具；燈、光暈、火光照畫）。2 px（預設）看不出差別，密集街區每幀少約兩成 draw call。' },
       { k: 'farMin', n: '遠處小物剔除', o: { 0: '關閉', .5: '0.5 px', 1: '1 px', 2: '2 px', 3: '3 px' }, d: '主畫面不畫整顆包圍球投影半徑小於這麼多像素的不透明東西（遠處的建築與設施模型群、車；燈、光暈、半透明照畫）。2 px（預設）和 0.5 px 比，六個固定視角最多差十幾個像素、亮度差不到 2%（多半在霧裡），中距離視角每幀少約兩成 draw call；3 px 再少一成，差異多一倍。' },
       { k: 'ssr', n: '倒影做法', o: { 1: '螢幕空間', 0: '平面（重畫場景）' }, d: '螢幕空間（預設）：沿反射方向在上一幀的畫面裡找，不用再畫一次場景，戰鬥時幀率約高三成半；畫面外與被前景擋住的東西照不到（高處的招牌、樹後的天際線），用畫面邊緣的顏色補。平面：從路面下方把整個場景再畫一次，畫面外的也照得到，但最吃效能。' },
+      { k: 'taa', n: '時間抗鋸齒（TAA）', o: { 1: '開', 0: '關' }, d: '每幀把鏡頭偏移不到一個像素，再和前幾幀疊起來：電線、樹葉、遠處窗格與霓虹細邊不再閃爍、鋸齒更少；高速移動時會稍微軟一點。關掉只剩 MSAA。' },
       { k: 'bloom', n: '泛光', f: pct, d: '霓虹與車燈的光暈強度。' },
       { k: 'blur', n: '動態模糊', f: pct, off: reduceMotion, d: reduceMotion ? '系統設定了減少動態效果，動態模糊固定關閉。' : '鏡頭轉動與高速時的模糊。' },
       { k: 'rainFx', n: '雨絲與水花', d: '畫面上的雨絲與地上的水花粒子；雨聲與積水不受影響。' },
@@ -165,7 +166,7 @@ const MENU = {
       { k: 'mist', n: '清晨薄霧', f: pct, d: '早上五點到九點貼著地面的薄霧。' },
       { k: 'tex', n: '牆面與屋頂材質', o: { 0: '程式紋理', 1: '照片', 2: '照片＋凹凸' }, d: '程式建模的樓房牆面、平屋頂與斜屋頂用照片材質（約 6 MB 下載、顯示卡記憶體 40–75 MB）。程式紋理不用下載。' },
       { k: 'fac', n: '建築細節距離', o: { 0: '關', 70: '70 m', 110: '110 m', 150: '150 m', 210: '210 m' }, d: '這個距離內的程式建模樓房換成細模：窗戶挖進牆裡、店面往內凹、窗洞有側面與窗台。距離越遠，顯示卡要畫的三角形越多。' },
-      { reset: ['refl', 'reflMin', 'farMin', 'ssr', 'bloom', 'blur', 'rainFx', 'ca', 'grain', 'vol', 'ao', 'eye', 'mist', 'tex', 'fac'] },
+      { reset: ['refl', 'reflMin', 'farMin', 'ssr', 'taa', 'bloom', 'blur', 'rainFx', 'ca', 'grain', 'vol', 'ao', 'eye', 'mist', 'tex', 'fac'] },
     ] },
   ],
 };

@@ -9,6 +9,51 @@ const PROP_INST = { uM: { value: new T.Vector4(0, 0, 1, 0) }, uPaint: { value: n
 const propCache = {}, propMats = new Map(), FAR_FOG = .2;   // FAR_FOG：props.json 標 far 的遠景組，霧和 MAT.far 一樣只算兩成距離
 // WASH_SETS：立面是拼貼圖集、量不出窗戶的組，夜裡在 shader 依高度打一層路燈光（26-glb.js 的 WASH）
 const WASH_SETS = new Set(['bld_nbh']);
+// 樹葉改色（質感改善第 4 項，2026-11-14）：垂柳的葉片貼圖平均 sRGB (115,150,45)、田園槭樹 (63,72,5)、橡樹 (123,119,51)，日照下是一片萊姆綠；
+// 參考畫面的樹冠受光約 (103,94,65)。下載後照原檔材質名乘頂點色（[R, G, B] 是 sRGB 的比例，乘之前換成線性），壓綠、補一點藍成橄欖綠。
+// 只動材質這一側：畫面後製的色相鍵會連霓虹與紅綠燈一起改。leafTint.en 在載入前設 false 可以比對（__nc.leafTint）
+const leafTint = { en: !/[?&]leaf=0\b/.test(location.search), sets: {
+  nat_trees: [[/^nature_leaves_standard_01/, [.8, .7, 1.22]], [/^sugar_maple_leaf$/, [1.02, .94, 1.05], 1], [/^leaf1$/, [.8, .86, 1]]],   // 垂柳兩款、楓樹、橡樹
+  cs_country: [[/^Wheatgrass_Mat\.041_[3-7]$/, [.86, .76, .96]], [/^Wheatgrass_Mat\.041_11$/, [.72, .86, 1.6]]],   // 整景的草與灌木、三款槭樹（貼圖 (63,72,5) 幾乎沒有藍，日照下一片黃）
+  nat_forest: [[/^grass_leaf$/, [.92, .84, .95]], [/^fern_leaf$/, [.95, .88, 1.05]], [/^broad_leaf$/, [1, .94, 1]]],   // 市區草叢與蕨類（20-props.js 的 weeds）、山林闊葉樹（楓樹的貼圖是紅葉，不動）
+  nat_bush: [[/^hosta1$/, [.72, .64, .66], 1], [/^FernLong$/, [.86, .74, .98]], [/^Fern1$/, [.95, .88, .95]]],   // 樹下與花台的玉簪 (133,180,101)、長蕨 (105,139,51)、蕨 (91,114,57)；玉簪透明處是灰 (102,104,99)
+} };
+// 第三格是 1 的：貼圖透明處的 RGB 不是葉子的顏色（楓葉是淺灰綠 (150,171,119)），縮小的 mipmap 把它混進葉緣，遠一點的楓樹整棵變銀白。
+// 下載後把 alpha < 128 的像素填成不透明處的平均色，換成 DataTexture（canvas 會預乘 alpha，透明處的 RGB 放回 canvas 會丟掉）
+const leafBled = new WeakMap();
+function leafBleed(map) {
+  if (!map || !map.image || leafBled.has(map)) return leafBled.get(map) || map;
+  let out = map;
+  try {
+    const im = map.image, w = im.width, h = im.height, c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0);
+    const d = x.getImageData(0, 0, w, h).data, s = [0, 0, 0];
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i + 3] >= 128) { s[0] += d[i]; s[1] += d[i + 1]; s[2] += d[i + 2]; n++; }
+    if (n) {
+      const r = s[0] / n, g = s[1] / n, b = s[2] / n;
+      for (let i = 0; i < d.length; i += 4) if (d[i + 3] < 128) { d[i] = r; d[i + 1] = g; d[i + 2] = b; }
+      const t = new T.DataTexture(new Uint8Array(d.buffer), w, h, T.RGBAFormat);
+      for (const k of ['wrapS', 'wrapT', 'magFilter', 'anisotropy', 'colorSpace', 'channel', 'flipY']) t[k] = map[k];
+      t.minFilter = T.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true;
+      out = t;
+    }
+  } catch (e) { console.warn('葉片貼圖填色失敗', e); }
+  leafBled.set(map, out);
+  return out;
+}
+function leafTintHit(set, name) {
+  const R = leafTint.en && leafTint.sets[set];
+  return R && R.find(([re]) => re.test(name || ''));
+}
+function leafTintApply(hit, geo) {
+  const a = hit && geo.attributes.color;
+  if (!a) return;
+  const [r, g, b] = hit[1].map(v => Math.pow(v, 2.2));
+  for (let i = 0; i < a.count; i++) a.setXYZ(i, a.getX(i) * r, a.getY(i) * g, a.getZ(i) * b);
+  a.needsUpdate = true;
+}
 const propMat = (src, far, wash) => { let m = propMats.get(src); if (!m) { m = glbMaterial(src, PROP_INST, far, wash); propMats.set(src, m); } return m; };
 // 量化的整數屬性轉成浮點，再套上節點矩陣（量化的位移與縮放在節點上）。直接讀底層陣列（交錯排列照 stride，正規化的整數照 three 的 denormalize），
 // 逐元素 getComponent 在大的建築組與場館要上百 ms
@@ -155,6 +200,8 @@ function loadProps(set) {
       for (const m of ms) {
         const geo = floatGeo(m.geometry, m.matrixWorld), fac = m.material.name === 'tron_facade';
         if (fac) for (const [k, to] of [['_fuv', 'uv'], ['_fb', 'aB'], ['_fb2', 'aB2']]) { geo.setAttribute(to, geo.getAttribute(k)); geo.deleteAttribute(k); }
+        const lt = leafTintHit(set, m.material.name);
+        if (lt) { leafTintApply(lt, geo); if (lt[2] && m.material.map) m.material.map = leafBleed(m.material.map); }
         parts.push({ geo, mat: fac ? facYMat(PROPS_SPEC[set].far && FAR_FOG) : propMat(m.material, PROPS_SPEC[set].far && FAR_FOG, WASH_SETS.has(set)), src: m.material.name }); await clk.tick();
       }
       items[n.name] = { parts: bldSet ? parts : await propMerge(parts, clk), ...PROPS_SPEC[set].items[n.name] };
@@ -429,7 +476,7 @@ if (W2.on) {
       for (const k of ['fir', 'maple', 'broad', 'pine']) w2Inst(it[k], HILL_FOREST[k], 0, FOREST_R);
       HILL_FOREST.loR0 = FOREST_R - 6;   // 50-assets.js 的遠景樹只畫在這之外（WebGPU 下這裡可能比 50-assets.js 先跑，所以不直接碰 forestLo）
       for (const k of ['fern', 'flower', 'grass']) w2Inst(it[k + '_patch'], HILL_FOREST.und[k], LY.NOREFL, 85);   // 林下層：每片幾百面，只送 85 m 內
-      w2Inst(it.grass_patch, weeds.grass, LY.NOREFL, 40); w2Inst(it.fern_patch, weeds.fern, LY.NOREFL, 40); W2.n.weeds = weeds.grass.length + weeds.fern.length;   // 市區植被（20-props.js 的 weeds），只畫 40 m 內
+      w2Inst(it.grass_patch, weeds.grass, LY.NOREFL, 40); w2Inst(it.fern_patch, weeds.fern, LY.NOREFL, 40); w2Inst(it.flower_patch, weeds.flower, LY.NOREFL, 40); W2.n.weeds = weeds.grass.length + weeds.fern.length + weeds.flower.length;   // 市區植被（20-props.js 的 weeds），只畫 40 m 內
       W2.swapped.push('forest'); W2.n.forest = HILL_FOREST.fir.length + HILL_FOREST.maple.length + HILL_FOREST.broad.length + HILL_FOREST.pine.length; W2.n.und = Object.values(HILL_FOREST.und).reduce((a, L) => a + L.length, 0);
     }),
     // ─── 山坡別墅的室內家具（blender/villa_furn.py 從 Sketchfab 室內場景拆出的單件 → villa_furn；位置是 villa_plans.json 的 furniture，

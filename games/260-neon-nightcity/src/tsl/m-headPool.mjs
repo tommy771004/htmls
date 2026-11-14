@@ -39,7 +39,7 @@ export default {
     	const fragOut_ = vec4( 0.0 ).toVar();
     	const q = vUv.sub( vec2( .5, 0. ) ).toVar();
     	const a = smoothstep( .5, .0, abs( q.x ).div( add( .3, vUv.y.mul( .7 ) ) ) ).mul( smoothstep( 1., .1, vUv.y ) ).mul( smoothstep( 0., .08, vUv.y ) ).toVar();
-    	fragOut_.assign( vec4( vec3( 1., .86, .62 ).mul( a ).mul( .5 ).mul( exp( length( vW.sub( uCam ) ).negate().mul( uFogDen ) ) ), 1. ) );
+    	fragOut_.assign( vec4( vec3( 1., .86, .62 ).mul( a ).mul( uLamp.mul( .5 ) ).mul( exp( length( vW.sub( uCam ) ).negate().mul( uFogDen ) ) ), 1. ) );
 
     	return fragOut_;
 

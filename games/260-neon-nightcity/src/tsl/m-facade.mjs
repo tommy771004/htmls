@@ -34,7 +34,7 @@ const F = {
   },
   fragment: (TSL, E) => {
     const { Fn, vec2, floor, mod, step, fract, smoothstep, fwidth, sub, mix, bool, vec3, dot, max, div, mul, add, If, abs, select, min, property, float, length, cos, Loop, sin, clamp, pow, reflect, vec4, Discard, normalize, int, exp, dFdx, dFdy, sign, exp2 } = TSL;
-    const { uFacA, uFacN, uFac, vW, vN, vUv, vB, vB2, aB, aB2, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, applyFog, farK } = E;
+    const { uFacA, uFacN, uFac, vW, vN, vUv, vB, vB2, aB, aB2, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, shadeO, envMap, applyFog, farK } = E;
 
 
 
@@ -378,6 +378,10 @@ const F = {
 
     const main_ =  Fn( () => {
 
+    	// 立面不算車人遮擋（lib.mjs 的 shadeO 傳常數 1，occlude 整段編掉）：這個著色器很大，有 occlude 時 Metal 編譯器（AGX）會當掉，main_ 開頭只算一次也一樣
+    	// （2026-11-13，XPC_ERROR_CONNECTION_INTERRUPTED，facade 的管線建不出來）；牆是直的，車人日光陰影本來就只給朝上的面，代價是牆腳少了車人的環境遮蔽
+    	const OC_ = vec2( 1. );
+
     	const done_ = bool( false ).toVar();
     	const fragOut_ = vec4( 0.0 ).toVar();
 
@@ -417,7 +421,7 @@ const F = {
 
     		const pud0 = smoothstep( .55, .65, fbm( vW.xz.mul( .15 ).add( seed ) ) ).toVar(), pud = pud0.mul( smoothstep( .05, .6, uWet ) ).toVar();
     		alb.mulAssign( sub( 1., mul( .3, pud0 ).mul( sub( 1., pud ) ) ) );
-    		c.assign( shade( vW, n, v, alb, mix( .85, .1, pud ), 0. ) );
+    		c.assign( shadeO( vW, n, v, alb, mix( .85, .1, pud ), 0., OC_ ) );
     		c.addAssign( envMap( reflect( v.negate(), n ) ).mul( pud ).mul( .35 ) );
     		fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
     		done_.assign( true );
@@ -435,12 +439,12 @@ const F = {
 
     				const tf = fract( vW.xz.div( .5 ) ).toVar();
     				const alb = L( vec3( .5, .48, .45 ) ).mul( add( .85, mul( .15, n2( vW.xz.mul( 3. ) ) ) ) ).mul( add( .82, mul( .18, step( .03, min( tf.x, tf.y ) ) ) ) ).toVar();
-    				c.assign( shade( vW, n, v, alb, .5, 0. ).add( alb.mul( vec3( 1., .85, .65 ) ).mul( .9 ).mul( lamp ).mul( exp( du.negate().mul( du ).mul( .25 ) ) ) ) );
+    				c.assign( shadeO( vW, n, v, alb, .5, 0., OC_ ).add( alb.mul( vec3( 1., .85, .65 ) ).mul( .9 ).mul( lamp ).mul( exp( du.negate().mul( du ).mul( .25 ) ) ) ) );
 
     			} ).Else( () => {
 
     				const alb = L( vec3( .62, .6, .56 ) ).mul( add( .9, mul( .1, fbm( vec2( u, vW.x.add( vW.z ) ).mul( .8 ) ) ) ) ).toVar();
-    				c.assign( shade( vW, n, v, alb, .9, 0. ).add( alb.mul( vec3( 1., .85, .65 ) ).mul( .35 ).mul( lamp ).mul( exp( du.negate().mul( du ).mul( .15 ) ) ) ) );
+    				c.assign( shadeO( vW, n, v, alb, .9, 0., OC_ ).add( alb.mul( vec3( 1., .85, .65 ) ).mul( .35 ).mul( lamp ).mul( exp( du.negate().mul( du ).mul( .15 ) ) ) ) );
     				c.assign( mix( c, vec3( 1.6, 1.45, 1.2 ).mul( add( .3, mul( .7, lamp ) ) ), step( du, .09 ) ) );
 
     			} );
@@ -455,7 +459,7 @@ const F = {
     			If( st.equal( 7 ), () => {
 
     				const alb = L( mix( vec3( .42, .36, .3 ), vec3( .3, .28, .27 ), fract( seed.mul( 3. ) ) ) ).mul( add( .8, mul( .3, fbm( vec2( u, y ).mul( 2. ) ) ) ) ).toVar();
-    				c.assign( shade( vW, n, v, alb, .8, 0. ) );
+    				c.assign( shadeO( vW, n, v, alb, .8, 0., OC_ ) );
     				fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
     				done_.assign( true );
 
@@ -624,7 +628,7 @@ const F = {
 
     						const nr = select( h.z.lessThan( 1.5 ), sign( rv.x ).negate().mul( sgU ).mul( Tn ), vec3( 0., sign( rv.y ).negate(), 0. ) ).toVar();
     						const alb = select( st.equal( 3 ), L( vec3( .2, .22, .25 ) ), select( h.z.greaterThan( 1.5 ).and( rv.y.lessThan( 0. ) ), L( vec3( .62, .58, .5 ) ).mul( add( .8, mul( .2, grime ) ) ), wall.mul( .85 ) ) ).toVar();
-    						c.assign( shade( vW.sub( n.mul( h.w ).mul( dR ) ), nr, v, alb, .85, select( st.equal( 3 ), .6, 0. ) ).mul( sub( 1., mul( .4, h.w ) ) ) );
+    						c.assign( shadeO( vW.sub( n.mul( h.w ).mul( dR ) ), nr, v, alb, .85, select( st.equal( 3 ), .6, 0. ), OC_ ).mul( sub( 1., mul( .4, h.w ) ) ) );
     						fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
     						done_.assign( true );
 
@@ -664,7 +668,7 @@ const F = {
     								If( h.z.greaterThan( .5 ), () => {
 
     									const nr = select( h.z.lessThan( 1.5 ), sign( rv.x ).negate().mul( sgU ).mul( Tn ), vec3( 0., -1, 0. ) ).toVar();
-    									c.assign( shade( vW.sub( n.mul( h.w ).mul( .3 ) ), nr, v, select( h.z.lessThan( 1.5 ), L( vec3( .3, .28, .26 ) ), L( vec3( .08, .08, .09 ) ) ), .7, 0. ).mul( sub( 1., mul( .35, h.w ) ) ) );
+    									c.assign( shadeO( vW.sub( n.mul( h.w ).mul( .3 ) ), nr, v, select( h.z.lessThan( 1.5 ), L( vec3( .3, .28, .26 ) ), L( vec3( .08, .08, .09 ) ) ), .7, 0., OC_ ).mul( sub( 1., mul( .35, h.w ) ) ) );
     									fragOut_.assign( vec4( fogW( c, vW ), 1. ) );
     									done_.assign( true );
 
@@ -692,11 +696,11 @@ const F = {
 
     									} );
 
-    									c.assign( shade( vW, n, v, alb, .7, 0. ) );
+    									c.assign( shadeO( vW, n, v, alb, .7, 0., OC_ ) );
 
     								} ).ElseIf( y.lessThan( .42 ), () => {
 
-    									c.assign( shade( vW, n, v, L( vec3( .13, .12, .12 ) ), .4, 0. ) );
+    									c.assign( shadeO( vW, n, v, L( vec3( .13, .12, .12 ) ), .4, 0., OC_ ) );
 
     								} ).ElseIf( shut.greaterThan( .5 ), () => {
 
@@ -712,7 +716,7 @@ const F = {
     									gc.assign( mix( vec3( dot( gc, vec3( .33 ) ) ), gc, .5 ).mul( .7 ) );
     									alb.assign( mix( alb, gc, smoothstep( .5, .53, g ).mul( msk ).mul( .85 ) ) );
     									alb.assign( mix( alb, L( vec3( .04 ) ), smoothstep( .025, .0, abs( g.sub( .5 ) ) ).mul( msk ) ) );
-    									c.assign( shade( vW, n, v, alb, .5, .3 ) );
+    									c.assign( shadeO( vW, n, v, alb, .5, .3, OC_ ) );
 
     								} ).Else( () => {
 
@@ -725,8 +729,8 @@ const F = {
     									frame.addAssign( step( abs( y.sub( 2.95 ) ), .025 ) );
     									const F = add( .06, mul( .94, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     									c.assign( inside.mul( .62 ).mul( sub( 1., F.mul( .6 ) ) ).add( oppRefl( vW, reflect( v.negate(), n ), n, seed.add( ui ) ).mul( F.mul( .8 ).add( mul( .06, uDay ) ) ) ) );
-    									c.addAssign( shade( vW, n, v, vec3( 0. ), .05, 0. ).mul( .5 ) );
-    									c.assign( mix( c, shade( vW, n, v, L( vec3( .12 ) ), .4, .6 ), clamp( frame, 0., 1. ) ) );
+    									c.addAssign( shadeO( vW, n, v, vec3( 0. ), .05, 0., OC_ ).mul( .5 ) );
+    									c.assign( mix( c, shadeO( vW, n, v, L( vec3( .12 ) ), .4, .6, OC_ ), clamp( frame, 0., 1. ) ) );
 
     								} );
 
@@ -734,7 +738,7 @@ const F = {
 
     						} ).ElseIf( st.equal( 5 ), () => {
 
-    							c.assign( shade( vW, n, v, wall.mul( .7 ), .6, 0. ) );
+    							c.assign( shadeO( vW, n, v, wall.mul( .7 ), .6, 0., OC_ ) );
 
     						} ).Else( () => {
 
@@ -745,11 +749,11 @@ const F = {
     								const dim = vec3( 1.5, 2.7, 4. ).toVar();
     								const inside = room( vec3( u.sub( fw.mul( .5 ) ).add( .75 ), y, 0. ), vd, dim, seed, vec3( 1., .8, .55 ), 0. ).toVar();
     								const fr = step( .7, d ).add( step( 2.62, y ) ).toVar();
-    								c.assign( mix( inside.mul( .9 ), shade( vW, n, v, L( vec3( .1, .08, .06 ) ), .5, 0. ), clamp( fr, 0., 1. ) ) );
+    								c.assign( mix( inside.mul( .9 ), shadeO( vW, n, v, L( vec3( .1, .08, .06 ) ), .5, 0., OC_ ), clamp( fr, 0., 1. ) ) );
 
     							} ).Else( () => {
 
-    								c.assign( shade( vW, select( st.equal( 3 ), n, nW ), v, select( st.equal( 3 ), L( vec3( .3, .31, .33 ) ), wall.mul( .9 ) ), rough, 0. ) );
+    								c.assign( shadeO( vW, select( st.equal( 3 ), n, nW ), v, select( st.equal( 3 ), L( vec3( .3, .31, .33 ) ), wall.mul( .9 ) ), rough, 0., OC_ ) );
 
     							} );
 
@@ -825,16 +829,16 @@ const F = {
     								const R0 = select( gk.lessThan( .4 ), .22, select( gk.lessThan( .7 ), .11, .32 ) ).toVar();
     								const F = R0.add( sub( 1., R0 ).mul( pow( sub( 1., max( dot( nG, v ), 0. ) ), 5. ) ) ).toVar();
     								const rc = oppRefl( vW, reflect( v.negate(), nG ), n, seed.add( fi.mul( .37 ) ) ).mul( mix( vec3( 1. ), gT, .45 ) ).toVar();
-    								const bk = select( spand, shade( vW, n, v, gT.mul( L( vec3( .07, .08, .09 ) ) ), .5, 0. ), inside.mul( gT ) ).toVar();
+    								const bk = select( spand, shadeO( vW, n, v, gT.mul( L( vec3( .07, .08, .09 ) ) ), .5, 0., OC_ ), inside.mul( gT ) ).toVar();
     								c.assign( bk.mul( sub( 1., F ) ).add( rc.mul( F.add( mul( .03, uDay ) ) ) ) );
-    								c.addAssign( shade( vW, nG, v, vec3( 0. ), .03, 0. ).mul( .7 ) );
+    								c.addAssign( shadeO( vW, nG, v, vec3( 0. ), .03, 0., OC_ ).mul( .7 ) );
 
     							} ).Else( () => {
 
     								const F = add( .05, mul( .95, pow( sub( 1., max( dot( nG, v ), 0. ) ), 5. ) ) ).toVar();
     								const rG = reflect( v.negate(), nG ).toVar();
     								c.assign( inside.mul( sub( 1., F.mul( .5 ) ) ).add( oppRefl( vW, rG, n, seed.add( fi.mul( .37 ) ) ).mul( F.mul( .7 ).add( .04 ).add( mul( .1, uDay ) ) ) ) );
-    								c.addAssign( shade( vW, n, v, vec3( 0. ), .04, 0. ).mul( .6 ) );
+    								c.addAssign( shadeO( vW, n, v, vec3( 0. ), .04, 0., OC_ ).mul( .6 ) );
 
     							} );
 
@@ -846,7 +850,7 @@ const F = {
     							} ).Else( () => {
 
     								const bar = step( abs( wf.y.sub( .52 ) ), .018 ).add( step( abs( wf.x.sub( .5 ) ), .012 ) ).toVar();
-    								c.assign( mix( c, shade( vW, n, v, L( vec3( .85, .82, .75 ) ).mul( .4 ), .6, 0. ), clamp( bar, 0., 1. ) ) );
+    								c.assign( mix( c, shadeO( vW, n, v, L( vec3( .85, .82, .75 ) ).mul( .4 ), .6, 0., OC_ ), clamp( bar, 0., 1. ) ) );
 
     							} );
 
@@ -882,7 +886,7 @@ const F = {
 
     							} ).Else( () => {
 
-    								c.assign( shade( vW, nW, v, alb, rr, 0. ) );
+    								c.assign( shadeO( vW, nW, v, alb, rr, 0., OC_ ) );
 
     							} );
 

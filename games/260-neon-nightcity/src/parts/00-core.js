@@ -60,15 +60,15 @@ R.domElement.tabIndex = 0;
 
 // ─── 顯示卡分級：WebGL 只回報 GPU 名稱與 ANGLE 的繪圖後端，碰不到驅動程式，所以照名稱給起始畫質 ───
 // dpr 解析度上限；msaa、refl、dist、fps 是 01-settings.js 的預設值（玩家改過的照玩家的）；
-// rf 倒影的遠平面倍率（70-render.js 的 reflFar，0 是不縮）；vol 體積光每個像素沿視線的步數（70-render.js 的 mVol，0 是不畫）；tex 照片材質（08-tex.js：0 不下載、1 只有底色、2 加法線與粗糙度）；nl 燈數、sh 日光陰影步數、occ 地上陰影的車人數是 shader 常數，開場定下，選單換等級要重新整理才生效。
+// rf 倒影的遠平面倍率（70-render.js 的 reflFar，0 是不縮）；vol 體積光每個像素沿視線的步數（70-render.js 的 mVol，0 是不畫）；tex 照片材質（08-tex.js：0 不下載、1 只有底色、2 加法線與粗糙度）；nl 燈數、sh 日光陰影步數、occ 地上陰影的格數（車人數 + 1，最後一格放高度範圍）是 shader 常數，開場定下，選單換等級要重新整理才生效。
 // ss 自動解析度往上最多到幾倍、px 內部像素數上限（70-render.js 的 resMax：顯示卡有餘裕時超過 100% 當超取樣抗鋸齒）。
 // 原本的桌機設定就是 high，觸控與小螢幕（LOW）原本的設定就是 low；ultra 不會自動選到，要在選單或網址 ?gpu=ultra 指定
 const GPU_TIERS = {
-  soft: { name: '軟體繪圖', dpr: 1, msaa: 0, refl: 0, dist: .7, fps: 30, nl: 8, sh: 10, occ: 6, rf: .6, vol: 0, tex: 0, fd: 0, ao: 0 },
-  low: { name: '低', dpr: 1.25, msaa: 0, refl: 1, dist: .8, fps: 60, nl: 8, sh: 16, occ: 6, rf: .8, vol: 0, tex: 1, fd: 70, ao: 0 },
-  mid: { name: '中', dpr: 1.25, msaa: 2, refl: 1, dist: .8, fps: 60, nl: 12, sh: 20, occ: 12, rf: 1, vol: 10, tex: 2, fd: 110, ao: 1 },
-  high: { name: '高', dpr: 1.5, msaa: 4, refl: 2, dist: .8, fps: 0, nl: 16, sh: 26, occ: 12, rf: 0, vol: 14, tex: 2, fd: 150, ao: 1, ss: 1.25, px: 4.2e6 },
-  ultra: { name: '極高', dpr: 2, msaa: 4, refl: 2, dist: 1.2, fps: 0, nl: 16, sh: 32, occ: 12, rf: 0, vol: 20, tex: 2, fd: 210, ao: 1, ss: 1.5, px: 8.3e6 },
+  soft: { name: '軟體繪圖', dpr: 1, msaa: 0, refl: 0, dist: .7, fps: 30, nl: 8, sh: 10, occ: 7, rf: .6, vol: 0, tex: 0, fd: 0, ao: 0, taa: 0 },
+  low: { name: '低', dpr: 1.25, msaa: 0, refl: 1, dist: .8, fps: 60, nl: 8, sh: 16, occ: 7, rf: .8, vol: 0, tex: 1, fd: 70, ao: 0 },
+  mid: { name: '中', dpr: 1.25, msaa: 2, refl: 1, dist: .8, fps: 60, nl: 12, sh: 20, occ: 13, rf: 1, vol: 10, tex: 2, fd: 110, ao: 1 },
+  high: { name: '高', dpr: 1.5, msaa: 4, refl: 2, dist: .8, fps: 0, nl: 16, sh: 26, occ: 13, rf: 0, vol: 14, tex: 2, fd: 150, ao: 1, ss: 1.25, px: 4.2e6 },
+  ultra: { name: '極高', dpr: 2, msaa: 4, refl: 2, dist: 1.2, fps: 0, nl: 16, sh: 32, occ: 13, rf: 0, vol: 20, tex: 2, fd: 210, ao: 1, ss: 1.5, px: 8.3e6 },
 };
 const GPU = (() => {
   // WebGPU 的 adapter.info 沒有型號（Apple 只給 metal-3），名稱照舊向一個臨時的 WebGL2 context 要
@@ -158,7 +158,7 @@ const U = {
   uVilA: { value: null }, uVilN: { value: null }, uVil: { value: new T.Vector4() },   // 山坡別墅區的照片材質（同上，08-tex.js 的 VIL_LAYERS）
   // 外海的機場島（21-air.js）：A = (中心 x, z, 長軸 cos, sin)、B = (半長, 半寬)；B.x = 0 時沒有
   uAirA: { value: new T.Vector4(0, 0, 1, 0) }, uAirB: { value: new T.Vector4() },
-  // 車與行人在地上的陰影：每個 A = (x, z, cos, sin)、B = (半長, 半寬, 高, 0)
+  // 車與行人在地上的陰影（28-sky.js 的 occUpdate）：每個 A = (x, z, cos, sin) × 淡出、B = (半長, 半寬, 高, 底面 y)；最後一格 A = (底面 y 最低, 最高)
   uOccA: { value: V4A(GT().occ, 0, 0, 1, 0) }, uOccB: { value: V4A(GT().occ) },
   uWetDbg: { value: 0 },   // 地面濕的三層換成顏色（10-city.js 的 wetSurfaceR；tools/look-view.mjs 量比例用）
 };

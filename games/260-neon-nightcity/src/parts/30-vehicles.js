@@ -409,7 +409,7 @@ function updateTraffic(dt, t) {
   // 陰影與頭燈
   let k = 0;
   const putShadow = (x, z, yaw, L, W, y = .02) => { _o.position.set(x, y, z); _o.rotation.set(0, yaw, 0); _o.scale.set(W * 1.25, 1, L * 1.12); _o.updateMatrix(); shadowMesh.setMatrixAt(k++, _o.matrix); };
-  for (const c of traffic) putShadow(c.x, c.z, c.yaw, TYPES[c.type].len, TYPES[c.type].w);
+  for (const c of traffic) putShadow(c.x, c.z, c.yaw, TYPES[c.type].len, TYPES[c.type].w, (c.y || 0) + .02);   // 高架上的車（c.y）影子跟著上去
   const ccx = camera.position.x, ccz = camera.position.z;
   for (const c of parked) if ((c.x - ccx) ** 2 + (c.z - ccz) ** 2 < 40000) putShadow(c.x, c.z, c.yaw, TYPES[c.type].len, TYPES[c.type].w, groundH(c.x, c.z) + .02);
   for (const v of vehicles) putShadow(v.x, v.z, v.yaw, v.len, v.w, v.y + .02);
@@ -417,13 +417,13 @@ function updateTraffic(dt, t) {
   let q = 0;
   for (const c of traffic) {
     const L = TYPES[c.type].len / 2;
-    _o.position.set(c.x + Math.sin(c.yaw) * L, .03, c.z + Math.cos(c.yaw) * L); _o.rotation.set(0, c.yaw, 0); _o.scale.set(4.2, 1, 11); _o.updateMatrix(); poolMesh.setMatrixAt(q++, _o.matrix);
+    _o.position.set(c.x + Math.sin(c.yaw) * L, (c.y || 0) + .03, c.z + Math.cos(c.yaw) * L); _o.rotation.set(0, c.yaw, 0); _o.scale.set(4.2, 1, 11); _o.updateMatrix(); poolMesh.setMatrixAt(q++, _o.matrix);
   }
   if (player.veh && player.mode === 'drive') {
     const v = player.veh;
     _o.position.set(v.x + Math.sin(v.yaw) * v.len / 2, .035, v.z + Math.cos(v.yaw) * v.len / 2); _o.rotation.set(0, v.yaw, 0); _o.scale.set(5, 1, 16); _o.updateMatrix(); poolMesh.setMatrixAt(q++, _o.matrix);
   }
-  instPush(poolMesh, q);
+  instPush(poolMesh, atm.lamp > .005 ? q : 0);   // 白天不開大燈（m-headPool.mjs 也乘 uLamp）
 }
 
 // ─── 玩家座駕 ───
@@ -584,6 +584,13 @@ const ACC_K = .75;
 // 不再是方向打多少車頭就轉多少；手煞車甩尾不受限。重踩煞車時車頭吃重：轉向極限多 BRK_TURN，後輪側向抓地少 BRK_SLIP（循跡煞車會甩一點尾）。
 // 停住後要再按住煞車 REV_WAIT 秒才開始倒車，停車才停得準。車流與 AI 的車照舊（只算 player.veh）
 const LAT_K = 1.9, BRK_TURN = .15, BRK_SLIP = .3, REV_WAIT = .25;
+// 玩家座駕的轉向手感（2026-11-14，使用者：開車的手感更細膩、轉彎更好轉；__nc.handle，en = false 是之前的樣子）。
+// 之前方向打到底要的轉向率是抓地極限的 2～8 倍（72 km/h 只有前 25% 的行程有用，輕點一下就頂到極限、其餘都在推頭磨速度），
+// 改成方向量對著「抓地極限」：轉向率 = min(幾何轉向, 曲線(方向) × 極限 × over)，整段行程都有作用、打到底剛好略超過極限（over，輕微胎鳴）。
+// curve：小角度更細（輕點只修一點方向），lat：側向極限（取代 LAT_K）；收油時車頭吃重、極限多 lift，踩煞車再照踏板深度多 brk（取代只在重踩才有的 BRK_TURN）；
+// yr：車頭跟上的速率（級距的 turn 與 stK 乘在這裡與低速的打角上），sn：方向量抹平的速率；scrub：到極限時的轉彎阻力（m/s²，照離極限多近的平方）；st：99-main.js 鍵盤方向打的速度（靜止、40 m/s）；roll：側傾照離極限多近，到極限 rollMax。
+// v.steer 仍是之前的打角（前輪與方向盤的顯示），玩家的轉向率改讀 v.stN（抹平過的方向量）
+const HANDLE = { en: true, lat: 2.2, over: 1.12, curve: 1.6, lift: .08, brk: .18, yr: 14, sn: 22, st: [8, 6], scrub: 2, rollMax: .075 };
 // 坡面貼地（2026-11-09，使用者：輪胎跟底盤沒有根據地形貼合，例如爬山）：前後軸（±軸距/2）與左右輪（±車寬 0.42）四點問地面高度，
 // 坡面的俯仰 v.tP、側傾 v.tR 轉在車架 v.g 上（汽車的輪子掛在車架，跟著一起斜；車身自己的加速俯仰與轉彎側傾疊在上面）。
 // 車身高度取「四點平均」與中心點較高的那個：谷底中心低、四輪高，只看中心會讓前後輪陷進坡裡。
@@ -634,19 +641,28 @@ function driveVehicle(v, inp, dt) {
   if (hold && hold.vR != null) vR = hold.vR;
   const wb = v.wb;
   let targetYr = vF * Math.tan(v.steer) / wb + ((v.flatYr || 0) + (v.axleYr || 0)) * clamp(vF / 12, -1, 1);   // axleYr：69-v6-customs.js 撞歪的輪軸   // 68-wreck.js：破胎那一側被拖住，車頭往那邊偏
-  let push = 0;
+  let push = 0, latLim = 0;
+  const H = me && HANDLE.en ? HANDLE : null, kT = clamp((v.turn || 1.05) / 1.05, .6, 1.4) * (v.stK || 1);
+  if (me) v.stN = damp(v.stN || 0, inp.steer, H ? H.sn : 14, dt);
+  const stC = H ? Math.sign(v.stN) * Math.abs(v.stN) ** H.curve : 0;   // 曲線過的方向量：小角度更細
+  const pull = ((v.flatYr || 0) + (v.axleYr || 0)) * clamp(vF / 12, -1, 1);
+  if (H && !inp.hb) targetYr = vF * Math.tan(stC * maxSt * kT) / wb + pull;
   if (me && !inp.hb && spd > 3) {   // 抓地極限：推頭
-    const lim = LAT_K * v.grip * (1 + BRK_TURN * heavy) / spd;
+    latLim = H ? H.lat * v.grip * (1 + (!inp.thr ? H.lift : 0) + H.brk * (vF > 0 ? inp.brk : 0)) : LAT_K * v.grip * (1 + BRK_TURN * heavy);
+    const lim = latLim / spd;
+    if (H) { const g = Math.abs(stC) * lim * H.over, y = targetYr - pull; if (Math.abs(y) > g) targetYr = Math.sign(y) * g + pull; }   // 方向量對著極限：打到底剛好略超過（over）；破胎、歪軸的偏移另外加
     if (Math.abs(targetYr) > lim) { push = Math.min(1, Math.abs(targetYr) / lim - 1); targetYr = Math.sign(targetYr) * lim; }
   }
   if (inp.hb && spd > 6) targetYr += inp.steer * 1.1;
-  v.yr = hold && hold.yr != null ? hold.yr : damp(v.yr, targetYr, v.isCar ? 7 : 9, dt);
+  v.yr = hold && hold.yr != null ? hold.yr : damp(v.yr, targetYr, H ? H.yr * clamp(kT, .8, 1.3) : v.isCar ? 7 : 9, dt);
   v.yaw += v.yr * dt;
   kinYaw(v, dt);
   // 甩尾時把一部分前進速度轉成側滑
   if (inp.hb && spd > 6) vR += v.yr * vF * .045 * dt * 60 * .016;
   if (push) vF -= Math.sign(vF) * Math.min(Math.abs(vF), push * 3 * dt);   // 推頭時前輪磨掉速度
-  v.push = push;   // 99-main.js 的胎鳴（不算進 v.slip：甩尾計分與輪胎煙只看側滑）
+  v.sq = 0;
+  if (H && latLim) { const q = v.yr * vF / latLim; vF -= Math.sign(vF) * Math.min(Math.abs(vF), H.scrub * q * q * dt); if (Math.abs(q) > .85) v.sq = 2.5 + 6 * clamp((Math.abs(q) - .85) / .6, 0, 1); }   // 轉彎阻力：輪胎側偏吃掉一點速度（照離極限多近的平方），油門踩住過彎不會越跑越快、越轉越寬
+  v.push = push;   // 99-main.js 的胎鳴（不算進 v.slip：甩尾計分與輪胎煙只看側滑）；v.sq：HANDLE 開著時照離抓地極限多近（85% 起漸大，到極限和之前打到底推頭一樣響）
   v.slip = hold && hold.slip != null ? hold.slip : Math.abs(vR);
   const nfx = Math.sin(v.yaw), nfz = Math.cos(v.yaw), nrx = -nfz, nrz = nfx;
   v.vx = nfx * vF + nrx * vR; v.vz = nfz * vF + nrz * vR;
@@ -658,7 +674,7 @@ function driveVehicle(v, inp, dt) {
   v.y = vdWater(v, dt, gh) ?? damp(v.y, gh, 18, dt);   // 68-vdetail.js：下水、沉到海底
   // 車身姿態：側傾、俯仰、機車壓車
   const latA = vF * v.yr;
-  v.roll = damp(v.roll, v.isCar ? clamp(latA * .006, -.06, .06) : 0, 6, dt);
+  v.roll = damp(v.roll, !v.isCar ? 0 : H && latLim ? HANDLE.rollMax * clamp(latA / latLim, -1, 1) : clamp(latA * .006, -.06, .06), 6, dt);   // 照離抓地極限多近側傾（之前 10 m/s² 就頂到上限）
   v.pitch = damp(v.pitch, clamp(-aF * .0035, -.04, .04), 6, dt);
   v.lean = damp(v.lean, v.isCar ? 0 : clamp(-latA * .045, -.7, .7), 7, dt);
   v.spin += hold && hold.spin != null ? hold.spin * dt : vF * dt / v.wr;

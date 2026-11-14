@@ -218,7 +218,7 @@ const DISTRICTS = [
 const ISLE_NAMES = { MA: '天樞北城 Meridian North', MB: '天樞西岸 Meridian Westbank', MC: '天樞金融區 Meridian Financial', MD: '天樞岬角 Meridian Point' };
 const district = (x, z) => {
   const i = (x - X0) / P, j = (z - Z0) / Q;
-  if (x > 7900 && x < 8600) { const zn = zoneAtL(x, z) || ZONES.filter(o => o.isle).reduce((a, o) => Math.hypot(x - (o.x0 + o.x1) / 2, z - (o.z0 + o.z1) / 2) < Math.hypot(x - (a.x0 + a.x1) / 2, z - (a.z0 + a.z1) / 2) ? o : a); return ISLE_NAMES[zn.key]; }
+  if (x > 7900 && x < 8600) { const zn = zoneAtL(x, z) || ZONES.filter(o => o.isle).reduce((a, o) => Math.hypot(x - (o.x0 + o.x1) / 2, z - (o.z0 + o.z1) / 2) < Math.hypot(x - (a.x0 + a.x1) / 2, z - (a.z0 + a.z1) / 2) ? o : a); return ISLE_NAMES[zn.key] || '城郊 Outskirts'; }   // 2026-11-14：最近的區不是島時 ISLE_NAMES 查不到，90-hud.js 的 streetName 對 undefined 呼叫 replace，每幀丟例外
   if (z > CITY_Z1) {   // 海邊（21-coast.js）：在格網外，要先判斷
     if (z >= ISLE.z0 - 4) return '灰鷗島 Gull Island';
     if (z > QUAY.z1 && x > BRIDGE.x0 - 30 && x < BRIDGE.x1 + 30) return '灰鷗大橋 Gullwing Bridge';

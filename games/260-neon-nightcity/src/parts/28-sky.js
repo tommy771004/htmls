@@ -70,6 +70,12 @@ function litAt(h) {
 }
 const atm = { exp: 1, bloom: 1, day: 0, lamp: 1, sunK: 0, dusk: 0 };   // dusk：日出日落地平線上色的程度（20-props.js 的 instUpdate 在這段時間不剔霧外的遠景樹）
 const _c1 = new T.Color(), _c2 = new T.Color(), _c3 = new T.Color(), _c4 = new T.Color(), _sv = V3();
+// 白天的調色（晴天白天才作用，陰天、雨天往原本的值靠，夜裡與場館照舊；__nc.dayG，en = false 是原本的樣子）：
+// sky 天頂色、amb 天光亮度（原本 .75）、ambSat 天光飽和度（原本 1，藍色的天光讓陰影發藍）、bounce 地面暖色反彈、sun 日光倍率、exp 白天曝光（原本 .74）、
+// cyan 後製暗部偏青的量（原本 .35）、con 對比（gamma 空間的 S 曲線）、sat 飽和度（71-gfx-post.js 的 uDayG，權重是 atm.sunK）。
+// 2026-11-13 依參考影片（GTA V 加畫質模組的實拍）量的：晴天柏油向陽 sRGB ≈ 95、陰影 ≈ 60（原本 145 與 40 且偏藍）
+const DAYG = { en: true, sky: 0x3d7ed2, amb: .95, ambSat: .45, bounce: .35, sun: .5, exp: .8, cyan: .05, con: .22, sat: 1.1 };
+const _dgSky = new T.Color();
 const WARM = C3(0xff8a48), NOON = C3(0xfff1de);
 // 依時間與天氣算出戶外的一切（每幀，在戶外時）
 function atmApply() {
@@ -81,8 +87,8 @@ function atmApply() {
   atm.day = U.uDay.value = day; atm.dusk = dusk; U.uCloud.value = c;
   MAT.blob.opacity = .5 * (1 - day); MAT.blob.visible = day < .98;   // 20-props.js 路燈下的暗塊：白天有日光陰影，不畫
   // 白天的天空：晴 → 陰 → 雨，日出日落時地平線偏橘
-  const P = SKYC, oc = sstep(.3, .92, c);
-  _c1.copy(P.day.sky).lerp(P.dayO.sky, oc).lerp(P.dayR.sky, r); _c2.copy(P.day.hor).lerp(P.dayO.hor, oc).lerp(P.dayR.hor, r);
+  const P = SKYC, oc = sstep(.3, .92, c), G = DAYG.en ? DAYG : null;
+  _c1.copy(G ? _dgSky.set(G.sky) : P.day.sky).lerp(P.dayO.sky, oc).lerp(P.dayR.sky, r); _c2.copy(P.day.hor).lerp(P.dayO.hor, oc).lerp(P.dayR.hor, r);
   _c3.copy(P.day.fog).lerp(P.dayO.fog, oc).lerp(P.dayR.fog, r);
   const dk = dusk * (1 - .65 * c);
   const DS = min % 1440 < 720 ? P.dawn : P.dusk;
@@ -99,14 +105,17 @@ function atmApply() {
   _c4.copy(NC.top).lerp(N.top, c);
   // 日出日落：天光取偏藍的天頂、暗一點，和低角度的暖色日光拉開冷暖（晴天才明顯）
   const gold = dk * (1 - oc);
-  U.uAmbTop.value.copy(_c4).lerp(_c1.clone().lerp(_c2, lerp(.72, .3, gold)).multiplyScalar((.75 + .3 * oc) * (1 - .15 * gold)), day);
+  const at = _c1.clone().lerp(_c2, lerp(.72, .3, gold)).multiplyScalar(((G ? lerp(G.amb, .75, oc) : .75) + .3 * oc) * (1 - .15 * gold));
+  if (G) { const L = at.r * .2126 + at.g * .7152 + at.b * .0722, k = lerp(1, G.ambSat, 1 - oc); at.setRGB(lerp(L, at.r, k), lerp(L, at.g, k), lerp(L, at.b, k)); }
+  U.uAmbTop.value.copy(_c4).lerp(at, day);
   _c4.copy(NC.bot).lerp(N.bot, c);
   U.uAmbBot.value.copy(_c4).lerp(_c2.clone().multiplyScalar(.2).add(_c3.set(.035, .03, .026)), day);
   // 日光：低角度偏橘，被雲遮掉
   const sunK = sstep(-.015, .07, se) * (1 - .93 * sstep(.25, .95, c)) * (1 - .6 * f);
   atm.sunK = sunK;
-  _c4.copy(WARM).lerp(NOON, sstep(.04, .42, se)).multiplyScalar(3 * sunK);
+  _c4.copy(WARM).lerp(NOON, sstep(.04, .42, se)).multiplyScalar(3 * sunK * (G ? lerp(1, lerp(G.sun, 1, oc), day) : 1));
   U.uSunCol.value.set(_c4.r, _c4.g, _c4.b);
+  if (G && G.bounce) { const k = G.bounce * day / 3; U.uAmbBot.value.r += _c4.r * k; U.uAmbBot.value.g += _c4.g * .9 * k; U.uAmbBot.value.b += _c4.b * .75 * k; }   // 晴天地面把日光反彈到朝下、側面的地方
   // 00-core.js 的 uGI：天空可見度中以上的畫質等級才算，白天與夜裡都算（夜裡的環境光是低雲反射的城市光害，一樣從天上來：窄巷與樓腳比大道暗；
   // 室內 60-venues 的 applyEnv 把 x 歸零，城市的高度圖不會遮到場館裡）；
   // 日光反彈跟著日照；清晨 5–9 點起貼地薄霧（雨天淡一半）；霧裡的前向散射低角度時強
@@ -120,7 +129,7 @@ function atmApply() {
   U.uLamp.value = atm.lamp; U.uLampOn.value = atm.lamp > .005 ? 1 : 0;
   U.uLit.value = litAt(min / 60 % 24) + .1 * oc * day;
   U.uWet.value = wx.wet;
-  atm.exp = lerp(1, .74, day) * (1 + .25 * oc * day);
+  atm.exp = lerp(1, G ? lerp(G.exp, .74, oc) : .74, day) * (1 + .25 * oc * day);
   atm.bloom = lerp(1, 2.4, day);
   rainMesh.visible = splashMesh.visible = r > .01 && SET.rainFx;   // 01-settings.js：雨絲可以關掉
 }
@@ -170,22 +179,29 @@ function wxHud() {
   if (hudCache.wxIcon !== ic) { hudCache.wxIcon = ic; $('weather').querySelector('svg').innerHTML = WX_ICON[ic]; }
   setText('wxText', WX[id].n);
 }
-// 地上的陰影：離相機最近的車與行人寫進 uOccA／uOccB（00-core.js 的 occlude）
-const _occ = [];
+// 地上的陰影：離相機最近的車與行人寫進 uOccA／uOccB（src/tsl/lib.mjs 的 occlude）；y 是底面高度（高架、山路、甲板上的車只遮同一層）
+// 只放得下 NOCC − 1 個（最後一格放底面高度範圍，著色器範圍外整段跳過）：第 NOCC 名的距離 D 以內才有，0.6D～D 淡掉（D 跟著車人移動連續變化，換人時陰影不會突然跳出來或消失）
+// OCC.en = false 時全部不遮（量效能用，__nc.occ）
+const _occ = [], OCC = { en: true };
 function occUpdate() {
   const cx = camera.position.x, cz = camera.position.z, L = _occ; L.length = 0;
-  const add = (x, z, yaw, hl, hw, h) => { const d = (x - cx) ** 2 + (z - cz) ** 2; if (d < 1600) L.push({ x, z, yaw, hl, hw, h, d }); };
+  const add = (x, y, z, yaw, hl, hw, h) => { const d = (x - cx) ** 2 + (z - cz) ** 2; if (d < 1600) L.push({ x, y: y || 0, z, yaw, hl, hw, h, d }); };
   const carH = (len, w) => len > 6 ? 3.2 : w > 2.05 ? 2.3 : 1.45;
-  for (const c of traffic) { const t = TYPES[c.type]; add(c.x, c.z, c.yaw, t.len * .47, t.w * .46, carH(t.len, t.w)); }
-  for (const c of parked) { const t = TYPES[c.type]; if (t) add(c.x, c.z, c.yaw, t.len * .47, t.w * .46, carH(t.len, t.w)); }
-  for (const v of vehicles) if (v.g && v.g.visible && !(v === kestrel && motors.stowed)) add(v.x, v.z, v.yaw, (v.len || 4.4) * .47, (v.isCar || v.boat ? v.w || 1.9 : .5) * .46, v.isCar ? carH(v.len || 4.4, v.w || 1.9) : 1.25);
-  if (player.mode === 'walk') add(player.x, player.z, 0, .24, .24, 1.75);
-  for (const p of peds.people) if (p.h && p.h.visible !== false) add(p.x, p.z, 0, .22, .22, 1.7);
+  for (const c of traffic) { const t = TYPES[c.type]; add(c.x, c.y, c.z, c.yaw, t.len * .47, t.w * .46, carH(t.len, t.w)); }
+  for (const c of parked) { const t = TYPES[c.type]; if (t) add(c.x, c.y, c.z, c.yaw, t.len * .47, t.w * .46, carH(t.len, t.w)); }
+  // 飛起來的直升機（v.fly）不算：底面離地太高，只會佔一格、把高度範圍撐大
+  for (const v of vehicles) if (v.g && v.g.visible && !(v === kestrel && motors.stowed) && !(v.fly && v.y > Math.max(groundH(v.x, v.z), roofH(v.x, v.z)) + 2)) add(v.x, v.y, v.z, v.yaw, (v.len || 4.4) * .47, (v.isCar || v.boat ? v.w || 1.9 : .5) * .46, v.isCar ? carH(v.len || 4.4, v.w || 1.9) : 1.25);
+  if (player.mode === 'walk') add(player.x, player.y, player.z, 0, .24, .24, 1.75);
+  for (const p of peds.people) if (p.h && p.h.visible !== false) add(p.x, p.y, p.z, 0, .22, .22, 1.7);
   L.sort((a, b) => a.d - b.d);
-  for (let k = 0; k < NOCC; k++) {
-    const o = L[k];
-    if (!o) { v4set(U.uOccB.value, k, 0, 0, 0, 0); continue; }
-    v4set(U.uOccA.value, k, o.x, o.z, Math.cos(o.yaw), Math.sin(o.yaw));
-    v4set(U.uOccB.value, k, o.hl, o.hw, o.h, 0);
+  const M = NOCC - 1, D = L.length > M ? Math.sqrt(L[M].d) : 40;
+  let y0 = 1e9, y1 = -1e9;
+  for (let k = 0; k < M; k++) {
+    const o = L[k], fd = o && OCC.en ? 1 - sstep(D * .6, D, Math.sqrt(o.d)) : 0;
+    if (fd < .002) { v4set(U.uOccB.value, k, 0, 0, 0, 0); continue; }
+    v4set(U.uOccA.value, k, o.x, o.z, Math.cos(o.yaw) * fd, Math.sin(o.yaw) * fd);
+    v4set(U.uOccB.value, k, o.hl, o.hw, o.h, o.y);
+    y0 = Math.min(y0, o.y); y1 = Math.max(y1, o.y);
   }
+  v4set(U.uOccA.value, M, y0, y1, 0, 0); v4set(U.uOccB.value, M, 0, 0, 0, 0);
 }

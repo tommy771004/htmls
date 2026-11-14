@@ -34,7 +34,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, CUT, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, CUT, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -123,6 +123,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -139,7 +145,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -201,7 +207,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { abs, vec3, max, div, select, min, property, float, fract, mix, mul, add, step, sub, If, floor, vec2, length, Fn, vec4, Discard, dot, clamp, smoothstep, normalize, pow, reflect, dFdx, dFdy, mod } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -352,6 +358,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -376,7 +388,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -476,7 +488,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -559,6 +571,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -575,7 +593,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -637,7 +655,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -713,6 +731,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -729,7 +753,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -791,7 +815,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { abs, vec3, max, div, select, min, property, float, fract, mix, mul, add, step, sub, If, floor, vec2, length, Fn, vec4, Discard, dot, clamp, smoothstep, normalize, pow, reflect, dFdx, dFdy, mod } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -942,6 +966,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -965,7 +995,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -1065,7 +1095,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -1148,6 +1178,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -1163,7 +1199,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -1225,7 +1261,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -1308,6 +1344,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -1325,7 +1367,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -1387,7 +1429,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -1470,6 +1512,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -1486,7 +1534,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -1548,7 +1596,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -1631,6 +1679,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -1647,7 +1701,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -1713,7 +1767,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -1797,6 +1851,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -1814,7 +1874,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -1876,7 +1936,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { abs, vec3, max, div, select, min, property, float, fract, mix, mul, add, step, sub, If, floor, vec2, length, Fn, vec4, Discard, dot, clamp, smoothstep, normalize, pow, reflect, dFdx, dFdy, mod } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -2028,6 +2088,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -2052,7 +2118,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -2152,7 +2218,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -2236,6 +2302,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -2252,7 +2324,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -2314,7 +2386,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -2398,6 +2470,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -2414,7 +2492,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -2480,7 +2558,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, FAR, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -2557,6 +2635,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -2573,7 +2657,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -2635,7 +2719,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { abs, vec3, max, div, select, min, property, float, fract, mix, mul, add, step, sub, If, floor, vec2, length, Fn, vec4, Discard, dot, clamp, smoothstep, normalize, pow, reflect, dFdx, dFdy, mod } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -2792,6 +2876,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -2815,7 +2905,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -2915,7 +3005,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -3004,6 +3094,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -3019,7 +3115,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -3081,7 +3177,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -3164,6 +3260,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -3180,7 +3282,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -3246,7 +3348,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -3329,6 +3431,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -3344,7 +3452,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -3410,7 +3518,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -3494,6 +3602,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -3510,7 +3624,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -3572,7 +3686,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -3649,6 +3763,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -3665,7 +3785,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -3727,7 +3847,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { abs, vec3, max, div, select, min, property, float, fract, mix, mul, add, step, sub, If, floor, vec2, length, Fn, vec4, Discard, dot, clamp, smoothstep, normalize, pow, reflect, dFdx, dFdy, mod } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -3879,6 +3999,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -3902,7 +4028,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4002,7 +4128,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -4086,6 +4212,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -4101,7 +4233,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4163,7 +4295,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -4254,6 +4386,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -4269,7 +4407,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4331,7 +4469,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -4415,6 +4553,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -4430,7 +4574,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4492,7 +4636,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -4576,6 +4720,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -4592,7 +4742,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4658,7 +4808,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -4735,6 +4885,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -4751,7 +4907,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4817,7 +4973,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -4901,6 +5057,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -4916,7 +5078,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -4982,7 +5144,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -5073,6 +5235,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -5088,7 +5256,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -5154,7 +5322,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -5231,6 +5399,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -5246,7 +5420,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -5312,7 +5486,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { abs, vec3, max, div, select, min, property, float, fract, mix, mul, add, step, sub, If, floor, vec2, length, Fn, vec4, Discard, dot, clamp, smoothstep, normalize, pow, reflect, dFdx, dFdy, mod } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -5457,6 +5631,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -5480,7 +5660,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -5580,7 +5760,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -5657,6 +5837,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -5672,7 +5858,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -5734,7 +5920,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, exp, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -5817,6 +6003,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -5832,7 +6024,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -5903,7 +6095,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, exp, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -5987,6 +6179,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -6003,7 +6201,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -6074,7 +6272,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, exp, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -6151,6 +6349,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -6167,7 +6371,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -6238,7 +6442,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { abs, vec3, max, div, select, min, property, float, fract, mix, mul, add, step, sub, If, floor, vec2, length, Fn, vec4, Discard, dot, clamp, smoothstep, normalize, pow, reflect, dFdx, dFdy, mod, exp } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -6390,6 +6594,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -6413,7 +6623,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -6522,7 +6732,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, exp, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -6606,6 +6816,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -6621,7 +6837,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -6692,7 +6908,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, exp, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -6776,6 +6992,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -6791,7 +7013,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 
@@ -6866,7 +7088,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec4, Discard, If, dot, clamp, length, smoothstep, sub, step, max, vec2, fract, mul, normalize, mix, min, vec3, pow, reflect, add, select, abs, floor, Fn } = TSL;
-    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, applyFog, farK } = E;
+    const { uM, uPaint, uMap, uEmiMap, uWinMap, vW, vN, vCol, vPbr, vEmi, vUv, vWin, color, lu_pbr, lu_emi, lu_win, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, envMapS, envCity, applyFog, farK } = E;
 
 
 
@@ -6942,6 +7164,12 @@ export default {
 
     	} );
 
+    	If( uPaint.w.greaterThan( .1 ).and( coat.lessThan( .3 ) ).and( vPbr.w.greaterThan( .5 ).and( uPaint.w.greaterThan( 1.5 ) ).not() ), () => {
+
+    		coat.assign( smoothstep( .5, .3, rough ) );
+
+    	} );
+
     	base.rgb.assign( mix( base.rgb, vec3( .03, .026, .022 ), uM.w ) );
     	rough.assign( mix( rough, .95, uM.w ) );
     	metal.mulAssign( sub( 1., uM.w ) );
@@ -6957,7 +7185,7 @@ export default {
     		const r = reflect( v.negate(), n ).toVar();
     		const F = add( .04, mul( .96, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     		const rr = select( coat.greaterThan( .3 ), min( rough, .25 ), rough ).toVar();
-    		c.addAssign( envMapS( r, 1. ).mul( envK ).mul( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
+    		c.addAssign( envCity( vW, r, coat ).mul( envK ).mul( max( mix( vec3( max( F, coat.mul( .1 ) ) ), base.rgb, metal ), vec3( max( F, .06 ).mul( coat ).mul( .8 ) ) ) ).mul( sub( 1., rr.mul( .9 ) ) ) );
 
     	} );
 

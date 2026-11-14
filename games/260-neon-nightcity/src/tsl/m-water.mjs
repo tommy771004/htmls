@@ -32,7 +32,7 @@ export default {
   },
   fragment: (TSL, E) => {
     const { vec3, Fn, vec2, float, floor, fract, length, pow, exp, sub, step, max, Loop, smoothstep, If, bool, normalize, mix, mul, dot, add, property, reflect, clamp, cos, sin, div, sqrt, vec4, Discard, select, min } = TSL;
-    const { uReflMat, tRefl, uReflOn, uWetDbg, tTron, tShore, uTronA, uTronB, uTronG, uShore, uRig, vW, vN, vRP, vL, vAx, aL, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, envMap, applyFog, farK } = E;
+    const { uReflMat, tRefl, uReflOn, uWetDbg, tTron, tShore, uTronA, uTronB, uTronG, uShore, uRig, vW, vN, vRP, vL, vAx, aL, position, normal, uv, pGeom_, nGeom_, modelMatrix, viewMatrix, projectionMatrix, modelViewMatrix, normalMatrix, cameraPosition, fragCoord_, frontFacing_, color, texA_, texLA_, NL_T, NOCC_T, SH_N_T, VOL_N_T, uTime, uLampOn, uFlash, uClipY, uWet, uFogDen, uBeat, uRain, uLit, uLamp, uCullR, uCam, uFogCol, uFogHi, uAmbTop, uAmbBot, uFocus, uLP, uLC, uLD, uCity, uGrid, uLampT, uLampG, uZone, uDay, uCloud, uSun, uSunCol, uSkyTop, uSkyHor, uMoon, uHMap, uCityM, uTMap, uFMap, uHM, uAirA, uAirB, uTM, uFM, uGI, uOccA, uOccB, h11, h21, hw, n2, fbm, SODIUM, LEDW, lampK, NOLIGHT, lampGrid, pointLights, leafVis, forestVis, sunVis, occlude, skyVis, gSun, gAmb, gOccS, gSky, shade, shadeO, envMap, applyFog, farK } = E;
 
 
 
@@ -179,6 +179,9 @@ export default {
 
     const main_ =  Fn( () => {
 
+    	// 車人遮擋每個片段只算一次，兩個 shade 共用（lib.mjs 的 shadeO）
+    	const OC_ = occlude( vW ).toVar();
+
     	const fragOut_ = vec4( 0.0 ).toVar();
     	const tq = vec2( dot( uTronA, vec3( vW.xz, 1. ) ), dot( uTronB, vec3( vW.xz, 1. ) ) ).sub( uTronG.xy ).div( uTronG.zw ).toVar();
 
@@ -217,7 +220,7 @@ export default {
     	const F = add( .02, mul( .98, pow( sub( 1., max( dot( n, v ), 0. ) ), 5. ) ) ).toVar();
     	const sh = sub( 1., smoothstep( 2., 26., shore.add( n2( vW.xz.mul( .03 ) ).sub( .5 ).mul( 8. ) ) ) ).toVar();
     	const body = mix( vec3( .004, .014, .026 ), vec3( .014, .04, .034 ), sh ).mul( add( 1., clamp( h, -0.3, .6 ).mul( .9 ) ) ).toVar();
-    	const c = shade( vW, vec3( 0., 1., 0. ), v, body, .95, 0. ).add( shade( vW, n, v, vec3( 0. ), .1, 0. ) ).toVar();
+    	const c = shadeO( vW, vec3( 0., 1., 0. ), v, body, .95, 0., OC_ ).add( shadeO( vW, n, v, vec3( 0. ), .1, 0., OC_ ) ).toVar();
     	const rc = property( 'vec3' );
 
     	If( uReflOn.greaterThan( .5 ), () => {
@@ -237,7 +240,7 @@ export default {
     	const wv = fract( shore.div( 11. ).add( t.mul( .11 ) ).add( n2( vW.xz.mul( .015 ) ).mul( .6 ) ) ).toVar(), line = smoothstep( .0, .05, wv ).mul( smoothstep( .3, .08, wv ) ).mul( sub( 1., smoothstep( 3., 14., shore ) ) ).mul( .55 ).toVar();
     	const cap = smoothstep( .95, 1.2, h.add( n2( vW.xz.mul( .11 ).add( t.mul( .15 ) ) ).sub( .5 ).mul( .3 ) ) ).mul( smoothstep( 300., 80., dist ) ).mul( .3 ).toVar();
     	const foam = clamp( band.mul( add( .2, mul( .9, lace ) ) ).add( line.mul( lace ).mul( .9 ) ).add( cap.mul( lace ) ), 0., 1. ).mul( smoothstep( 1800., 500., dist ) ).toVar();
-    	c.assign( mix( c, shade( vW, normalize( vec3( n.x.mul( .3 ), 1., n.z.mul( .3 ) ) ), v, vec3( .62, .66, .68 ), .85, 0. ), foam ) );
+    	c.assign( mix( c, shadeO( vW, normalize( vec3( n.x.mul( .3 ), 1., n.z.mul( .3 ) ) ), v, vec3( .62, .66, .68 ), .85, 0., OC_ ), foam ) );
     	fragOut_.assign( vec4( applyFog( c, vW ), 1. ) );
 
     	return fragOut_;

@@ -37,7 +37,7 @@ const page = await ctx.newPage(), dp = await ctx.newPage();
 const errs = []; page.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 200)); }); page.on('pageerror', e => errs.push(String(e.message)));
 await page.goto(`http://127.0.0.1:${srv.address().port}/${HTML}?perf=1&gpu=high&story=0&civ=${process.env.CIV ?? 0}${process.env.Q || ''}`, { waitUntil: 'load', timeout: 120000 });
 await page.waitForFunction(() => window.__nc && window.__nc.ready, null, { timeout: 300000, polling: 300 });
-await page.evaluate(() => { const N = __nc; N.start(); N.menu.set('fps', 0); N.menu.set('pauseBlur', false); N.menu.set('grain', false); N.menu.set('eye', false); });
+await page.evaluate(() => { const N = __nc; N.start(); N.menu.set('fps', 0); N.menu.set('pauseBlur', false); N.menu.set('grain', false); N.menu.set('eye', false); N.menu.set('taa', 0); });   // 時間抗鋸齒每幀偏移，同一幀畫兩次不會逐像素相同
 const diff = (x, y) => dp.evaluate(async ({ x, y }) => {
   const ld = s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = s; });
   const [A, B] = await Promise.all([ld(x), ld(y)]), c = new OffscreenCanvas(A.width, A.height), g = c.getContext('2d');

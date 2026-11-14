@@ -5,7 +5,12 @@ cityWorld();   // 10-city.js：生成都跑完了，碰撞表、光源表與錨�
 W2.boot();     // 27-props.js：配電箱與加油機要等船位（31-boats.js）宣告好才擺
 const keys = {};
 const inp = { mx: 0, mz: 0, run: false, thr: 0, brk: 0, steer: 0, hb: false, nitro: false };
-const camState = { yaw: 0, pitch: .14, dist: 3.6, far: SET.camFar, idle: 9, snap: true, pos: V3(), shake: 0, fov: 62 };
+const camState = { yaw: 0, pitch: .14, dist: 3.6, far: SET.camFar, idle: 9, snap: true, pos: V3(), shake: 0, fov: 62, spd: 0, roll: 0 };
+// 開車的追車鏡頭（__nc.chase，en = false 是 2026-11-13 前的樣子）：h 跟著的高度（車頂附近）、look 看的點再抬高多少（車放在畫面下半、地平線接近中間）、
+// near 距離加減（負的是拉近）、pitch 回正時的俯角、distK 每 km/h 拉遠幾公尺、
+// fovK 150 km/h 時視角加幾度、buzz 高速時鏡頭的細震（公尺，乘 Esc 選單的鏡頭晃動）、roll 跟著車身側傾的比例、blurK 高速時動態模糊加多少（70-render.js）
+const CHASE0 = { h: 1.15, look: 0, near: 0, pitch: .13, distK: .025, fovK: 12, buzz: 0, roll: 0, blurK: 0 };
+const CHASE = { en: true, h: .95, look: .45, near: -1.2, pitch: .075, distK: .012, fovK: 16, buzz: .012, roll: .35, blurK: .8 };
 const nitro = { v: 1, on: false };
 let started = false;
 const touch = { jx: 0, jz: 0, look: null };
@@ -144,7 +149,7 @@ function pedal(dt, thr, brk, steer) {
   const go = (c, w, up, dn) => { const r = (Math.abs(w) > Math.abs(c) && Math.sign(w) * Math.sign(c) >= 0 ? up : dn) * dt; c = c + clamp(w - c, -r, r); return Math.abs(c) < .02 && !w ? 0 : c; };
   if (!v || !dt) { pedalS.thr = thr; pedalS.brk = brk; pedalS.steer = steer; }
   else {
-    const spd = Math.hypot(v.vx, v.vz), up = lerp(PEDAL.st[0], PEDAL.st[1], clamp(spd / 40, 0, 1)) * k;
+    const spd = Math.hypot(v.vx, v.vz), st = HANDLE.en ? HANDLE.st : PEDAL.st, up = lerp(st[0], st[1], clamp(spd / 40, 0, 1)) * k;   // 30-vehicles.js 的 HANDLE：方向量對著抓地極限之後，高速也能打快一點
     pedalS.steer = go(pedalS.steer, steer, up, Math.max(up, PEDAL.back * k));
     pedalS.thr = go(pedalS.thr, thr, PEDAL.thrUp, PEDAL.thrDn);
     if (brk && pedalS.brk < BRK_BITE) pedalS.brk = Math.min(brk, BRK_BITE);
@@ -197,15 +202,17 @@ function updateCamera(dt, spd) {
   if (inV && camState.fp && fpCam(dt, spd)) return;   // 68-xdoor.js：車內視角
   fpNear();
   let tx, ty, tz, dist;
+  const CH = CHASE.en ? CHASE : CHASE0, car = inV && p.veh.isCar && !p.veh.fly;
+  camState.spd = inV ? spd : 0;
   if (inV) {
     const v = p.veh;
-    tx = v.x; ty = v.y + (v.fly ? 1.8 : v.isCar ? 1.15 : 1.3); tz = v.z;
-    dist = (v.fly ? 13 : v.isCar ? 6.2 + (v.len - 4.4) * .7 : v.boat ? 7.4 + (v.len - 6) * .6 : 4.6) + spd * .025 + [0, 1.8, -1.6][camState.far];
+    tx = v.x; ty = v.y + (v.fly ? 1.8 : v.isCar ? CH.h : 1.3); tz = v.z;
+    dist = (v.fly ? 13 : v.isCar ? 6.2 + (v.len - 4.4) * .7 : v.boat ? 7.4 + (v.len - 6) * .6 : 4.6) + spd * (car ? CH.distK : .025) + (car ? CH.near : 0) + [0, 1.8, -1.6][camState.far];
     if (SET.recenter && camState.idle > 1.2) {
       const vf = v.vx * Math.sin(v.yaw) + v.vz * Math.cos(v.yaw);
       const want = vf < -1 ? v.yaw : v.yaw + clamp(v.yr * .18, -.3, .3);
       camState.yaw += wrapA(want - camState.yaw) * (1 - Math.exp(-3.2 * dt));
-      camState.pitch = damp(camState.pitch, v.fly ? .24 : .13, 2, dt);
+      camState.pitch = damp(camState.pitch, v.fly ? .24 : car ? CH.pitch : .13, 2, dt);
     }
   } else {
     tx = p.x; ty = p.swim ? SEA_Y + .75 : p.y + 1.55 - (p.crouchK || 0) * .5; tz = p.z;
@@ -247,10 +254,16 @@ function updateCamera(dt, spd) {
   else { const k = 1 - Math.exp(-(inV ? 14 : 18) * dt); camState.pos.x += (wx - camState.pos.x) * k; camState.pos.y += (wy - camState.pos.y) * k; camState.pos.z += (wz - camState.pos.z) * k; }
   camera.position.copy(camState.pos);
   if (camState.shake > 0) { camState.shake = Math.max(0, camState.shake - dt * 2.5); const s = camState.shake * .15 * SET.shake; camera.position.x += (Math.random() - .5) * s; camera.position.y += (Math.random() - .5) * s; }
-  _ct.set(tx, ty + (inV ? .2 : 0), tz);
+  // 高速時鏡頭的細震（路面的震動，幾個不成倍數的正弦疊起來，不是亂數：亂數每幀跳，看起來是抖）
+  const bz = car ? CH.buzz * SET.shake * sstep(30, 160, spd) : 0;
+  if (bz > 0) { const t = uTimeNow(); camera.position.y += bz * (Math.sin(t * 23.1) + .6 * Math.sin(t * 37.7 + 1.3)); camera.position.x += bz * .5 * Math.sin(t * 29.3 + .7); camera.position.z += bz * .5 * Math.sin(t * 31.9 + 2.1); }
+  _ct.set(tx, ty + (inV ? .2 + (car ? CH.look : 0) : 0), tz);
   U.uFocus.value.set(tx, ty, tz, inV ? 0 : 1);
   camera.lookAt(_ct.x + rx * sx * .6, _ct.y, _ct.z + rz * sx * .6);
-  const fov = lerp(SET.fov + clamp(spd / 150, 0, 1) * 12 + (nitro.on ? 7 : 0) - gta.aimK * 12, 13 / scopeK(), arm.zoomK);   // scopeK：塔吊上的狙擊鏡倍率（69-v5-tower.js）
+  // 跟著車身側傾一部分（車的 roll 繞車頭方向，相機的 z 軸朝後，所以反號）
+  camState.roll = damp(camState.roll, car && !p.veh.tumble && !p.veh.flipped ? clamp(-(p.veh.roll || 0) * CH.roll, -.08, .08) : 0, 6, dt);
+  if (camState.roll) camera.rotateZ(camState.roll);
+  const fov = lerp(SET.fov + clamp(spd / 150, 0, 1) * (car ? CH.fovK : 12) + (nitro.on ? 7 : 0) - gta.aimK * 12, 13 / scopeK(), arm.zoomK);   // scopeK：塔吊上的狙擊鏡倍率（69-v5-tower.js）
   camState.fov = arm.zoomK > .02 ? fov : damp(camState.fov, fov, 4, dt);
   if (Math.abs(camera.fov - camState.fov) > .01) { camera.fov = camState.fov; camera.updateProjectionMatrix(); }
   if (camState.over) { const o = camState.over; camera.position.set(o[0], o[1], o[2]); camera.lookAt(o[3], o[4], o[5]); }   // __nc.camAt：截圖用的固定相機
@@ -348,7 +361,7 @@ function step(dt) {
     driftTick(dt, v, r.imp, spd);
     if (!v.isCar) { me.anim(0, ANIM.ride, 0, 1); me.anim2(0, 0, 0); _o.position.set(0, 0, 0); placeRider(v); }
     driveByPlace(v);   // 69-combat.js：車內射擊時手伸出車窗
-    sfx.update(dt, { where: player.where, dClub: Math.hypot(v.x - CLUB_W.x, v.z - CLUB_W.z), dBar: Math.hypot(v.x - BAR_W.x, v.z - BAR_W.z), rain: U.uRain.value, rpm: v.rpm, gear: typeof v.gear === 'number' ? v.gear : 1, thr: inp.thr, slip: Math.max(v.slip, (v.push || 0) * 4), nitro: nitro.on });
+    sfx.update(dt, { where: player.where, dClub: Math.hypot(v.x - CLUB_W.x, v.z - CLUB_W.z), dBar: Math.hypot(v.x - BAR_W.x, v.z - BAR_W.z), rain: U.uRain.value, rpm: v.rpm, gear: typeof v.gear === 'number' ? v.gear : 1, thr: inp.thr, slip: Math.max(v.slip, (v.push || 0) * 4, v.sq || 0), nitro: nitro.on });
   } else {
     nitro.on = false; nitro.v = clamp(nitro.v + .1 * dt, 0, 1);
     if (!dlg.open) updatePlayerWalk(inp, dt, camState.yaw);
@@ -461,7 +474,8 @@ window.__nc = {
   viewCull,   // 20-props.js：遠景樹只送鏡頭看得到的方向（en = false 關掉比對）
   farCull,   // 70-render.js：主畫面遠處小物剔除（px 覆寫門檻、n 累計剔掉幾次、log = [] 記下剔掉的）
   instCl,   // 70-render.js：實例全在視錐外的整個不畫（en = false 關掉比對，n 是累計剔掉幾次）
-  mwSkip,   // 70-render.js：每幀整棵更新世界矩陣時跳過藏起來的（en = false 關掉做 A/B）
+  leafTint, trees, hillForest: HILL_FOREST, poles: POLES, taa: TAA,   // poles：20-wires.js 的電線桿與電線（?poles=0 關掉）；leafTint：27-props.js 的樹葉改色（?leaf=0 關掉）；trees：20-props.js 的樹位置、hillForest：10-city.js 的外緣山林（截圖找公園與林地用）
+  mwSkip, occ: OCC, dayG: DAYG, chase: CHASE, handle: HANDLE,   // occ：28-sky.js 的車人地上陰影（en = false 全部不遮，量效能用）；mwSkip：70-render.js：每幀整棵更新世界矩陣時跳過藏起來的（en = false 關掉做 A/B）
   reflOcc,   // 70-render.js 遠景樹進不進倒影的遮擋查詢：reflOcc.en = false 關掉比對，skip 是現在的狀態、n 是收到幾次結果
   reflCull,   // 70-render.js 倒影的螢幕大小剔除：門檻是 SET.reflMin（倒影貼圖的像素，0 關掉），px 填數字覆寫（量測用，null 還原），n 是累計剔掉幾次、log 設成陣列會收集被剔掉的物件
   fogCull,   // 70-render.js 全進霧裡的物件不畫：fogCull.en = false 關掉比對（也關掉 20-props.js 遠景樹的霧外剔除）

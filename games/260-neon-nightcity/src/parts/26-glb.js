@@ -326,7 +326,8 @@ function glbSteer(tpl, sw) {
 }
 // 一個實例：自己的 uM（頭燈、煞車）與車漆 uniform，網格與材質都是新的、幾何共用
 function glbInstance(tpl, paint, uM, fin = 1) {
-  const inst = { uM: uM || { value: new T.Vector4(0, 0, 1, 0) }, uPaint: { value: new T.Vector4(0, 0, 0, 0) }, body: new T.Group(), wheels: [] };
+  // uPaint.w 0.25 標記「這是車」（m-glb 據此給沒有 clearcoat 的車身補一層漆面反射；0.5 以上才是換色／烤漆，道具與建築是 0）
+  const inst = { uM: uM || { value: new T.Vector4(0, 0, 1, 0) }, uPaint: { value: new T.Vector4(0, 0, 0, .25) }, body: new T.Group(), wheels: [] };
   if (paint != null && CARS[tpl.id].paintable) { const c = new T.Color(paint); inst.uPaint.value.set(c.r, c.g, c.b, fin); }
   else if (fin > 1 && CARS[tpl.id].paintable) inst.uPaint.value.set(-1, -1, -1, fin);
   const mats = new Map();

@@ -22,7 +22,8 @@ const rtOpts = { type: GPU.hdr ? T.HalfFloatType : T.UnsignedByteType, minFilter
 const EYE_W = 32, EYE_H = 18;
 const rtEye = [0, 1].map(() => new T.WebGLRenderTarget(1, 1, { type: GPU.hdr ? T.HalfFloatType : T.UnsignedByteType, minFilter: T.NearestFilter, magFilter: T.NearestFilter, depthBuffer: false }));
 const AO_ON = !!GT().ao && GPU.hdr;
-let rtScene, rtRefl, rtB = [], rtU = [], rtV = null, rtA = [], rtL = null;
+let rtScene, rtRefl, rtB = [], rtU = [], rtV = null, rtA = [], rtL = null, rtT = [];
+const TAA = { alpha: .1, i: 0, k: 0, reset: true, out: null, scene: null, dbg: 0, jit: [0, 0], js: 1, sharp: .3 };   // 時間抗鋸齒（mTAA 那段的說明）
 // 讀場景深度的後製（螢幕空間倒影、體積光、環境光遮蔽、合成）：WGSL 的深度貼圖型別分多重取樣與否，在第一次建節點時就定了，
 // 而 three 的快取鍵不看取樣數：Esc 選單換 MSAA 後照舊拿舊的程式，每幀十幾個 WebGPU 驗證錯誤（「Sample count (1) … doesn't match」）、那幾趟畫不出來。
 // 取樣數寫進它們的 defines（02-gfx.js 把 defines 併進快取鍵），換了就重建（2026-11-01 觀測模型抓到）
@@ -35,7 +36,10 @@ function depthMsaa() {
 }
 function makeTargets() {
   const w = Math.max(2, Math.floor(innerWidth * DPR * post.scale)), h = Math.max(2, Math.floor(innerHeight * DPR * post.scale));
-  rtScene?.dispose(); rtRefl?.dispose(); rtB.forEach(r => r.dispose()); rtU.forEach(r => r.dispose()); rtV?.dispose(); rtA.forEach(r => r.dispose()); rtL?.dispose();
+  rtScene?.dispose(); rtRefl?.dispose(); rtB.forEach(r => r.dispose()); rtU.forEach(r => r.dispose()); rtV?.dispose(); rtA.forEach(r => r.dispose()); rtL?.dispose(); rtT.forEach(r => r.dispose());
+  // 時間抗鋸齒的歷史（兩張來回，主畫面解析度、不要深度）：關掉時不建
+  rtT = SET.taa ? [0, 1].map(() => new T.WebGLRenderTarget(w, h, { ...rtOpts, depthBuffer: false })) : [];
+  TAA.reset = true; TAA.out = null;
   rtL = new T.WebGLRenderTarget(EYE_W, EYE_H, { ...rtOpts, depthBuffer: false });   // 眼睛適應：畫面亮度的縮圖（log 亮度）
   // 環境光遮蔽（半解析度）：r 是遮蔽、g 是相機空間的深度（給依深度的模糊用），要浮點；兩張來回模糊
   rtA = AO_ON ? [0, 1].map(() => new T.WebGLRenderTarget(Math.max(1, Math.floor(w / 2)), Math.max(1, Math.floor(h / 2)), { ...rtOpts, depthBuffer: false })) : [];
@@ -109,7 +113,7 @@ const mSSR = pass('ssr', { tScene: { value: null }, tDepth: { value: null }, uVP
 const _ssrM = new T.Matrix4();
 const mVol = VOL_N ? pass('vol', { ...shared(ALLU), tDepth: { value: null }, uInvVP: { value: new T.Matrix4() }, uVolK: { value: 0 } }) : null;
 // 環境光遮蔽（SSAO）：半解析度，從主畫面的深度還原相機空間的位置，法線取左右、上下兩側深度比較接近的那一邊（邊緣不糊），
-// 沿螺旋取 AO_N 個點（McGuire 的 SAO：半徑 uRad 公尺內、在法線前方的點越近越暗）。沒有 TAA，雜訊固定在畫面上（逐幀換會閃），
+// 沿螺旋取 AO_N 個點（McGuire 的 SAO：半徑 uRad 公尺內、在法線前方的點越近越暗）。合成在時間抗鋸齒之後（mTAA 疊不到它），雜訊固定在畫面上（逐幀換會閃），
 // 再橫直兩趟依深度的模糊抹掉；60–140 m 淡掉（再遠在霧裡）。合成時乘在泛光之前，亮到會泛光的地方（霓虹、招牌、窗燈）不壓暗
 const AO_N = 12;
 const mAO = AO_ON ? pass('ao', { tDepth: { value: null }, uInvProj: { value: new T.Matrix4() }, uDT: { value: new T.Vector2() }, uPy: { value: 1 }, uRad: { value: 1.1 }, uK: { value: 1 }, uFogD: { value: .01 }, uDayK: { value: 0 } }) : null;
@@ -122,8 +126,14 @@ const mEyeLum = pass('eyelum', { tSrc: { value: null }, uTexel: { value: new T.V
 const mEyeAdapt = pass('eyeadapt', { tSrc: { value: null }, tPrev: { value: null }, uK: { value: new T.Vector2() }, uReset: { value: 1 } });
 let eyeI = 0, eyeReset = true;
 const mComp = pass('comp', { tScene: { value: null }, tDepth: { value: null }, tBloom: { value: null }, tVol: { value: null }, tAO: { value: null }, tEye: { value: null }, uVolOn: { value: 0 }, uAOOn: { value: 0 }, uAOThr: { value: 1 }, uEyeOn: { value: 0 }, uVolT: { value: new T.Vector2() }, uInvVP: { value: new T.Matrix4() }, uPrevVP: { value: new T.Matrix4() },
-  uBlur: { value: .5 }, uExp: { value: 1.2 }, uTime: { value: 0 }, uWob: { value: 0 }, uFlash: { value: 0 }, uBloomK: { value: .9 }, uGray: { value: 0 }, uVig: { value: 0 }, uHurt: { value: 0 }, uTint: { value: new T.Vector4() }, uFx7: { value: new T.Vector4() }, uHeat: { value: Array.from({ length: HEAT_N }, () => new T.Vector4()) }, uRes: { value: new T.Vector2() }, uFx: { value: new T.Vector2(1, 1) }, uHi: { value: new T.Vector2() } });
-depthMats = [mSSR, mVol, mAO, mComp].filter(Boolean); depthMsaa();
+  uBlur: { value: .5 }, uExp: { value: 1.2 }, uTime: { value: 0 }, uWob: { value: 0 }, uFlash: { value: 0 }, uBloomK: { value: .9 }, uGray: { value: 0 }, uVig: { value: 0 }, uHurt: { value: 0 }, uTint: { value: new T.Vector4() }, uDayG: { value: new T.Vector4() }, uFx7: { value: new T.Vector4() }, uHeat: { value: Array.from({ length: HEAT_N }, () => new T.Vector4()) }, uRes: { value: new T.Vector2() }, uFx: { value: new T.Vector2(1, 1) }, uHi: { value: new T.Vector2() }, uSharp: { value: 0 }, uTexel: { value: new T.Vector2() } });
+// 時間抗鋸齒（質感改善第 7 項，2026-11-14）：主畫面那一趟的投影每幀偏移不到一個像素（Halton 2、3 的 8 個點），畫完後和上一幀的結果疊起來。
+// 上一幀的位置用深度反推（只有鏡頭的動，沒有逐物件的速度：跟著鏡頭跑的玩家車、車流的歷史會落在別處，靠鄰域裁切擋掉、動得快時現在這幀的權重加大）。
+// 在泛光與合成之前、線性 HDR 上做，泛光、眼睛適應、合成與下一幀的螢幕空間倒影都讀它的輸出。倒影那一趟不偏移（它複製主鏡頭的投影，要在偏移之前畫）。
+// uPrm：x 現在這幀的權重、y 重設（切鏡頭、換場館、重建渲染目標）、z 雨（雨絲每幀換位置，權重加大免得被抹掉）、w 除錯
+const mTAA = pass('taa', { tScene: { value: null }, tHist: { value: null }, tDepth: { value: null }, uInvVP: { value: new T.Matrix4() }, uPrevVP: { value: new T.Matrix4() }, uTexel: { value: new T.Vector2() }, uPrm: { value: new T.Vector4() }, uJit: { value: new T.Vector2() } });
+const halton = (i, b) => { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
+depthMats = [mSSR, mVol, mAO, mComp, mTAA].filter(Boolean); depthMsaa();
 function blit(mat, target) { fsMesh.material = mat; R.setRenderTarget(target); R.render(fsScene, fsCam); }
 
 const prevVP = new T.Matrix4(), curVP = new T.Matrix4();
@@ -202,7 +212,7 @@ function renderReflection() {
   reflCull.t = reflCull.px ?? SET.reflMin; reflCull.on = reflCull.t > 0; reflCull.x = _rp.x; reflCull.y = _rp.y; reflCull.z = _rp.z; reflCull.k = rtRefl.height / 2 * reflCam.projectionMatrix.elements[5];
   if (SET.ssr && !firstFrame && !camState.snap) {   // 螢幕空間：rtScene 這時還是上一幀的畫面與深度，curVP 也還是上一幀的（切鏡頭那一幀上一幀是別的鏡頭，照平面畫）
     reflCull.on = false; fogCull.on = false;
-    const s = mSSR.uniforms; s.tScene.value = rtScene.texture; s.tDepth.value = rtScene.depthTexture;
+    const s = mSSR.uniforms; s.tScene.value = TAA.out || rtScene.texture; s.tDepth.value = rtScene.depthTexture;   // 開了時間抗鋸齒就讀它上一幀的輸出（比較穩，倒影裡的細線不閃）
     s.uVP.value.copy(curVP); s.uInvVP.value.copy(curVP).invert(); s.uRP.value.copy(_rp);
     s.uInvRVP.value.copy(_ssrM.multiplyMatrices(reflCam.projectionMatrix, reflCam.matrixWorldInverse).invert());
     blit(mSSR, rtRefl);
@@ -397,10 +407,25 @@ function renderFrame(dt, t) {
   R.setRenderTarget(rtScene); R.setClearColor(0x000000, 1); R.clear();
   if (outdoors) fogCullAt(camera.position);
   farCull.t = farCull.px ?? SET.farMin; farCull.on = farCull.t > 0 && !gfxCompiling.all; farCull.x = camera.position.x; farCull.y = camera.position.y; farCull.z = camera.position.z; farCull.k = rtScene.height / 2 * camera.projectionMatrix.elements[5];
-  R.render(curScene, camera); fogCull.on = false; farCull.on = false;
+  const w = rtScene.width, h = rtScene.height, taaOn = SET.taa && rtT.length === 2;
+  const pm = camera.projectionMatrix.elements, pm8 = pm[8], pm9 = pm[9];
+  if (taaOn) { TAA.k = TAA.k % 8 + 1; TAA.jit[0] = (halton(TAA.k, 2) - .5) * 2 / w; TAA.jit[1] = (halton(TAA.k, 3) - .5) * 2 / h; pm[8] += TAA.jit[0]; pm[9] += TAA.jit[1]; }
+  try { R.render(curScene, camera); } finally { pm[8] = pm8; pm[9] = pm9; }
+  fogCull.on = false; farCull.on = false;
+  curVP.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  let sceneTex = rtScene.texture;
+  if (taaOn && TAA.dbg !== 1) {   // dbg 1：只偏移不疊（看偏移有沒有進到每個材質：畫面應該抖半個像素）
+    const reset = TAA.reset || firstFrame || camState.snap || TAA.scene !== curScene, a = mTAA.uniforms;
+    TAA.reset = false; TAA.scene = curScene;
+    a.tScene.value = rtScene.texture; a.tDepth.value = rtScene.depthTexture; a.tHist.value = rtT[TAA.i].texture;
+    a.uInvVP.value.copy(curVP).invert(); a.uPrevVP.value.copy(reset ? curVP : prevVP); a.uTexel.value.set(1 / w, 1 / h);
+    a.uJit.value.set(-TAA.jit[0] * w / 2 * TAA.js, TAA.jit[1] * h / 2 * TAA.js);   // 這幀的內容在畫面上（左上原點）移了幾個像素：投影 [8] 加 δ，NDC x 移 −δ
+    a.uPrm.value.set(TAA.alpha, reset ? 1 : 0, outdoors ? U.uRain.value : 0, TAA.dbg);
+    TAA.i ^= 1; blit(mTAA, rtT[TAA.i]); sceneTex = rtT[TAA.i].texture;
+  } else TAA.reset = true;
+  TAA.out = taaOn && TAA.dbg !== 1 ? sceneTex : null;
   // 泛光
-  const w = rtScene.width, h = rtScene.height;
-  mPre.uniforms.tSrc.value = rtScene.texture; mPre.uniforms.uTexel.value.set(1 / w, 1 / h); mPre.uniforms.uThr.value = outdoors ? atm.bloom : vp?.thr ?? 1; blit(mPre, rtB[0]);
+  mPre.uniforms.tSrc.value = sceneTex; mPre.uniforms.uTexel.value.set(1 / w, 1 / h); mPre.uniforms.uThr.value = outdoors ? atm.bloom : vp?.thr ?? 1; blit(mPre, rtB[0]);
   for (let i = 1; i < rtB.length; i++) { mDown.uniforms.tSrc.value = rtB[i - 1].texture; mDown.uniforms.uTexel.value.set(1 / rtB[i - 1].width, 1 / rtB[i - 1].height); blit(mDown, rtB[i]); }
   const last = rtB.length - 1;
   for (let i = last - 1; i >= 0; i--) {
@@ -409,8 +434,7 @@ function renderFrame(dt, t) {
     mUp.uniforms.uTexel.value.set(1 / rtB[i].width, 1 / rtB[i].height); mUp.uniforms.uK.value = 1;
     blit(mUp, rtU[i]);
   }
-  // 合成
-  curVP.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  // 合成（curVP 在主畫面畫完時就算好了，時間抗鋸齒要用）
   if (firstFrame || camState.snap) { prevVP.copy(curVP); firstFrame = false; camState.snap = false; eyeReset = true; }
   const u = mComp.uniforms;
   const volK = mVol && outdoors ? SET.vol * atm.sunK * sstep(.2, .6, U.uDay.value) : 0;
@@ -432,19 +456,20 @@ function renderFrame(dt, t) {
   u.uEyeOn.value = SET.eye && GPU.hdr ? 1 : 0;
   if (u.uEyeOn.value) {
     const e = mEyeLum.uniforms, f = mEyeAdapt.uniforms, rd = Math.min(slowmo.raw, .1);
-    e.tSrc.value = rtScene.texture; e.uTexel.value.set(.25 / EYE_W, .25 / EYE_H); blit(mEyeLum, rtL);
+    e.tSrc.value = sceneTex; e.uTexel.value.set(.25 / EYE_W, .25 / EYE_H); blit(mEyeLum, rtL);
     f.tSrc.value = rtL.texture; f.tPrev.value = rtEye[eyeI].texture; f.uK.value.set(1 - Math.exp(-rd / .15), 1 - Math.exp(-rd / 2.5)); f.uReset.value = eyeReset ? 1 : 0;
     eyeI ^= 1; blit(mEyeAdapt, rtEye[eyeI]); eyeReset = false;
     u.tEye.value = rtEye[eyeI].texture;
   } else eyeReset = true;
-  u.tScene.value = rtScene.texture; u.tDepth.value = rtScene.depthTexture; u.tBloom.value = rtU[0].texture;
+  u.tScene.value = sceneTex; u.tDepth.value = rtScene.depthTexture; u.tBloom.value = rtU[0].texture;
   u.uInvVP.value.copy(curVP).invert(); u.uPrevVP.value.copy(prevVP);
-  u.uBlur.value = post.blur; u.uExp.value = post.exposure * SET.bright * (outdoors ? atm.exp : vp?.exp ?? 1); u.uTime.value = t; u.uWob.value = post.wobble; u.uFlash.value = U.uFlash.value;
+  u.uBlur.value = post.blur * (1 + (CHASE.en ? CHASE.blurK : 0) * sstep(40, 180, camState.spd)); u.uExp.value = post.exposure * SET.bright * (outdoors ? atm.exp : vp?.exp ?? 1); u.uTime.value = t; u.uWob.value = post.wobble; u.uFlash.value = U.uFlash.value;
   u.uBloomK.value = (outdoors ? .85 : vp?.bloom ?? 1) * SET.bloom; u.uHi.value.set(vp?.knee ?? 0, vp?.range ?? 1);
   u.uFx.value.set(SET.ca ? 1 : 0, SET.grain ? 1 : 0);
   u.uGray.value = post.gray; u.uVig.value = post.vig; u.uHurt.value = post.hurt; u.uTint.value.copy(post.tint);
+  u.uDayG.value.set(outdoors && DAYG.en ? atm.sunK : 0, DAYG.cyan, DAYG.con, DAYG.sat);   // 28-sky.js 的白天調色：權重是日照（晴天白天 1，陰天、夜裡 0）
   heatUniforms(u);
-  u.uRes.value.set(w, h);
+  u.uRes.value.set(w, h); u.uTexel.value.set(1 / w, 1 / h); u.uSharp.value = TAA.out ? TAA.sharp : 0;
   blit(mComp, null);
   prevVP.copy(curVP);
   // 依幀時調整內部解析度
