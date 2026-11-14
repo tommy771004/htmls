@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as esbuild from '../node_modules/esbuild/lib/main.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GAME_ROOT = resolve(__dirname, '..');
@@ -9,6 +10,7 @@ const OUT_HTML = join(REPO_ROOT, 'web/286-lineage-web.html');
 
 const globalsCss = readFileSync(join(GAME_ROOT, 'src/styles/globals.css'), 'utf8');
 const authCss = readFileSync(join(GAME_ROOT, 'src/styles/lineage-auth.css'), 'utf8');
+const gameCss = readFileSync(join(GAME_ROOT, 'src/styles/lineage-game.css'), 'utf8');
 
 const guideJson = JSON.parse(readFileSync(join(GAME_ROOT, 'src/data/captured/guide.json'), 'utf8'));
 const releaseScopeJson = JSON.parse(
@@ -37,10 +39,21 @@ const capturedPayload = JSON.stringify({
   sampleDialogues,
 }).replace(/<\/script>/gi, '<\\/script>');
 
-const appJs = readFileSync(join(GAME_ROOT, 'src/app.js'), 'utf8').replace(
+const worldPayload = readFileSync(join(GAME_ROOT, 'src/data/talking-island.json'), 'utf8').replace(
   /<\/script>/gi,
   '<\\/script>',
 );
+
+const bundled = await esbuild.build({
+  entryPoints: [join(GAME_ROOT, 'src/app.js')],
+  bundle: true,
+  write: false,
+  format: 'esm',
+  target: ['es2022'],
+  logLevel: 'silent',
+});
+
+const appJs = bundled.outputFiles[0].text.replace(/<\/script>/gi, '<\\/script>');
 
 const html = `<!DOCTYPE html>
 <html lang="zh-Hant">
@@ -53,12 +66,14 @@ const html = `<!DOCTYPE html>
   <style>
 ${globalsCss}
 ${authCss}
+${gameCss}
   </style>
 </head>
 <body>
   <div id="app-root"></div>
   <script>
 window.__LINEAGE_CAPTURED_DATA__ = ${capturedPayload};
+window.__LINEAGE_WORLD_DATA__ = ${worldPayload};
   </script>
   <script type="module">
 ${appJs}

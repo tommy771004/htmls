@@ -1,6 +1,7 @@
 // 286 天堂人生 · 1.63 獨立運作平台（Frontend SPA + Offline-Capable Store）
 // 支援完整 9 大視圖：/ 遊戲大廳、/official 官方入口、/guide 攻略圖鑑(243筆)、/form 冒險者論壇、
 // /rice 能力骰子模擬器、/topup 蛋幣儲值(含 Origin Guard)、/gm GM 控制台、/privacy 與 /privacy2 隱私權政策。
+import { LineageGameEngine } from './game/engine.js';
 
 const CAPTURED_DATA = window.__LINEAGE_CAPTURED_DATA__ || {
   guide: { revision: '1.63', build: 656, records: [] },
@@ -1183,7 +1184,7 @@ function renderLobbyStage() {
   }
 
   if (state.stage === 'game' && state.activeCharacter) {
-    // 遊戲本體是 284 天堂人生，以全畫面 iframe 掛在 #app-root 外（見 syncGameFrame）；這裡只是載入中的底層
+    // 遊戲本體為 286 原生等距實境客戶端，掛在 #app-root 外（見 syncGameFrame）；這裡顯示載入中底層
     const failed = gameFrame && gameFrame.status === 'error';
     return `
       <section id="game-screen" class="ll-game-loading" aria-label="說話之島">
@@ -1763,7 +1764,7 @@ const BGM_TRACKS = {
   login: '/lineage163/sound/linmusic_login.mp3',
   select: '/lineage163/sound/linmusic_login.mp3',
   create: '/assets/284/bgm/create.mp3',
-  // game：遊戲本體（284）有自己的場景音樂，這裡不播
+  // game：進入說話之島後由原生 GameAudioManager 接手播放音效與場景音樂
 };
 const bgm = {
   el: null,
@@ -1806,77 +1807,27 @@ function syncBgm() {
   }
 }
 
-// ── 進入遊戲：遊戲本體沿用 284 天堂人生 ──
-// 以 srcdoc iframe 載入 web/284-lineage-life.html，並在它所有程式之前換掉 localStorage，
-// 讓 286 的角色存檔全部落在 `ll286:` 前綴下，不會讀到或覆蓋使用者自己玩 284 的存檔。
-// iframe 掛在 #app-root 外面，renderApp() 重繪時不會重新載入遊戲。
-const GAME_FRAME_HTML = '284-lineage-life.html';
+// ── 進入遊戲：286 原生 1.63 等距天堂實境客戶端（Canvas + 說話之島 0~3 地圖與現有素材） ──
+// 所有存檔皆寫入 `ll286:<帳號>:world_slot_<slot>` 與倉庫鍵值，掛載於 #app-root 外的全畫面容器 #ll-game-host。
 const GAME_STORE_PREFIX = 'll286:';
-// 每個 286 帳號各自一組前綴，換帳號進同一欄位不會蓋掉別人的進度
+const NATIVE_CLASS_FALLBACK = {
+  dark: 'elf',
+  illusion: 'mage',
+  dragon: 'knight',
+  warrior: 'knight',
+};
+
 function gameStorePrefix(username = state.username) {
   return `${GAME_STORE_PREFIX}${String(username || 'guest').trim().toLowerCase()}:`;
 }
-const gameStoreShim = (prefix) => `<script>(function(){
-  var P = ${JSON.stringify(prefix)}, real;
-  try { real = window.localStorage; } catch (e) { return; }
-  function keys(){ var out = []; for (var i = 0; i < real.length; i++) { var k = real.key(i); if (k && k.indexOf(P) === 0) out.push(k.slice(P.length)); } return out; }
-  var shim = {
-    getItem: function (k) { return real.getItem(P + k); },
-    setItem: function (k, v) { real.setItem(P + k, String(v)); },
-    removeItem: function (k) { real.removeItem(P + k); },
-    key: function (i) { var ks = keys(); return i >= 0 && i < ks.length ? ks[i] : null; },
-    clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
-    get length() { return keys().length; }
-  };
-  Object.defineProperty(window, 'localStorage', { configurable: true, get: function () { return shim; } });
-})();<\/script>`;
 
-let gameHtmlCache = null;
-let gameFrame = null; // { token, el, status: 'loading'|'ready'|'error', mode, error }
+let gameFrame = null; // { token, el, engine, status: 'loading'|'ready'|'error', mode, error }
 
-function gameHandoffPayload(ch) {
-  const def = getClassDef(ch.classId);
-  const g = ch.gender === 'f' ? 'f' : 'm';
-  return {
-    slot: Number(ch.slot) || state.selectedSlot || 1,
-    cls: def.classId,
-    rawCls: `${g}_${def.rawBase}`,
-    stats: { ...ch.stats },
-    name: ch.name || '',
-    classic: !!ch.classicMode,
-    // 只用不會變的欄位綁定（createdAt 在離線模式每次載入都會重新產生）
-    bindKey: `${ch.slot}|${ch.name}|${def.classId}|${g}`,
-  };
-}
-
-// 在 284 的頁面環境裡執行：同一個角色就讀檔，否則用 286 的職業／性別／能力值在該欄位建角
-const GAME_BOOT_SCRIPT = `(function () {
-  var c = window.__ll286Char;
-  var bindKey = 'll286_bind_' + c.slot;
-  currentSlot = c.slot;
-  if (localStorage.getItem(bindKey) === c.bindKey && slotSummary(c.slot)) {
-    loadGame();
-    return 'load';
-  }
-  localStorage.removeItem('lineage_idle_save_' + c.slot);
-  var base = createBase[c.cls] || createBase.knight;
-  curCreate = { rawCls: c.rawCls, cls: c.cls, str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
-  ['str', 'dex', 'con', 'int', 'wis', 'cha'].forEach(function (k) {
-    curCreate[k] = Math.max(0, (Number(c.stats[k]) || 0) - base[k]);
-  });
-  var classic = document.getElementById('create-classic-toggle');
-  if (classic) classic.checked = c.classic;
-  startGame();
-  if (c.name) player.name = c.name;
-  localStorage.setItem(bindKey, c.bindKey);
-  if (typeof _flushSaveNow === 'function') _flushSaveNow();
-  return 'create';
-})()`;
-
-// 286 刪除角色時，一併清掉該欄位在遊戲本體裡的存檔與綁定
+// 286 刪除角色時，一併清掉該欄位在實境客戶端裡的存檔與舊版遺留鍵值
 function clearGameSlot(slot) {
   const prefix = gameStorePrefix();
   try {
+    localStorage.removeItem(`${prefix}world_slot_${slot}`);
     localStorage.removeItem(`${prefix}lineage_idle_save_${slot}`);
     localStorage.removeItem(`${prefix}ll286_bind_${slot}`);
   } catch {
@@ -1885,11 +1836,7 @@ function clearGameSlot(slot) {
 }
 
 function gameFrameWindow() {
-  try {
-    return gameFrame?.el?.contentWindow || null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 function leaveGameToSelect() {
@@ -1898,72 +1845,102 @@ function leaveGameToSelect() {
   renderApp();
 }
 
-function bootGameInFrame(token, payload) {
-  const w = gameFrameWindow();
-  if (!w || gameFrame?.token !== token) return;
+function syncCharacterSlotFromGame(patch) {
+  if (!patch) return;
+  const applyPatch = (target) => {
+    if (!target) return;
+    target.level = patch.level ?? target.level;
+    target.exp = patch.exp ?? target.exp;
+    target.gold = patch.gold ?? target.gold;
+    target.adena = patch.gold ?? target.adena;
+    target.hp = patch.hp ?? target.hp;
+    target.maxHp = patch.maxHp ?? target.maxHp;
+    target.mp = patch.mp ?? target.mp;
+    target.maxMp = patch.maxMp ?? target.maxMp;
+    target.ac = patch.ac ?? target.ac;
+  };
+  if (state.activeCharacter && Number(state.activeCharacter.slot) === Number(patch.slot)) {
+    applyPatch(state.activeCharacter);
+  }
+  const slotIdx = Number(patch.slot) - 1;
+  if (slotIdx >= 0 && slotIdx < state.slots.length && state.slots[slotIdx]) {
+    applyPatch(state.slots[slotIdx]);
+  }
+  const accountKey = String(state.username || 'adventurer01').trim().toLowerCase();
+  const localSlots = localStore.slotsByAccount.get(accountKey);
+  if (localSlots && slotIdx >= 0 && slotIdx < localSlots.length && localSlots[slotIdx]) {
+    applyPatch(localSlots[slotIdx]);
+  }
+}
+
+async function resolveWorldData() {
+  if (window.__LINEAGE_WORLD_DATA__) return window.__LINEAGE_WORLD_DATA__;
+  const res = await fetch('./src/data/talking-island.json', { cache: 'no-cache' });
+  if (!res.ok) throw new Error(`HTTP ${res.status} 無法載入說話之島世界資料`);
+  const data = await res.json();
+  window.__LINEAGE_WORLD_DATA__ = data;
+  return data;
+}
+
+async function mountGameFrame(ch) {
+  const token = {};
+  gameFrame = { token, el: null, engine: null, status: 'loading', mode: 'native', error: null };
   try {
-    // 284 的「回選角」：先讓 284 自己存檔收尾，再回到 286 的選角畫面
-    const originalReturn = w.returnToCharacterSelect;
-    w.returnToCharacterSelect = function () {
-      try {
-        if (typeof originalReturn === 'function') originalReturn.apply(this, arguments);
-      } finally {
-        leaveGameToSelect();
-      }
-      return true;
+    const worldData = await resolveWorldData();
+    if (gameFrame?.token !== token) return;
+
+    const hostEl = document.createElement('div');
+    hostEl.id = 'll-game-host';
+    document.body.appendChild(hostEl);
+
+    const effectiveClassId = worldData.classes[ch.classId]
+      ? ch.classId
+      : NATIVE_CLASS_FALLBACK[ch.classId] || 'royal';
+
+    const normalizedChar = {
+      ...ch,
+      classId: effectiveClassId,
+      sex: ch.gender === 'f' ? 1 : Number(ch.sex || 0),
+      str: ch.stats?.str ?? ch.str,
+      con: ch.stats?.con ?? ch.con,
+      dex: ch.stats?.dex ?? ch.dex,
+      wis: ch.stats?.wis ?? ch.wis,
+      cha: ch.stats?.cha ?? ch.cha,
+      int: ch.stats?.int ?? ch.int,
     };
-    w.__ll286Char = payload;
-    gameFrame.mode = w.eval(GAME_BOOT_SCRIPT);
+
+    const slotSaveKey = `${gameStorePrefix()}world_slot_${ch.slot ?? 0}`;
+    const hasExistingSave = Boolean(localStorage.getItem(slotSaveKey));
+
+    const engine = new LineageGameEngine({
+      mountEl: hostEl,
+      worldData,
+      character: normalizedChar,
+      username: String(state.username || 'guest').trim().toLowerCase(),
+      onLobbySync: (patch) => syncCharacterSlotFromGame(patch),
+      onReturnToSelect: () => leaveGameToSelect(),
+    });
+
+    if (bgm.muted) engine.audio.setMuted(true);
+
+    gameFrame.el = hostEl;
+    gameFrame.engine = engine;
     gameFrame.status = 'ready';
-    gameFrame.el.classList.add('ready');
+    gameFrame.mode = hasExistingSave ? 'load' : 'create';
   } catch (err) {
+    if (gameFrame?.token !== token) return;
     gameFrame.status = 'error';
     gameFrame.error = `遊戲啟動失敗：${err?.message || err}`;
     renderApp();
   }
 }
 
-async function mountGameFrame(ch) {
-  const token = {};
-  gameFrame = { token, el: null, status: 'loading', mode: null, error: null };
-  const payload = gameHandoffPayload(ch);
-  try {
-    if (!gameHtmlCache) {
-      const res = await fetch(GAME_FRAME_HTML, { cache: 'no-cache' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      gameHtmlCache = await res.text();
-    }
-  } catch {
-    if (gameFrame?.token !== token) return;
-    gameFrame.status = 'error';
-    gameFrame.error = '無法載入遊戲本體，請透過 HTTP 伺服器開啟本頁（file:// 無法載入）。';
-    renderApp();
-    return;
-  }
-  if (gameFrame?.token !== token) return;
-  const el = document.createElement('iframe');
-  el.id = 'll-game-frame';
-  el.title = '說話之島';
-  el.setAttribute('allow', 'autoplay; fullscreen');
-  const shim = gameStoreShim(gameStorePrefix());
-  el.srcdoc = gameHtmlCache.replace(/<head[^>]*>/i, (m) => `${m}\n${shim}`);
-  el.addEventListener('load', () => bootGameInFrame(token, payload), { once: true });
-  gameFrame.el = el;
-  document.body.appendChild(el);
-}
-
 function unmountGameFrame() {
   if (!gameFrame) return;
-  const w = gameFrameWindow();
-  if (w && gameFrame.status === 'ready') {
-    try {
-      w.eval(
-        "if (typeof _flushSaveNow === 'function') _flushSaveNow();" +
-          "if (typeof _roleSessionForget === 'function') _roleSessionForget();",
-      );
-    } catch {
-      // 遊戲已卸載
-    }
+  try {
+    gameFrame.engine?.destroy();
+  } catch {
+    // 忽略卸載例外
   }
   gameFrame.el?.remove();
   gameFrame = null;
@@ -2176,9 +2153,10 @@ export function renderApp() {
   syncGameFrame();
   syncRealtime();
 
-  // 登入、選角與遊戲畫面只顯示舞台，不顯示導覽列與其他區塊
+  // 登入、創角、選角與遊戲畫面只顯示舞台，不顯示頂部導覽列與其他區塊
   const stageOnly =
-    state.route === '/' && (state.stage === 'login' || state.stage === 'select' || state.stage === 'game');
+    state.route === '/' &&
+    (state.stage === 'login' || state.stage === 'select' || state.stage === 'create' || state.stage === 'game');
   document.body.classList.toggle('ll-stage-only', stageOnly);
   if (stageOnly) {
     root.innerHTML = `
@@ -2944,6 +2922,7 @@ export function bootLineageWebApp() {
       bgmMuted: bgm.muted,
       realtime: { status: realtime.status, online: realtime.online, latencyMs: realtime.latencyMs },
       gameFrame: gameFrame ? { status: gameFrame.status, mode: gameFrame.mode, error: gameFrame.error } : null,
+      game: gameFrame?.engine?.getSnapshot() || null,
       guideTotal: (CAPTURED_DATA.guide?.records || []).length,
       dialogueResultsCount: state.dialogueResults.length,
       forumTopicsCount: state.forumTopics.length,
@@ -2956,6 +2935,8 @@ export function bootLineageWebApp() {
     },
     pingWorld: () => pingWorld(),
     gameWindow: () => gameFrameWindow(),
+    game: () => gameFrame?.engine?.getSnapshot() || null,
+    engine: () => gameFrame?.engine || null,
     setStage: (stage) => {
       state.stage = stage;
       renderApp();

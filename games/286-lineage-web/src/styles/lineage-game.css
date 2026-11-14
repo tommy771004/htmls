@@ -1,0 +1,707 @@
+/* 286 天堂實境客戶端：經典 1.63 底部狀態列、視窗面板、行動端與多解析度零溢出樣式 */
+
+#ll-game-root {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: #05070a;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 60;
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+}
+
+#ll-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  image-rendering: pixelated;
+}
+
+/* 左上角地區與目標膠囊 */
+.ll-top-strip {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 65;
+}
+
+.ll-map-pill,
+.ll-target-pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  background: rgba(10, 14, 20, 0.84);
+  border: 1px solid #755b32;
+  border-radius: 6px;
+  color: #efe4cc;
+  font-size: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  max-width: calc(100vw - 16px);
+}
+
+.ll-map-name {
+  color: #f3d284;
+  font-weight: 700;
+}
+
+.ll-coords {
+  color: #a9b8cb;
+  font-variant-numeric: tabular-nums;
+}
+
+.ll-target-pill {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 150px;
+}
+
+.ll-target-pill[hidden] {
+  display: none;
+}
+
+.ll-target-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffb899;
+}
+
+.ll-target-bar {
+  width: 140px;
+  height: 6px;
+  background: #1b222c;
+  border: 1px solid #483822;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ll-target-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c62828, #ef5350);
+  transition: width 100ms linear;
+}
+
+.ll-top-actions {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.ll-mini-btn {
+  padding: 4px 9px;
+  border-radius: 5px;
+  border: 1px solid #6e5733;
+  background: rgba(19, 25, 34, 0.9);
+  color: #f0dfba;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ll-mini-btn:hover {
+  border-color: #d6ae63;
+  background: rgba(45, 36, 22, 0.94);
+}
+
+.ll-mini-btn.active {
+  border-color: #5eead4;
+  color: #99f6e4;
+  background: rgba(13, 62, 56, 0.85);
+}
+
+/* 經典底部狀態列 */
+#ll-hud-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 68;
+  background-color: #120f0c;
+  background-position: center bottom;
+  background-size: 100% 100%;
+  border-top: 2px solid #8a6c3b;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.72);
+  padding: 6px 10px 8px;
+}
+
+.ll-hud-backdrop {
+  position: relative;
+  max-width: 1380px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 270px minmax(220px, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+  background: linear-gradient(180deg, rgba(16, 13, 10, 0.88), rgba(10, 8, 6, 0.94));
+  border: 1px solid rgba(154, 121, 69, 0.55);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+/* 左側狀態條區 */
+.ll-vitals-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ll-char-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.ll-char-title {
+  font-weight: 700;
+  color: #f6d992;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ll-lawful {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid #42546d;
+  background: #131c28;
+  color: #9ec5ff;
+  white-space: nowrap;
+}
+
+.ll-gauge-row {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.ll-gauge-label {
+  color: #d7c4a0;
+  font-weight: 700;
+}
+
+.ll-gauge-track {
+  position: relative;
+  height: 14px;
+  background: #0c0e13;
+  border: 1px solid #594425;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ll-gauge-fill {
+  height: 100%;
+  transition: width 120ms linear;
+}
+
+.ll-gauge-fill.hp {
+  background: linear-gradient(90deg, #991b1b, #ef4444);
+}
+
+.ll-gauge-fill.mp {
+  background: linear-gradient(90deg, #1d4ed8, #38bdf8);
+}
+
+.ll-gauge-fill.exp {
+  background: linear-gradient(90deg, #b45309, #facc15);
+}
+
+.ll-gauge-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+  font-variant-numeric: tabular-nums;
+}
+
+.ll-stat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11px;
+  color: #d2c8b4;
+}
+
+.ll-chip {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(25, 29, 36, 0.85);
+  border: 1px solid #3c3428;
+  font-variant-numeric: tabular-nums;
+}
+
+.ll-chip.gold {
+  color: #ffd872;
+}
+
+.ll-chip.buff {
+  border-color: #2f7d6e;
+  color: #79f2d8;
+}
+
+/* 中間對話 / 戰鬥日誌框 */
+.ll-log-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: rgba(6, 9, 13, 0.84);
+  border: 1px solid #493923;
+  border-radius: 4px;
+  padding: 4px 7px;
+  max-height: 92px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.38;
+}
+
+.ll-log-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ll-log-time {
+  color: #7c8798;
+  margin-right: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ll-log-line.gold { color: #f7d277; }
+.ll-log-line.cyan { color: #7be0ff; }
+.ll-log-line.warn { color: #f6b352; }
+.ll-log-line.danger { color: #ff7676; }
+.ll-log-line.info { color: #e2dac9; }
+
+/* 右側快捷列 + 功能鈕 */
+.ll-right-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+.ll-quickbar {
+  display: grid;
+  grid-template-columns: repeat(8, 38px);
+  gap: 4px;
+}
+
+.ll-qslot {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  padding: 2px;
+  border: 1px solid #785f36;
+  border-radius: 4px;
+  background: rgba(14, 17, 23, 0.92);
+  color: #efe4cc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ll-qslot:hover {
+  border-color: #f1ca78;
+}
+
+.ll-qslot.active-auto {
+  border-color: #34d399;
+  box-shadow: inset 0 0 8px rgba(52, 211, 153, 0.45);
+}
+
+.ll-qslot img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.ll-qslot-key {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  font-size: 9px;
+  color: #d4b987;
+  text-shadow: 0 1px 2px #000;
+}
+
+.ll-qslot-cnt {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+}
+
+.ll-hud-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.ll-hud-btn {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #755b33;
+  background: linear-gradient(180deg, #272017, #16120d);
+  color: #efe2c4;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ll-hud-btn:hover {
+  border-color: #ecc676;
+  color: #fff3d2;
+}
+
+.ll-hud-btn.active {
+  border-color: #34d399;
+  color: #86efac;
+  background: #103227;
+}
+
+/* 浮動功能視窗（道具、魔法、狀態、NPC 對話／商店／倉庫、地圖、系統） */
+#ll-modal-layer {
+  position: fixed;
+  inset: 0 0 112px 0;
+  pointer-events: none;
+  z-index: 72;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.ll-win {
+  pointer-events: auto;
+  width: min(560px, 96vw);
+  max-height: calc(100vh - 140px);
+  max-height: calc(100dvh - 140px);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #1b1713 0%, #100d0a 100%);
+  border: 2px solid #8a6c3b;
+  border-radius: 8px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.85);
+  color: #efe6d4;
+  overflow: hidden;
+}
+
+.ll-win.wide {
+  width: min(720px, 96vw);
+}
+
+.ll-win-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #322515, #221a10);
+  border-bottom: 1px solid #725830;
+}
+
+.ll-win-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f3d284;
+}
+
+.ll-win-close {
+  border: 1px solid #755b33;
+  background: #1a140e;
+  color: #e8dcc6;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ll-win-body {
+  padding: 12px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 道具欄 + 裝備欄 */
+.ll-inv-grid {
+  display: grid;
+  grid-template-columns: 195px 1fr;
+  gap: 12px;
+}
+
+.ll-equip-box,
+.ll-bag-box {
+  background: rgba(11, 9, 7, 0.72);
+  border: 1px solid #493822;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.ll-subhead {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e4c17a;
+  margin-bottom: 6px;
+}
+
+.ll-equip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px dashed rgba(110, 88, 52, 0.35);
+  font-size: 12px;
+}
+
+.ll-item-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+}
+
+.ll-item-card {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px;
+  border: 1px solid #4b3a22;
+  border-radius: 5px;
+  background: rgba(24, 20, 15, 0.88);
+  cursor: pointer;
+  text-align: left;
+  color: #efe4ce;
+}
+
+.ll-item-card:hover {
+  border-color: #e0b768;
+}
+
+.ll-item-card.equipped {
+  border-color: #60a5fa;
+  background: rgba(23, 39, 64, 0.65);
+}
+
+.ll-item-card img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.ll-item-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.ll-item-name {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ll-item-sub {
+  font-size: 11px;
+  color: #a99b83;
+}
+
+/* 魔法與商店列表 */
+.ll-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 8px;
+  border-bottom: 1px solid rgba(114, 88, 48, 0.3);
+}
+
+.ll-list-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ll-list-left img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.ll-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ll-act-btn {
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid #8a6c3b;
+  background: linear-gradient(180deg, #3c2e19, #241b0f);
+  color: #f8e6be;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ll-act-btn:hover {
+  border-color: #f3ce7b;
+}
+
+.ll-act-btn.secondary {
+  border-color: #465366;
+  background: #1a222d;
+  color: #d6dfeb;
+}
+
+/* NPC 對話內文連結 */
+.ll-npc-html {
+  background: rgba(8, 7, 5, 0.78);
+  border: 1px solid #4f3d23;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.ll-npc-html a,
+.ll-npc-link {
+  color: #7dd3fc;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+}
+
+/* 世界小地圖畫布 */
+.ll-minimap-canvas {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  margin: 0 auto;
+  border: 1px solid #755b33;
+  border-radius: 4px;
+  background: #0a1016;
+  cursor: crosshair;
+}
+
+/* 行動端快捷動作列（僅窄螢幕顯示） */
+.ll-mobile-bar {
+  display: none;
+}
+
+@media (max-width: 900px), (max-height: 460px) {
+  .ll-hud-backdrop {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    padding: 5px 6px;
+  }
+
+  .ll-log-col {
+    max-height: 54px;
+    font-size: 11px;
+    line-height: 1.35;
+    padding: 3px 6px;
+  }
+
+  .ll-right-col {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .ll-quickbar {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .ll-qslot {
+    width: 100%;
+    height: 32px;
+  }
+
+  .ll-qslot img {
+    width: 22px;
+    height: 22px;
+  }
+
+  .ll-hud-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ll-hud-btn {
+    flex: 1 1 auto;
+    padding: 4px 5px;
+    text-align: center;
+  }
+
+  .ll-inv-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ll-mobile-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  #ll-modal-layer {
+    inset: 0 0 148px 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .ll-top-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .ll-map-pill {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .ll-stat-chips {
+    font-size: 10px;
+    gap: 4px;
+  }
+}

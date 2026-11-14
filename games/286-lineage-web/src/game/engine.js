@@ -1,0 +1,569 @@
+// 286 天堂實境客戶端：Canvas 等距主迴圈、攝影機、物件深排序與遮蔽半透明、鼠鍵操控與診斷快照
+import { assetUrl } from '../app.js';
+import { GameAssetLoader, GameAudioManager } from './assets.js';
+import { LineageIsoMap, tileToWorld, worldToTile, tileDistance, HEADING_DELTAS } from './map-iso.js';
+import { SpriteRenderer } from './sprites.js';
+import { LineageWorld } from './world-state.js';
+import { AutoHuntController } from './auto-hunt.js';
+import { GameHud } from './hud.js';
+
+export class LineageGameEngine {
+  constructor({ mountEl, worldData, character, username, onLobbySync, onReturnToSelect }) {
+    this.mountEl = mountEl;
+    this.worldData = worldData;
+    this.disposed = false;
+
+    this.rootEl = document.createElement('div');
+    this.rootEl.id = 'll-game-root';
+    this.canvas = document.createElement('canvas');
+    this.canvas.id = 'll-canvas';
+    this.rootEl.appendChild(this.canvas);
+    this.mountEl.appendChild(this.rootEl);
+
+    this.ctx = this.canvas.getContext('2d');
+    this.assets = new GameAssetLoader(worldData);
+    this.isoMap = new LineageIsoMap(worldData, this.assets);
+    this.sprites = new SpriteRenderer(worldData, this.assets);
+    this.audio = new GameAudioManager(this.assets);
+    this.sprites.preloadEffects();
+
+    this.world = new LineageWorld({
+      worldData,
+      isoMap: this.isoMap,
+      sprites: this.sprites,
+      audio: this.audio,
+      character,
+      username,
+      onLobbySync,
+    });
+    this.autoHunt = new AutoHuntController(this.world);
+    this.hud = new GameHud({
+      rootEl: this.rootEl,
+      world: this.world,
+      autoHunt: this.autoHunt,
+      onReturnToSelect,
+      onActionNearest: (kind) => this.actionNearest(kind),
+    });
+
+    this.world.player.onNpcReady = (npc) => this.hud.openNpc(npc);
+
+    this.viewW = 1280;
+    this.viewH = 720;
+    this.dpr = 1;
+    this.camX = this.world.player.worldX;
+    this.camY = this.world.player.worldY + 36;
+    this.hoverTile = null;
+    this.hoverEntity = null;
+    this.cursorKind = 'arrow';
+
+    this.lastFrameAt = performance.now();
+    this.rafId = 0;
+
+    this.#bindEvents();
+    this.#handleResize();
+    this.isoMap.ensureVisibleChunks(this.world.player.map, this.world.player.tx, this.world.player.ty);
+    this.audio.playBgm('/lineage163/sound/0.mp3');
+    this.loop = this.loop.bind(this);
+    this.rafId = requestAnimationFrame(this.loop);
+  }
+
+  #bindEvents() {
+    this._onResize = () => this.#handleResize();
+    this._onPointerMove = (ev) => this.#handlePointerMove(ev);
+    this._onPointerUp = (ev) => this.#handlePointerUp(ev);
+    this._onPointerDown = (ev) => {
+      this._downPos = { x: ev.clientX, y: ev.clientY };
+      if (this.audio && !this.audio.muted && !this.audio.currentBgm) {
+        this.audio.playBgm('/lineage163/sound/0.mp3');
+      } else if (this.audio?.bgmAudio?.paused && !this.audio.muted) {
+        this.audio.bgmAudio.play().catch(() => {});
+      }
+    };
+    this._onKeyDown = (ev) => this.#handleKeyDown(ev);
+
+    window.addEventListener('resize', this._onResize);
+    window.addEventListener('keydown', this._onKeyDown);
+    this.canvas.addEventListener('pointerdown', this._onPointerDown);
+    this.canvas.addEventListener('pointermove', this._onPointerMove);
+    this.canvas.addEventListener('pointerup', this._onPointerUp);
+    this.canvas.addEventListener('contextmenu', (ev) => ev.preventDefault());
+  }
+
+  #handleResize() {
+    if (this.disposed) return;
+    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.viewW = Math.max(320, window.innerWidth);
+    this.viewH = Math.max(240, window.innerHeight);
+    this.canvas.width = Math.round(this.viewW * this.dpr);
+    this.canvas.height = Math.round(this.viewH * this.dpr);
+  }
+
+  #canvasCoords(ev) {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      sx: ev.clientX - rect.left,
+      sy: ev.clientY - rect.top,
+    };
+  }
+
+  #pickAtScreen(sx, sy) {
+    const camLeft = this.camX - this.viewW / 2;
+    const camTop = this.camY - this.viewH / 2;
+    const wx = camLeft + sx;
+    const wy = camTop + sy;
+
+    // 1. 優先偵測活著的怪物（點擊身體範圍）
+    let bestMob = null;
+    let bestMobScore = 1e9;
+    for (const m of this.world.mobs) {
+      if (m.hp <= 0) continue;
+      const dx = Math.abs(wx - m.worldX);
+      const dy = wy - m.worldY;
+      if (dx <= 26 && dy >= -68 && dy <= 14) {
+        const d = Math.hypot(dx, dy + 24);
+        if (d < bestMobScore) {
+          bestMobScore = d;
+          bestMob = m;
+        }
+      }
+    }
+    if (bestMob) return { kind: 'mob', entity: bestMob };
+
+    // 2. NPC
+    let bestNpc = null;
+    let bestNpcScore = 1e9;
+    for (const n of this.world.npcs) {
+      const dx = Math.abs(wx - n.worldX);
+      const dy = wy - n.worldY;
+      if (dx <= 26 && dy >= -68 && dy <= 14) {
+        const d = Math.hypot(dx, dy + 24);
+        if (d < bestNpcScore) {
+          bestNpcScore = d;
+          bestNpc = n;
+        }
+      }
+    }
+    if (bestNpc) return { kind: 'npc', entity: bestNpc };
+
+    // 3. 地面掉落物
+    for (const d of this.world.drops) {
+      if (Math.abs(wx - d.worldX) <= 20 && Math.abs(wy - d.worldY) <= 14) {
+        return { kind: 'drop', entity: d };
+      }
+    }
+
+    // 4. 等距地面格座標
+    const ft = worldToTile(wx, wy);
+    return { kind: 'tile', tx: Math.round(ft.x), ty: Math.round(ft.y) };
+  }
+
+  #handlePointerMove(ev) {
+    const { sx, sy } = this.#canvasCoords(ev);
+    const hit = this.#pickAtScreen(sx, sy);
+    let nextCursor = 'arrow';
+    if (hit.kind === 'mob') {
+      this.hoverEntity = hit.entity.id;
+      this.hoverTile = { x: hit.entity.tx, y: hit.entity.ty };
+      nextCursor = 'attack';
+    } else if (hit.kind === 'npc' || hit.kind === 'drop') {
+      this.hoverEntity = hit.entity.id;
+      this.hoverTile = { x: hit.entity.tx ?? hit.entity.x, y: hit.entity.ty ?? hit.entity.y };
+      nextCursor = 'talk';
+    } else {
+      this.hoverEntity = null;
+      this.hoverTile = { x: hit.tx, y: hit.ty };
+    }
+
+    if (nextCursor !== this.cursorKind) {
+      this.cursorKind = nextCursor;
+      const curPath = `/lineage163/cursors/${nextCursor}.cur`;
+      this.canvas.style.cursor = `url("${assetUrl(curPath)}") 4 4, ${nextCursor === 'attack' ? 'crosshair' : nextCursor === 'talk' ? 'pointer' : 'default'}`;
+    }
+  }
+
+  #handlePointerUp(ev) {
+    if (this._downPos) {
+      const moved = Math.hypot(ev.clientX - this._downPos.x, ev.clientY - this._downPos.y);
+      if (moved > 10) return;
+    }
+    const { sx, sy } = this.#canvasCoords(ev);
+    const hit = this.#pickAtScreen(sx, sy);
+    if (hit.kind === 'mob') {
+      this.world.targetMob(hit.entity);
+    } else if (hit.kind === 'npc') {
+      const readyNpc = this.world.interactOrWalkToNpc(hit.entity);
+      if (readyNpc) this.hud.openNpc(readyNpc);
+    } else if (hit.kind === 'drop') {
+      this.world.pickupOrWalkToDrop(hit.entity);
+    } else if (hit.kind === 'tile') {
+      this.world.setWalkTarget(hit.tx, hit.ty);
+    }
+    this.hud.sync(true);
+  }
+
+  #handleKeyDown(ev) {
+    const tag = ev.target?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    if (ev.code === 'Escape') {
+      ev.preventDefault();
+      if (this.hud.activeModal) this.hud.closeModal();
+      else this.hud.toggleModal('system');
+      return;
+    }
+    if (ev.code === 'KeyI' || ev.code === 'Tab') {
+      ev.preventDefault();
+      this.hud.toggleModal('inventory');
+      return;
+    }
+    if (ev.code === 'KeyK') {
+      this.hud.toggleModal('spells');
+      return;
+    }
+    if (ev.code === 'KeyS' && !ev.ctrlKey && !ev.metaKey) {
+      this.hud.toggleModal('status');
+      return;
+    }
+    if (ev.code === 'KeyM') {
+      this.hud.toggleModal('map');
+      return;
+    }
+    if (ev.code === 'KeyH') {
+      this.autoHunt.toggle();
+      this.hud.sync(true);
+      return;
+    }
+    if (ev.code === 'Space') {
+      ev.preventDefault();
+      this.actionNearest('attack');
+      return;
+    }
+
+    const fnMatch = /^F([5-9]|1[0-2])$/.exec(ev.code);
+    if (fnMatch) {
+      ev.preventDefault();
+      this.hud.triggerQuickbar(Number(fnMatch[1]) - 5);
+      return;
+    }
+    const numMatch = /^Digit([1-8])$/.exec(ev.code);
+    if (numMatch && !this.hud.activeModal) {
+      this.hud.triggerQuickbar(Number(numMatch[1]) - 1);
+      return;
+    }
+
+    // 方向鍵／WASD 微調移動
+    const dirMap = {
+      ArrowUp: [-1, -1],
+      KeyW: [-1, -1],
+      ArrowDown: [1, 1],
+      KeyX: [1, 1],
+      ArrowLeft: [-1, 1],
+      KeyA: [-1, 1],
+      ArrowRight: [1, -1],
+      KeyD: [1, -1],
+    };
+    const delta = dirMap[ev.code];
+    if (delta && !this.hud.activeModal) {
+      ev.preventDefault();
+      const p = this.world.player;
+      const gx = p.tx + delta[0] * 2;
+      const gy = p.ty + delta[1] * 2;
+      if (this.isoMap.isWalkableTile(gx, gy, p.map)) {
+        this.world.setWalkTarget(gx, gy);
+      } else {
+        for (const [dx, dy] of HEADING_DELTAS) {
+          if (dx === delta[0] && dy === delta[1]) continue;
+          if (this.isoMap.canStep(p.tx, p.ty, delta[0], delta[1], p.map)) {
+            this.world.setWalkTarget(p.tx + delta[0], p.ty + delta[1]);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  actionNearest(kind) {
+    const p = this.world.player;
+    if (kind === 'pickup') {
+      const drop = this.world.drops
+        .filter((d) => d.map === p.map)
+        .sort((a, b) => tileDistance(p.tx, p.ty, a.tx, a.ty) - tileDistance(p.tx, p.ty, b.tx, b.ty))[0];
+      if (drop) this.world.pickupOrWalkToDrop(drop);
+      else this.world.addLog('周圍沒有可拾取的道具。', 'info');
+      this.hud.sync(true);
+      return;
+    }
+
+    const mob = this.world.mobs
+      .filter((m) => m.hp > 0 && !m.isPassiveCritter)
+      .sort((a, b) => tileDistance(p.tx, p.ty, a.tx, a.ty) - tileDistance(p.tx, p.ty, b.tx, b.ty))[0];
+    if (mob) {
+      this.world.targetMob(mob);
+    } else {
+      this.world.addLog('附近沒有可攻擊的怪物。', 'info');
+    }
+    this.hud.sync(true);
+  }
+
+  loop(now) {
+    if (this.disposed) return;
+    const dtMs = Math.min(80, Math.max(1, now - this.lastFrameAt));
+    this.lastFrameAt = now;
+
+    this.autoHunt.step(now);
+    this.world.step(dtMs, now);
+
+    // 攝影機平滑跟隨主角，略微下移讓底部 HUD 不會遮住角色腳下
+    const targetCamX = this.world.player.worldX;
+    const targetCamY = this.world.player.worldY + 34;
+    this.camX += (targetCamX - this.camX) * Math.min(1, dtMs * 0.014);
+    this.camY += (targetCamY - this.camY) * Math.min(1, dtMs * 0.014);
+
+    this.render(now);
+    this.hud.sync(false);
+    this.rafId = requestAnimationFrame(this.loop);
+  }
+
+  render(now) {
+    const ctx = this.ctx;
+    const p = this.world.player;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.fillStyle = '#05070a';
+    ctx.fillRect(0, 0, this.viewW, this.viewH);
+
+    const camLeft = this.camX - this.viewW / 2;
+    const camTop = this.camY - this.viewH / 2;
+    const neededChunks = this.isoMap.ensureVisibleChunks(p.map, p.tx, p.ty);
+
+    // 1. 地面地磚層 (chunk 烘焙畫布)
+    for (const ref of neededChunks) {
+      const rec = this.isoMap.renderedChunks.get(ref.key);
+      if (rec?.groundCanvas) {
+        ctx.drawImage(rec.groundCanvas, Math.round(rec.worldX - camLeft), Math.round(rec.worldY - camTop));
+      }
+    }
+
+    // 2. 平地裝飾層
+    const renderList = [];
+    for (const ref of neededChunks) {
+      const rec = this.isoMap.renderedChunks.get(ref.key);
+      if (!rec || rec.status !== 'ready') continue;
+      for (const obj of rec.objects) {
+        if (!obj.image) continue;
+        const sx = obj.x - camLeft;
+        const sy = obj.y - camTop;
+        if (sx + obj.w < -64 || sy + obj.h < -64 || sx > this.viewW + 64 || sy > this.viewH + 64) {
+          continue;
+        }
+        if (obj.isGroundFlat) {
+          ctx.drawImage(obj.image, Math.round(sx), Math.round(sy));
+        } else {
+          renderList.push({ kind: 'obj', obj, sx, sy, sortY: obj.sortY });
+        }
+      }
+    }
+
+    // 3. 傳送點光圈與游標格提示
+    for (const portal of this.worldData.portals || []) {
+      if (portal.map !== p.map) continue;
+      const wp = tileToWorld(portal.x, portal.y);
+      const sx = wp.x - camLeft;
+      const sy = wp.y - camTop;
+      if (sx < -40 || sy < -40 || sx > this.viewW + 40 || sy > this.viewH + 40) continue;
+      const pulse = 0.55 + Math.sin(now * 0.005) * 0.25;
+      ctx.save();
+      ctx.strokeStyle = `rgba(96, 218, 255, ${pulse})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - 11);
+      ctx.lineTo(sx + 22, sy);
+      ctx.lineTo(sx, sy + 11);
+      ctx.lineTo(sx - 22, sy);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (this.hoverTile) {
+      const hw = tileToWorld(this.hoverTile.x, this.hoverTile.y);
+      const sx = hw.x - camLeft;
+      const sy = hw.y - camTop;
+      ctx.save();
+      ctx.strokeStyle = this.isoMap.isWalkableTile(this.hoverTile.x, this.hoverTile.y, p.map)
+        ? 'rgba(255, 224, 130, 0.55)'
+        : 'rgba(248, 113, 113, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - 12);
+      ctx.lineTo(sx + 24, sy);
+      ctx.lineTo(sx, sy + 12);
+      ctx.lineTo(sx - 24, sy);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 4. 地面戰利品掉落物
+    for (const drop of this.world.drops) {
+      if (drop.map !== p.map) continue;
+      const sx = drop.worldX - camLeft;
+      const sy = drop.worldY - camTop;
+      if (sx < -40 || sy < -40 || sx > this.viewW + 40 || sy > this.viewH + 40) continue;
+      this.sprites.drawGroundDrop(ctx, drop, sx, sy);
+    }
+
+    // 5. 深排序實體：3D 建築樹木 + NPC + 怪物 + 玩家
+    for (const npc of this.world.npcs) {
+      const sx = npc.worldX - camLeft;
+      const sy = npc.worldY - camTop;
+      if (sx < -120 || sy < -160 || sx > this.viewW + 120 || sy > this.viewH + 160) continue;
+      renderList.push({ kind: 'npc', npc, sx, sy, sortY: npc.worldY });
+    }
+
+    for (const mob of this.world.mobs) {
+      const sx = mob.worldX - camLeft;
+      const sy = mob.worldY - camTop;
+      if (sx < -120 || sy < -160 || sx > this.viewW + 120 || sy > this.viewH + 160) continue;
+      renderList.push({ kind: 'mob', mob, sx, sy, sortY: mob.worldY });
+    }
+
+    renderList.push({
+      kind: 'player',
+      sx: p.worldX - camLeft,
+      sy: p.worldY - camTop,
+      sortY: p.worldY,
+    });
+
+    renderList.sort((a, b) => a.sortY - b.sortY);
+
+    for (const item of renderList) {
+      if (item.kind === 'obj') {
+        const o = item.obj;
+        const behindBuilding =
+          o.occludes &&
+          p.worldY < o.sortY &&
+          p.worldX > o.x - 18 &&
+          p.worldX < o.x + o.w + 18 &&
+          p.worldY > o.y - 36;
+        if (behindBuilding) {
+          ctx.save();
+          ctx.globalAlpha = 0.48;
+          ctx.drawImage(o.image, Math.round(item.sx), Math.round(item.sy));
+          ctx.restore();
+        } else {
+          ctx.drawImage(o.image, Math.round(item.sx), Math.round(item.sy));
+        }
+      } else if (item.kind === 'npc') {
+        const n = item.npc;
+        this.sprites.drawActor(ctx, {
+          gfx: n.renderGfx,
+          animState: n.animState,
+          heading: n.heading,
+          elapsedMs: now,
+          screenX: item.sx,
+          screenY: item.sy,
+          name: n.name,
+          isNpc: true,
+          isTarget: this.hoverEntity === n.id,
+        });
+      } else if (item.kind === 'mob') {
+        const m = item.mob;
+        this.sprites.drawActor(ctx, {
+          gfx: m.gfx,
+          animState: m.animState,
+          heading: m.heading,
+          elapsedMs: now - (m.animStartedAt || 0),
+          screenX: item.sx,
+          screenY: item.sy,
+          name: m.name,
+          hpRatio: m.hp > 0 ? m.hp / Math.max(1, m.maxHp) : 0,
+          isTarget: p.targetId === m.id || this.hoverEntity === m.id,
+        });
+      } else if (item.kind === 'player') {
+        this.sprites.drawActor(ctx, {
+          gfx: p.gfx,
+          animState: p.animState,
+          heading: p.heading,
+          elapsedMs: now - (p.animStartedAt || 0),
+          weaponType: p.weaponType,
+          screenX: item.sx,
+          screenY: item.sy,
+          name: p.name,
+          hpRatio: p.hp / Math.max(1, p.maxHp),
+          isPlayer: true,
+        });
+      }
+    }
+
+    // 6. 投射物、法術特效與浮動傷害文字
+    for (const pr of this.world.projectiles) {
+      this.sprites.drawProjectile(ctx, pr, pr.x - camLeft, pr.y - camTop);
+    }
+
+    for (const fx of this.world.effects) {
+      this.sprites.drawEffect(ctx, fx, fx.x - camLeft, fx.y - camTop, now - fx.bornAt);
+    }
+
+    for (const ft of this.world.floatingTexts) {
+      const progress = Math.min(1, (now - ft.bornAt) / ft.duration);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - progress * progress);
+      ctx.font = 'bold 14px "Noto Sans TC", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(0,0,0,0.88)';
+      const sx = ft.x - camLeft;
+      const sy = ft.y - camTop - progress * 26;
+      ctx.strokeText(ft.text, sx, sy);
+      ctx.fillStyle = ft.color;
+      ctx.fillText(ft.text, sx, sy);
+      ctx.restore();
+    }
+  }
+
+  getSnapshot() {
+    const p = this.world.player;
+    const readyChunks = [...this.isoMap.renderedChunks.values()].filter((c) => c.status === 'ready').length;
+    return {
+      map: p.map,
+      tx: p.tx,
+      ty: p.ty,
+      hp: p.hp,
+      maxHp: p.maxHp,
+      mp: p.mp,
+      maxMp: p.maxMp,
+      level: p.level,
+      exp: p.exp,
+      gold: p.gold,
+      ac: p.ac,
+      weaponType: p.weaponType,
+      autoEnabled: p.autoConfig.enabled,
+      autoStatus: this.autoHunt.statusLabel,
+      npcsCount: this.world.npcs.length,
+      mobsCount: this.world.mobs.filter((m) => m.hp > 0).length,
+      dropsCount: this.world.drops.length,
+      readyChunks,
+      imagesLoaded: this.assets.stats.imagesLoaded,
+      chunksLoaded: this.assets.stats.chunksLoaded,
+      activeModal: this.hud.activeModal,
+    };
+  }
+
+  destroy() {
+    if (this.disposed) return;
+    this.disposed = true;
+    cancelAnimationFrame(this.rafId);
+    window.removeEventListener('resize', this._onResize);
+    window.removeEventListener('keydown', this._onKeyDown);
+    this.canvas.removeEventListener('pointerdown', this._onPointerDown);
+    this.canvas.removeEventListener('pointermove', this._onPointerMove);
+    this.canvas.removeEventListener('pointerup', this._onPointerUp);
+
+    this.world.dirtySave = true;
+    this.world.saveWorld(true);
+    this.audio.stopBgm();
+    this.hud.destroy();
+    this.assets.dispose();
+    this.rootEl.remove();
+  }
+}
