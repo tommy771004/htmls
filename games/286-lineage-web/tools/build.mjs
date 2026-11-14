@@ -57,7 +57,7 @@ const bundled = await esbuild.build({
 // 本機（npm start / accept.mjs）與帶 ?cdn=0 時照舊讀 ../assets/286/。
 // 請先於 assets-worker/ 手動執行 `npx wrangler deploy` 並確認 <workers.dev>/art-assets.json 可讀後，
 // 再設定 ASSET_CDN_DEFAULT 或以 LINEAGE_ASSET_CDN=https://lineage-assets.<帳號>.workers.dev/ npm run build 建置（之前請保持空字串）。
-const ASSET_CDN_DEFAULT = '';
+const ASSET_CDN_DEFAULT = 'https://lineage-assets.tommy771004.workers.dev/';
 const ASSET_CDN = process.argv.includes('--no-cdn')
   ? ''
   : (process.env.LINEAGE_ASSET_CDN ?? ASSET_CDN_DEFAULT);
