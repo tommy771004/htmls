@@ -8,6 +8,7 @@ import { chromium } from 'playwright-core';
 import { EventEmitter } from 'node:events';
 import http from 'node:http';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createLineageServer } from '../../../server/lineage-web/server.mjs';
@@ -17,7 +18,7 @@ const gameRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(gameRoot, '../..');
 const thumbOut = path.join(repoRoot, 'thumbs/286.jpg');
 const scratchDir =
-  '/Users/tommy/.gemini/antigravity-cli/brain/8e501d1b-38ea-4bdf-b9d7-dce616d6e8f4/scratch';
+  process.env.ACCEPT_SCRATCH_DIR || path.join(os.tmpdir(), '286-lineage-web-scratch');
 
 fs.mkdirSync(scratchDir, { recursive: true });
 
@@ -480,6 +481,22 @@ try {
     borderlessPanels.every((p) => p.exists && p.bt === '0px' && p.br === '0px' && p.bb === '0px' && p.bl === '0px'),
     `Expected clean borderless HUD panels: ${JSON.stringify(borderlessPanels)}`
   );
+
+  // 驗證右下工具列與快捷啟動鈕皆僅保留高精細圖示、無可見文字標籤
+  const brIconOnly = await page.evaluate(() => {
+    const btns = Array.from(document.querySelectorAll('.ll-br-dock [data-role="tl-toolbar"] .ll-tl-btn, .ll-br-dock .ll-br-sub-btn, .ll-br-dock [data-role="hud-auto-btn"]'));
+    return {
+      count: btns.length,
+      items: btns.map((b) => ({
+        text: (b.textContent || '').trim(),
+        hasSvg: Boolean(b.querySelector('svg')),
+      })),
+    };
+  });
+  assert(
+    brIconOnly.count === 10 && brIconOnly.items.every((it) => it.hasSvg && it.text === ''),
+    `Expected icon-only bottom-right buttons without text labels: ${JSON.stringify(brIconOnly)}`
+  );
   await page.screenshot({ path: path.join(scratchDir, 'lineage-game-hud.png') });
 
   // 驗證右下工具列可正常收合展開
@@ -792,6 +809,149 @@ try {
     afterCraft.hardAfter === craftReady.hardBefore + 1 && afterCraft.leatherAfter === craftReady.leatherBefore - 10,
     `Craft 高級皮革 inventory mismatch: ${JSON.stringify({ craftReady, afterCraft })}`
   );
+
+  // 全亞丁工匠覆蓋、對話 request 連動、批量製作、鎖定保護、120 格釋放與負重上限驗證
+  const craftSuite = await page.evaluate(() => {
+    const eng = window.__lineage.engine();
+    const w = eng.world;
+    const savedInv = w.player.inventory.map((i) => ({ ...i }));
+    const savedGold = w.player.gold;
+
+    // 1. 檢查全地圖所有 Craft 型 NPC 都有配方，且莫麗雅已修正為法師長袍／法師之帽
+    const craftTypes = w.worldData.npcs.filter((n) => n.type === 'Craft');
+    const emptyCraft = craftTypes.filter((n) => {
+      eng.hud.openNpc(n);
+      const btns = document.querySelectorAll('[data-craft-idx]');
+      return btns.length === 0;
+    });
+    const moria = w.worldData.npcs.find((n) => n.name === '莫麗雅');
+    eng.hud.openNpc(moria);
+    const moriaText = document.body.innerText;
+    const moriaFixed = moriaText.includes('法師長袍') && moriaText.includes('法師之帽') && !moriaText.includes('精靈弓');
+
+    // 2. 法林 (Shop) 與 芮克妮 (ElfGuard) 可開啟製作工坊
+    const farlin = w.worldData.npcs.find((n) => n.name === '法林');
+    let farlinHasBtn = false;
+    if (farlin) {
+      eng.hud.openNpc(farlin);
+      farlinHasBtn = Boolean(document.querySelector('[data-npc-mode="craft"]'));
+    }
+    const arachnee = w.worldData.npcs.find((n) => n.name === '芮克妮');
+    let arachneeHasBtn = false;
+    if (arachnee) {
+      eng.hud.openNpc(arachnee);
+      arachneeHasBtn = Boolean(document.querySelector('[data-npc-mode="craft"]'));
+    }
+
+    // 3. 對話 request action 直連莫麗雅「製作魔法師長袍」
+    w.player.inventory = [];
+    w.addItemToInventory('高品質藍寶石', 1);
+    w.addItemToInventory('魔法寶石', 25);
+    w.addItemToInventory('白色布料', 2);
+    w.addItemToInventory('藍色布料', 4);
+    eng.hud.openNpc(moria);
+    eng.hud.npcSession.mode = 'talk';
+    eng.hud.npcSession.dialogueKey = 'moria2';
+    eng.hud.renderModal();
+    document.querySelector('[data-npc-act="request magician dress"]')?.click();
+    const moriaRobes = w.player.inventory.filter((i) => i.name === '法師長袍').length;
+
+    // 4. 鎖定材料保護 + 批量製作
+    w.player.inventory = [];
+    w.player.gold = 5000;
+    w.addItemToInventory('皮革', 35);
+    w.addItemToInventory('皮帽子', 1);
+    const capItem = w.player.inventory.find((i) => i.name === '皮帽子');
+    capItem.locked = true;
+    w.addItemToInventory('金屬塊', 20);
+    w.addItemToInventory('高級皮革', 5);
+    const silverCapCheck = w.evaluateCraftRecipe({
+      npc: '法林', output: '銀釘皮帽', count: 1, adena: 500,
+      mats: [['皮帽子', 1], ['金屬塊', 10], ['高級皮革', 2]],
+    });
+    const batchCount = w.craftItem(0, 3); // 3x 高級皮革 (-30 皮革)
+    const remLeather = w.player.inventory.filter((i) => i.name === '皮革').reduce((s, i) => s + i.count, 0);
+
+    // 5. 120 格滿背包時先扣除釋放空間再入庫可成功；超重禁止淨增重製作
+    w.player.inventory = [];
+    w.player.gold = 50000;
+    for (let i = 0; i < 119; i++) {
+      w.player.inventory.push({ id: `fill-${i}`, name: '木棒', count: 1, plus: 0, equipped: false });
+    }
+    w.player.inventory.push({ id: 'fill-mat', name: '皮革', count: 10, plus: 0, equipped: false });
+    const slotFullOk = w.craftItem(0, 1);
+
+    // 超重檢核：加入足夠金屬塊接近負重上限後嘗試製作 銀釘皮甲 / 皮甲（淨增重 +338）應被阻擋
+    w.player.inventory = [];
+    w.recomputePlayerStats();
+    const maxW = w.player.maxWeight || 500;
+    w.addItemToInventory('皮革', 12);
+    w.addItemToInventory('金屬塊', Math.ceil((maxW - 100) / 5));
+    w.recomputePlayerStats();
+    const overWeightBlocked = !w.craftItem(11, 1);
+
+    // 6. 內掛 valuable 過濾含製作材料（原木 / 元素石）+ 多線索掉落/物品驗證
+    w.player.inventory = savedInv;
+    w.player.gold = savedGold;
+    w.recomputePlayerStats();
+    const prevCfg = { ...w.player.autoConfig };
+    w.player.autoConfig = { ...prevCfg, lootFilter: 'valuable', avoidSafetyBorder: false, maxWeightPct: 85 };
+    const picksLog = eng.autoHunt.isDesiredDrop({
+      id: 'test-drop-log',
+      map: w.player.map,
+      tx: w.player.tx,
+      ty: w.player.ty,
+      item: '原木',
+      count: 1,
+    }) && eng.autoHunt.isDesiredDrop({
+      id: 'test-drop-elem',
+      map: w.player.map,
+      tx: w.player.tx,
+      ty: w.player.ty,
+      item: '元素石',
+      count: 1,
+    });
+    w.player.autoConfig = prevCfg;
+    eng.hud.closeModal();
+
+    return {
+      emptyCraft: emptyCraft.map((n) => n.name),
+      moriaFixed,
+      farlinHasBtn,
+      arachneeHasBtn,
+      moriaRobes,
+      lockedProtected: !silverCapCheck.ok,
+      batchCount,
+      remLeather,
+      slotFullOk: Boolean(slotFullOk),
+      overWeightBlocked,
+      hasBrablobDrops: Array.isArray(w.worldData.drops['布拉伯']) && w.worldData.drops['布拉伯'].length >= 5,
+      hasWoodItems: Boolean(w.worldData.items['原木'] && w.worldData.items['木材']),
+      unifiedRuby: Boolean(w.worldData.items['品質紅寶石']) && !w.worldData.items['品質紅寶實'],
+      picksLog,
+      picksDiag: {
+        weightPercent: w.player.weightPercent,
+        maxWeight: w.player.maxWeight,
+        autoCfg: w.player.autoConfig,
+        invCount: w.player.inventory.length,
+        hasLogDef: Boolean(w.worldData.items['原木']),
+        hasElemDef: Boolean(w.worldData.items['元素石']),
+      },
+    };
+  });
+  assert(craftSuite.emptyCraft.length === 0, `Empty Craft NPCs: ${craftSuite.emptyCraft.join(',')}`);
+  assert(craftSuite.moriaFixed, 'Moria recipes not fixed to 法師長袍/法師之帽');
+  assert(craftSuite.farlinHasBtn && craftSuite.arachneeHasBtn, 'Farlin/Arachnee missing craft workshop button');
+  assert(craftSuite.moriaRobes === 1, `Dialogue request magician dress failed: ${JSON.stringify(craftSuite)}`);
+  assert(craftSuite.lockedProtected, 'Locked gear was not protected from crafting consumption');
+  assert(craftSuite.batchCount === 3 && craftSuite.remLeather === 5, `Batch craft mismatch: ${JSON.stringify(craftSuite)}`);
+  assert(craftSuite.slotFullOk, '120-slot crafting should succeed when consumed materials free a slot');
+  assert(craftSuite.overWeightBlocked, 'Overweight crafting should be blocked');
+  assert(
+    craftSuite.hasBrablobDrops && craftSuite.hasWoodItems && craftSuite.unifiedRuby,
+    `World data crafting integrity mismatch: ${JSON.stringify(craftSuite)}`
+  );
+  assert(craftSuite.picksLog, `autoHunt valuable filter should include crafting materials: ${JSON.stringify(craftSuite.picksDiag)}`);
 
   // 魔法導師（吉倫）學法 + 翡翠藥水／旅店解毒 + 死亡復活
   const teachReady = await page.evaluate(() => {
@@ -2203,6 +2363,11 @@ try {
     for (let i = p.inventory.length - 1; i >= 0; i -= 1) {
       if (p.inventory[i].name === '磨刀石') p.inventory.splice(i, 1);
     }
+    for (const it of p.inventory) {
+      if (it.brokenCount) it.brokenCount = 0;
+    }
+    const savedMpForRepairTest = p.mp;
+    p.mp = 0;
     w.recomputePlayerStats();
     const acClean = p.ac;
     p.hp = p.maxHp;
@@ -2270,6 +2435,7 @@ try {
 
     eqWeapon.brokenCount = 0;
     eqArmor.brokenCount = 0;
+    p.mp = savedMpForRepairTest;
     p.autoConfig.autoRepairGear = true;
     p.autoConfig.enabled = false;
     eng.autoHunt.onExternalToggle(false);
@@ -2387,16 +2553,58 @@ try {
   const afterLobbyReenterBuffs = await page.evaluate(() => {
     const w = window.__lineage.engine().world;
     const buffs = w.getBuffList();
-    const badges = document.querySelectorAll('[data-role="buff-strip"] .ll-buff-badge').length;
+    const stripEl = document.querySelector('[data-role="buff-strip"]');
+    const badgeEls = stripEl ? [...stripEl.querySelectorAll('.ll-buff-badge')] : [];
+    const stripRect = stripEl ? stripEl.getBoundingClientRect() : null;
+    const firstBadge = badgeEls[0] || null;
+    const firstBadgeRect = firstBadge ? firstBadge.getBoundingClientRect() : null;
+    const firstImgRect = firstBadge?.querySelector('img')?.getBoundingClientRect() || null;
+    const firstSpan = firstBadge?.querySelector('span') || null;
+    const firstSpanRect = firstSpan ? firstSpan.getBoundingClientRect() : null;
+    const firstBg = firstBadge ? getComputedStyle(firstBadge).backgroundColor : null;
+    const spanFontPx = firstSpan ? parseFloat(getComputedStyle(firstSpan).fontSize) : 0;
     return {
       haste: buffs.find((b) => b.key === 'haste')?.remainSec || 0,
       brave: buffs.find((b) => b.key === 'brave')?.remainSec || 0,
-      badges,
+      badges: badgeEls.length,
+      topLeftOk: Boolean(
+        stripRect &&
+          firstBadgeRect &&
+          stripRect.left <= 24 &&
+          stripRect.top <= 24 &&
+          firstBadgeRect.left <= 32 &&
+          firstBadgeRect.top <= 32 &&
+          firstBadgeRect.top < window.innerHeight * 0.25
+      ),
+      styleOk: Boolean(
+        firstImgRect &&
+          firstSpanRect &&
+          firstImgRect.width >= 24 &&
+          firstImgRect.height >= 24 &&
+          firstSpanRect.top >= firstImgRect.bottom - 1 &&
+          spanFontPx > 0 &&
+          spanFontPx <= 10 &&
+          firstBg === 'rgba(0, 0, 0, 0)'
+      ),
+      firstBadgeRect: firstBadgeRect
+        ? { left: Math.round(firstBadgeRect.left), top: Math.round(firstBadgeRect.top) }
+        : null,
+      layoutMetrics: {
+        imgW: firstImgRect ? Math.round(firstImgRect.width) : 0,
+        imgBottom: firstImgRect ? Math.round(firstImgRect.bottom) : 0,
+        spanTop: firstSpanRect ? Math.round(firstSpanRect.top) : 0,
+        spanFontPx,
+        firstBg,
+      },
     };
   });
   assert(
-    afterLobbyReenterBuffs.haste > 180 && afterLobbyReenterBuffs.brave > 180 && afterLobbyReenterBuffs.badges >= 2,
-    `Buffs not preserved after re-entering from lobby: ${JSON.stringify(afterLobbyReenterBuffs)}`
+    afterLobbyReenterBuffs.haste > 180 &&
+      afterLobbyReenterBuffs.brave > 180 &&
+      afterLobbyReenterBuffs.badges >= 2 &&
+      afterLobbyReenterBuffs.topLeftOk &&
+      afterLobbyReenterBuffs.styleOk,
+    `Buffs not preserved or top-left stacked transparent layout failed: ${JSON.stringify(afterLobbyReenterBuffs)}`
   );
   await page.screenshot({ path: path.join(scratchDir, 'lineage-buff-persist.png') });
 

@@ -166,14 +166,55 @@ export const POISON_MOBS = {
   夏爾戈: 0.35,
 };
 
+const forNpcs = (npcs, specs) =>
+  npcs.flatMap((npc) => specs.map((spec) => ({ npc, ...spec })));
+
+// 共用防具進階表（法林 / 平 共用；朱利 / 文森 / 拉達 共用）
+const STUDDED_LEATHER_SPECS = [
+  { output: '銀釘皮帽', count: 1, adena: 500, reqAction: 'request studded leather cap', mats: [['皮帽子', 1], ['金屬塊', 10], ['高級皮革', 2]] },
+  { output: '銀釘皮涼鞋', count: 1, adena: 600, reqAction: 'request studded leather sandal', mats: [['皮涼鞋', 1], ['金屬塊', 12], ['高級皮革', 3]] },
+  { output: '銀釘皮背心', count: 1, adena: 500, reqAction: 'request studded leather vest', mats: [['皮背心', 1], ['金屬塊', 10], ['高級皮革', 2]] },
+  { output: '銀釘皮盾', count: 1, adena: 800, reqAction: 'request studded leather shield', mats: [['皮盾牌', 1], ['金屬塊', 20], ['高級皮革', 5]] },
+];
+
+const LEATHER_ARTISAN_SPECS = [
+  { output: '高級皮革', count: 1, adena: 0, reqAction: 'request hard leather', mats: [['皮革', 20]] },
+  { output: '皮帽子', count: 1, adena: 0, reqAction: 'request leather cap', mats: [['皮革', 5], ['金屬塊', 1]] },
+  { output: '皮涼鞋', count: 1, adena: 0, reqAction: 'request leather sandal', mats: [['皮革', 6], ['金屬塊', 2]] },
+  { output: '皮背心', count: 1, adena: 0, reqAction: 'request leather vest', mats: [['皮革', 10]] },
+  { output: '皮盾牌', count: 1, adena: 0, reqAction: 'request leather shield', mats: [['皮革', 7]] },
+  { output: '皮帶', count: 1, adena: 0, reqAction: 'request belt', mats: [['高級皮革', 5], ['金屬塊', 2]] },
+  { output: '皮長靴', count: 1, adena: 300, reqAction: 'request leather boots', mats: [['銀釘皮涼鞋', 1], ['高級皮革', 10], ['金屬塊', 10]] },
+  { output: '皮頭盔', count: 1, adena: 0, reqAction: 'request leather helmet', mats: [['鋼盔', 1], ['皮帽子', 1], ['高級皮革', 5], ['金屬塊', 5]] },
+  { output: '硬皮背心', count: 1, adena: 0, reqAction: 'request hard leather vest', mats: [['銀釘皮背心', 1], ['高級皮革', 15], ['金屬塊', 15]] },
+  { output: '皮盔甲', count: 1, adena: 0, reqAction: 'request leather vest with belt', mats: [['皮背心', 1], ['皮帶', 1]] },
+];
+
+const BLOB_ALCHEMY_SPECS = [
+  { output: '短劍的劍身', count: 1, adena: 0, mats: [['精靈羽翼', 1], ['純粹的米索莉塊', 50]] },
+  { output: '長劍的劍身', count: 1, adena: 0, mats: [['精靈羽翼', 3], ['純粹的米索莉塊', 150]] },
+  { output: '奧里哈魯根的劍身', count: 1, adena: 0, mats: [['精靈羽翼', 3], ['奧里哈魯根', 150], ['紅寶石', 3]] },
+  { output: '覆上米索莉的角', count: 1, adena: 0, mats: [['潘的角', 2], ['純粹的米索莉塊', 80]] },
+  { output: '覆上奧里哈魯根的角', count: 1, adena: 0, mats: [['潘的角', 4], ['奧里哈魯根', 80], ['紅寶石', 3]] },
+];
+
 export const CRAFT_RECIPES = [
-  // 拉達（皮革工匠）
-  { npc: '拉達', output: '高級皮革', count: 1, adena: 50, mats: [['皮革', 10]] },
+  // [0] 拉達首項保留「皮革 x10 -> 高級皮革」，相容既有驗收流程
+  { npc: '拉達', output: '高級皮革', count: 1, adena: 50, reqAction: 'request hard leather', mats: [['皮革', 10]] },
+  ...forNpcs(['拉達'], LEATHER_ARTISAN_SPECS.slice(1)),
+  // 拉達說話之島便民直造配方
   { npc: '拉達', output: '皮手套', count: 1, adena: 120, mats: [['皮革', 6], ['金屬塊', 1]] },
   { npc: '拉達', output: '皮甲', count: 1, adena: 200, mats: [['皮革', 12]] },
   { npc: '拉達', output: '銀釘皮甲', count: 1, adena: 600, mats: [['高級皮革', 3], ['金屬塊', 4]] },
   { npc: '拉達', output: '鋼鐵長靴', count: 1, adena: 800, mats: [['高級皮革', 2], ['金屬塊', 6]] },
-  // 丁（武器與重裝鍛造師）
+
+  // 朱利 / 文森（本島皮革工匠完整 10 式）
+  ...forNpcs(['朱利', '文森'], LEATHER_ARTISAN_SPECS),
+
+  // 法林 / 平（銀釘皮防具升級）
+  ...forNpcs(['法林', '平'], STUDDED_LEATHER_SPECS),
+
+  // 丁（說話之島武器與重裝鍛造師）
   { npc: '丁', output: '闊劍', count: 1, adena: 450, mats: [['金屬塊', 8], ['皮革', 2]] },
   { npc: '丁', output: '大盾牌', count: 1, adena: 650, mats: [['金屬塊', 10], ['皮革', 4]] },
   { npc: '丁', output: '環甲', count: 1, adena: 700, mats: [['金屬塊', 12]] },
@@ -181,11 +222,104 @@ export const CRAFT_RECIPES = [
   { npc: '丁', output: '鋼盔', count: 1, adena: 900, mats: [['金屬塊', 10], ['骨頭碎片', 6]] },
   { npc: '丁', output: '騎士面甲', count: 1, adena: 1800, mats: [['金屬塊', 16], ['紅寶石', 1]] },
   { npc: '丁', output: '鋼鐵金屬盔甲', count: 1, adena: 3200, mats: [['金屬塊', 30], ['粗糙的米索莉塊', 10], ['鑽石', 1]] },
-  // 莫麗雅（精靈與魔法工藝師）
+
+  // 莫麗雅（法師長袍 / 法師之帽 / 抗魔法斗篷）
+  { npc: '莫麗雅', output: '法師長袍', count: 1, adena: 0, reqAction: 'request magician dress', mats: [['高品質藍寶石', 1], ['魔法寶石', 25], ['白色布料', 2], ['藍色布料', 4]] },
+  { npc: '莫麗雅', output: '法師之帽', count: 1, adena: 0, reqAction: 'request magician cap', mats: [['品質綠寶石', 2], ['魔法寶石', 20], ['白色布料', 1], ['藍色布料', 1], ['紅色布料', 1]] },
   { npc: '莫麗雅', output: '抗魔法斗篷', count: 1, adena: 1500, mats: [['高級皮革', 4], ['魔法寶石', 5]] },
-  { npc: '莫麗雅', output: '精靈弓', count: 1, adena: 1800, mats: [['粗糙的米索莉塊', 15], ['高級皮革', 4], ['精靈玉', 5]] },
-  { npc: '莫麗雅', output: '精靈鏈甲', count: 1, adena: 2400, mats: [['粗糙的米索莉塊', 20], ['綠寶石', 1]] },
+
+  // 喬治（銀騎士之村骨製防具）
+  { npc: '喬治', output: '骷髏頭盔', count: 1, adena: 800, reqAction: 'request skull helmet', mats: [['皮頭盔', 1], ['骨頭碎片', 10]] },
+  { npc: '喬治', output: '骷髏盔甲', count: 1, adena: 500, reqAction: 'request bone armor', mats: [['硬皮背心', 1], ['骨頭碎片', 20]] },
+  { npc: '喬治', output: '骷髏盾牌', count: 1, adena: 800, reqAction: 'request bone shield', mats: [['銀釘皮盾', 1], ['骨頭碎片', 15]] },
+
+  // 海克特（奇岩鋼鐵鍛造師）
+  { npc: '海克特', output: '鋼鐵手套', count: 1, adena: 25000, reqAction: 'request iron gloves', mats: [['手套', 1], ['金屬塊', 150]] },
+  { npc: '海克特', output: '鋼鐵頭盔', count: 1, adena: 16500, reqAction: 'request iron visor', mats: [['騎士面甲', 1], ['金屬塊', 120]] },
+  { npc: '海克特', output: '鋼鐵盾牌', count: 1, adena: 16000, reqAction: 'request iron shield', mats: [['塔盾', 1], ['金屬塊', 200]] },
+  { npc: '海克特', output: '鋼鐵長靴', count: 1, adena: 8000, reqAction: 'request iron boots', mats: [['長靴', 1], ['金屬塊', 160]] },
+  { npc: '海克特', output: '鋼鐵金屬盔甲', count: 1, adena: 30000, reqAction: 'request iron plate mail', mats: [['金屬盔甲', 1], ['金屬塊', 450]] },
+
+  // 哈巴特（奇岩裁縫師）
+  { npc: '哈巴特', output: 'T恤', count: 1, adena: 30000, reqAction: 'request t-shirt', mats: [['紅色布料', 3], ['藍色布料', 2], ['白色布料', 10]] },
+  { npc: '哈巴特', output: '抗魔法斗篷', count: 1, adena: 1000, reqAction: 'request cloak of magic resistance', mats: [['紅色布料', 10], ['藍色布料', 2], ['白色布料', 1]] },
+  { npc: '哈巴特', output: '保護者斗篷', count: 1, adena: 20000, reqAction: 'request cloak of protection', mats: [['紅色布料', 5], ['藍色布料', 5], ['白色布料', 10]] },
+
+  // 傑森（奇岩木匠）
+  { npc: '傑森', output: '木材', count: 4, adena: 0, reqAction: 'request timber', mats: [['原木', 1]] },
+  { npc: '傑森', output: '木棒', count: 1, adena: 50, mats: [['木材', 6]] },
+  { npc: '傑森', output: '木盾', count: 1, adena: 100, mats: [['木材', 8], ['金屬塊', 2]] },
+
+  // 安東（奇岩珠寶與精工師）
+  { npc: '安東', output: '力量項鍊', count: 1, adena: 5000, mats: [['木材', 4], ['紅寶石', 3], ['品質紅寶石', 1], ['精靈玉', 5]] },
+  { npc: '安東', output: '敏捷項鍊', count: 1, adena: 5000, mats: [['木材', 4], ['綠寶石', 3], ['品質綠寶石', 1], ['精靈玉', 5]] },
+  { npc: '安東', output: '反射之盾', count: 1, adena: 12000, mats: [['大盾牌', 1], ['品質藍寶石', 2], ['金屬塊', 20], ['魔法寶石', 10]] },
+  { npc: '安東', output: '銀長劍', count: 1, adena: 5000, mats: [['闊劍', 1], ['純粹的米索莉塊', 30], ['金屬塊', 15]] },
+
+  // 那翰（迷幻森林吟遊精靈）
+  { npc: '那翰', output: '魔法笛子', count: 1, adena: 0, reqAction: 'request magic flute', mats: [['奧里哈魯根', 10], ['安特之樹皮', 1]] },
+
+  // 戴波羅哲 / 多特（布拉伯煉金提煉）
+  ...forNpcs(['戴波羅哲', '多特'], BLOB_ALCHEMY_SPECS),
+
+  // 妖魔森林四守護神（基礎素材轉換）
+  { npc: '芮克妮', output: '線', count: 1, adena: 0, reqAction: 'request thread', mats: [['潘的鬃毛', 1]] },
+  { npc: '芮克妮', output: '米索莉線', count: 1, adena: 0, reqAction: 'request mithril thread', mats: [['線', 1], ['純粹的米索莉塊', 5]] },
+  { npc: '芮克妮', output: '芮克妮的蛻皮', count: 1, adena: 0, reqAction: 'request ecdysis of arachne', mats: [['安特之樹皮', 3]] },
+  { npc: '芮克妮', output: '芮克妮的網', count: 5, adena: 0, mats: [['安特之樹枝', 1]] },
+
+  { npc: '潘', output: '米索莉金屬板', count: 1, adena: 0, reqAction: 'request mithril plate', mats: [['純粹的米索莉塊', 50], ['芮克妮的蛻皮', 1]] },
+  { npc: '潘', output: '奧里哈魯根金屬板', count: 1, adena: 0, reqAction: 'request oriharukon plate', mats: [['奧里哈魯根', 30], ['芮克妮的蛻皮', 1]] },
+  { npc: '潘', output: '潘的角', count: 1, adena: 0, reqAction: "request pan's horn", mats: [['魔法笛子', 1]] },
+  { npc: '潘', output: '潘的鬃毛', count: 5, adena: 0, mats: [['精靈粉末', 2]] },
+
+  { npc: '精靈', output: '純粹的米索莉塊', count: 20, adena: 0, reqAction: 'request lump of pure mithril', mats: [['粗糙的米索莉塊', 1]] },
+  { npc: '精靈', output: '精靈羽翼', count: 1, adena: 0, reqAction: 'request ala of fairy', mats: [['米索莉線', 5], ['精靈粉末', 40]] },
+
+  { npc: '精靈女皇', output: '純粹的米索莉塊', count: 20, adena: 0, reqAction: 'request lump of pure mithril', mats: [['粗糙的米索莉塊', 1]] },
+  { npc: '精靈女皇', output: '奧里哈魯根', count: 1, adena: 0, reqAction: 'request oriharukon', mats: [['純粹的米索莉塊', 10]] },
+  { npc: '精靈女皇', output: '精靈羽翼', count: 1, adena: 0, reqAction: 'request ala of fairy', mats: [['米索莉線', 5], ['元素石', 2]] },
+
+  { npc: '安特', output: '安特之樹枝', count: 5, adena: 0, mats: [['精靈粉末', 1]] },
+  { npc: '安特', output: '安特之樹皮', count: 3, adena: 0, mats: [['蘑菇汁', 1]] },
+  { npc: '安特', output: '安特的水果', count: 1, adena: 0, mats: [['蘑菇汁', 1], ['精靈粉末', 5]] },
+
+  // 娜魯帕（迷幻森林長老：全 29 式經典精靈工藝）
+  { npc: '娜魯帕', output: '精靈粉末', count: 20, adena: 0, reqAction: 'request fairydust', mats: [['元素石', 1]] },
+  { npc: '娜魯帕', output: '箭', count: 10, adena: 0, reqAction: 'request arrow', mats: [['安特之樹枝', 1]] },
+  { npc: '娜魯帕', output: '米索莉箭', count: 10, adena: 0, reqAction: 'request mithril arrow', mats: [['純粹的米索莉塊', 1], ['安特之樹枝', 1]] },
+  { npc: '娜魯帕', output: '弓', count: 1, adena: 0, reqAction: 'request bow', mats: [['安特之樹枝', 1], ['線', 5]] },
+  { npc: '娜魯帕', output: '精靈弓', count: 1, adena: 0, reqAction: 'request elven bow', mats: [['安特之樹枝', 10], ['純粹的米索莉塊', 20], ['線', 2], ['芮克妮的蛻皮', 2]] },
+  { npc: '娜魯帕', output: '十字弓', count: 1, adena: 0, reqAction: 'request crossbow', mats: [['精靈羽翼', 8], ['奧里哈魯根金屬板', 3], ['米索莉線', 20], ['芮克妮的網', 30]] },
+  { npc: '娜魯帕', output: '精靈匕首', count: 1, adena: 0, reqAction: 'request elven dagger', mats: [['安特之樹枝', 5], ['純粹的米索莉塊', 20]] },
+  { npc: '娜魯帕', output: '鎖子甲破壞者', count: 1, adena: 0, reqAction: 'request mail breaker', mats: [['覆上米索莉的角', 1], ['安特之樹枝', 10], ['鑽石', 1], ['短劍的劍身', 1], ['芮克妮的網', 50]] },
+  { npc: '娜魯帕', output: '精靈短劍', count: 1, adena: 0, reqAction: 'request elven short sword', mats: [['長劍的劍身', 1], ['安特之樹皮', 5], ['純粹的米索莉塊', 150], ['芮克妮的網', 50]] },
+  { npc: '娜魯帕', output: '細劍', count: 1, adena: 0, reqAction: 'request rapier', mats: [['奧里哈魯根的劍身', 1], ['精靈羽翼', 2], ['奧里哈魯根', 50], ['品質紅寶石', 1], ['芮克妮的網', 25]] },
+  { npc: '娜魯帕', output: '木棒', count: 1, adena: 0, reqAction: 'request club', mats: [['安特之樹枝', 10], ['芮克妮的網', 5]] },
+  { npc: '娜魯帕', output: '戰斧', count: 1, adena: 0, reqAction: 'request battle axe', mats: [['短劍的劍身', 1], ['芮克妮的網', 5], ['安特之樹枝', 10], ['純粹的米索莉塊', 60]] },
+  { npc: '娜魯帕', output: '吉薩', count: 1, adena: 0, reqAction: 'request guisarme', mats: [['短劍的劍身', 1], ['芮克妮的網', 10], ['安特之樹枝', 10], ['純粹的米索莉塊', 90]] },
+  { npc: '娜魯帕', output: '精靈之矛', count: 1, adena: 0, reqAction: 'request elven spear', mats: [['覆上米索莉的角', 1], ['芮克妮的網', 30], ['安特之樹枝', 10]] },
+  { npc: '娜魯帕', output: '法丘', count: 1, adena: 0, reqAction: 'request fauchard', mats: [['精靈之矛', 1], ['覆上奧里哈魯根的角', 1], ['芮克妮的網', 50], ['奧里哈魯根', 60], ['品質紅寶石', 1]] },
+  { npc: '娜魯帕', output: '木製的夾克', count: 1, adena: 0, reqAction: 'request wooden jacket', mats: [['安特之樹枝', 10], ['線', 6]] },
+  { npc: '娜魯帕', output: '木甲', count: 1, adena: 0, reqAction: 'request wooden armor', mats: [['安特之樹皮', 2], ['潘的鬃毛', 5]] },
+  { npc: '娜魯帕', output: '精靈護胸金屬板', count: 1, adena: 0, reqAction: 'request elven breast plate', mats: [['芮克妮的蛻皮', 2], ['線', 10]] },
+  { npc: '娜魯帕', output: '精靈鏈甲', count: 1, adena: 0, reqAction: 'request elven chain mail', mats: [['米索莉金屬板', 4], ['米索莉線', 80]] },
+  { npc: '娜魯帕', output: '精靈金屬盔甲', count: 1, adena: 0, reqAction: 'request elven plate mail', mats: [['奧里哈魯根金屬板', 8], ['米索莉線', 20], ['高品質鑽石', 1]] },
+  { npc: '娜魯帕', output: '木盾', count: 1, adena: 0, reqAction: 'request wooden shield', mats: [['安特之樹皮', 1], ['芮克妮的網', 5], ['安特之樹枝', 5]] },
+  { npc: '娜魯帕', output: '精靈盾牌', count: 1, adena: 0, reqAction: 'request elven shield', mats: [['木盾', 1], ['米索莉金屬板', 2], ['芮克妮的網', 5]] },
+  { npc: '娜魯帕', output: '精靈皮盔', count: 1, adena: 0, reqAction: 'request elven leather helm', mats: [['精靈羽翼', 1], ['安特之樹皮', 2], ['潘的鬃毛', 10], ['芮克妮的網', 20]] },
+  { npc: '娜魯帕', output: '艾爾穆的祝福', count: 1, adena: 0, reqAction: 'request bless of elm', mats: [['精靈皮盔', 1], ['品質鑽石', 1], ['品質藍寶石', 1], ['品質綠寶石', 1], ['魔法寶石', 5], ['奧里哈魯根金屬板', 3], ['米索莉線', 150]] },
+  { npc: '娜魯帕', output: '腕甲', count: 1, adena: 0, reqAction: 'request bracer', mats: [['米索莉線', 20], ['安特之樹皮', 3]] },
+  { npc: '娜魯帕', output: '力量手套', count: 1, adena: 0, reqAction: 'request power gloves', mats: [['芮克妮的蛻皮', 5], ['米索莉線', 20], ['食人巨魔的血', 1], ['品質鑽石', 1]] },
+  { npc: '娜魯帕', output: '精靈斗篷', count: 1, adena: 0, reqAction: 'request elven cloak', mats: [['魔法寶石', 2], ['米索莉線', 10], ['精靈粉末', 120]] },
+  { npc: '娜魯帕', output: '短統靴', count: 1, adena: 0, reqAction: 'request low boots', mats: [['安特之樹皮', 2], ['線', 4]] },
+  { npc: '娜魯帕', output: '長靴', count: 1, adena: 0, reqAction: 'request boots', mats: [['芮克妮的蛻皮', 2], ['線', 10]] },
 ];
+
+export const CRAFT_NPC_SET = new Set(CRAFT_RECIPES.map((r) => r.npc));
+export const CRAFT_MATERIAL_SET = new Set(
+  CRAFT_RECIPES.flatMap((r) => r.mats.map(([matName]) => matName)),
+);
 
 export const TEACHER_SPELLS = [
   { id: 1, npcs: ['吉倫', '甘特'], minLv: 1, price: 80, classes: ['royal', 'knight', 'elf', 'mage'] },
@@ -2091,15 +2225,20 @@ export class LineageWorld {
     return true;
   }
 
-  #countInventoryItem(itemName) {
+  #craftableMatches(itemName) {
+    // 優先消耗未強化、未鎖定且未裝備的道具，保護玩家已鎖定或高強化裝備
     return this.player.inventory
-      .filter((i) => i.name === itemName && !i.equipped)
-      .reduce((acc, i) => acc + i.count, 0);
+      .filter((i) => i.name === itemName && !i.equipped && !i.locked)
+      .sort((a, b) => (a.plus || 0) - (b.plus || 0));
+  }
+
+  #countInventoryItem(itemName) {
+    return this.#craftableMatches(itemName).reduce((acc, i) => acc + i.count, 0);
   }
 
   #consumeMaterial(itemName, qty) {
     let rem = qty;
-    const matches = this.player.inventory.filter((i) => i.name === itemName && !i.equipped);
+    const matches = this.#craftableMatches(itemName);
     for (const item of matches) {
       if (rem <= 0) break;
       const take = Math.min(rem, item.count);
@@ -2109,33 +2248,145 @@ export class LineageWorld {
     return rem <= 0;
   }
 
-  craftItem(recipeIdx) {
+  #computeInventoryWeight() {
+    let total = 0;
+    for (const it of this.player.inventory) {
+      total += (this.worldData.items[it.name]?.weight || 0) * it.count;
+    }
+    return total;
+  }
+
+  /**
+   * 評估單次或批量製作可執行次數與阻擋原因（同時計算消耗釋放欄位與負重差）
+   */
+  evaluateCraftRecipe(recipeOrIdx) {
+    const recipe = typeof recipeOrIdx === 'object' ? recipeOrIdx : CRAFT_RECIPES[Number(recipeOrIdx)];
+    const p = this.player;
+    if (!recipe || !p) return { ok: false, maxCount: 0, reason: '找不到指定製作配方。' };
+    const outDef = this.worldData.items[recipe.output];
+    if (!outDef) return { ok: false, maxCount: 0, reason: `未知製作道具：${recipe.output}` };
+
+    if (p.gold < recipe.adena) {
+      return { ok: false, maxCount: 0, reason: `金幣不足（需 ${recipe.adena}）` };
+    }
+
+    let maxByMat = recipe.adena > 0 ? Math.floor(p.gold / recipe.adena) : 999;
+    for (const [matName, need] of recipe.mats) {
+      const owned = this.#countInventoryItem(matName);
+      if (owned < need) {
+        return { ok: false, maxCount: 0, reason: `缺少 ${matName}（${owned}/${need}）` };
+      }
+      maxByMat = Math.min(maxByMat, Math.floor(owned / need));
+    }
+
+    // 預演消耗材料後釋放的背包欄位與增加負重
+    const outCount = recipe.count || 1;
+    let freedSlots = 0;
+    let matWeight = 0;
+    const consumedMap = new Map();
+    for (const [matName, need] of recipe.mats) {
+      const prevNeed = (consumedMap.get(matName) || 0) + need;
+      consumedMap.set(matName, prevNeed);
+      matWeight += (this.worldData.items[matName]?.weight || 0) * need;
+    }
+    const survivingStacks = new Set();
+    for (const [matName, need] of consumedMap.entries()) {
+      let rem = need;
+      for (const it of this.#craftableMatches(matName)) {
+        const take = Math.min(rem, it.count);
+        rem -= take;
+        if (it.count - take <= 0) freedSlots += 1;
+        else survivingStacks.add(it.name);
+      }
+    }
+    const hasOutStack = outDef.stack && (
+      consumedMap.has(recipe.output)
+        ? survivingStacks.has(recipe.output)
+        : p.inventory.some((i) => i.name === recipe.output)
+    );
+    const neededSlots = outDef.stack ? (hasOutStack ? 0 : 1) : outCount;
+    const projectedSlots = p.inventory.length - freedSlots + neededSlots;
+    if (projectedSlots > 120) {
+      return { ok: false, maxCount: 0, reason: '背包欄位已滿，無法容納成品' };
+    }
+
+    const outWeight = (outDef.weight || 0) * outCount;
+    const weightDelta = outWeight - matWeight;
+    const currentWeight = this.#computeInventoryWeight();
+    const maxWeight = p.maxWeight || 500;
+    if (weightDelta > 0 && currentWeight + weightDelta > maxWeight) {
+      return { ok: false, maxCount: 0, reason: '負重超過上限，無法繼續製作' };
+    }
+
+    let maxCount = maxByMat;
+    if (!outDef.stack) {
+      const freeSpace = Math.max(0, 120 - p.inventory.length);
+      // 只有首次能使用 freedSlots；近似上限再由 craftItem 迴圈逐次精準把關
+      maxCount = Math.min(maxCount, freeSpace + freedSlots);
+    }
+    if (weightDelta > 0) {
+      const byWeight = Math.floor((maxWeight - currentWeight) / weightDelta);
+      maxCount = Math.min(maxCount, Math.max(1, byWeight));
+    }
+    return { ok: true, maxCount: Math.max(1, Math.min(999, maxCount)), reason: '' };
+  }
+
+  sellMaterialToNpc(npcName, matName, unitPrice, qty = null) {
+    const owned = this.#countInventoryItem(matName);
+    if (owned <= 0) {
+      this.addLog(`${npcName}：你身上沒有未鎖定的【${matName}】可販賣。`, 'warn');
+      return 0;
+    }
+    const sellCount = qty == null ? owned : Math.min(owned, Math.max(1, Math.floor(Number(qty) || 1)));
+    this.#consumeMaterial(matName, sellCount);
+    const earned = sellCount * unitPrice;
+    this.player.gold += earned;
+    this.audio.playSound(105, 0.35);
+    this.recomputePlayerStats();
+    this.addLog(`向 ${npcName} 販賣 ${matName} x${sellCount}，獲得 ${earned} 金幣。`, 'gold');
+    this.saveWorld(true);
+    return sellCount;
+  }
+
+  craftItem(recipeIdx, qty = 1) {
     const p = this.player;
     const recipe = CRAFT_RECIPES[Number(recipeIdx)];
     if (!recipe) return false;
-    if (p.gold < recipe.adena) {
-      this.addLog(`金幣不足（需要 ${recipe.adena} 金幣）。`, 'warn');
-      return false;
-    }
-    for (const [matName, need] of recipe.mats) {
-      if (this.#countInventoryItem(matName) < need) {
-        this.addLog(`材料不足：需要 ${matName} x${need}。`, 'warn');
-        return false;
+    const targetTimes = Math.max(1, Math.min(999, Math.floor(Number(qty) || 1)));
+    const outPerUnit = recipe.count || 1;
+    let crafted = 0;
+    let failReason = '';
+
+    for (let i = 0; i < targetTimes; i++) {
+      const check = this.evaluateCraftRecipe(recipe);
+      if (!check.ok) {
+        failReason = check.reason;
+        break;
       }
+      // 先扣除金幣與材料釋放背包空間，再置入成品
+      p.gold -= recipe.adena;
+      for (const [matName, need] of recipe.mats) {
+        this.#consumeMaterial(matName, need);
+      }
+      if (!this.addItemToInventory(recipe.output, outPerUnit, 0)) {
+        failReason = '背包空間不足，無法置入成品';
+        break;
+      }
+      crafted += 1;
     }
-    if (!this.addItemToInventory(recipe.output, recipe.count || 1, 0)) {
+
+    if (crafted === 0) {
+      this.addLog(failReason || '無法製作指定道具。', 'warn');
       return false;
     }
-    p.gold -= recipe.adena;
-    for (const [matName, need] of recipe.mats) {
-      this.#consumeMaterial(matName, need);
-    }
+    const totalOut = crafted * outPerUnit;
     this.spawnEffect(p.tx, p.ty, '751');
     this.audio.playSound(105, 0.38);
     this.recomputePlayerStats();
-    this.addLog(`向 ${recipe.npc} 委託製作完成！獲得【${recipe.output}】！`, 'gold');
+    const qtyLabel = totalOut > 1 ? ` x${totalOut}` : '';
+    this.addLog(`向 ${recipe.npc} 委託製作完成！獲得【${recipe.output}】${qtyLabel}！`, 'gold');
     this.saveWorld(true);
-    return true;
+    return crafted;
   }
 
   getEnchantRule(scrollItem) {

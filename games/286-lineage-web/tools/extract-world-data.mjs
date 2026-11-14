@@ -529,9 +529,60 @@ const SUPPLEMENTAL_DROPS = {
     { item: '戰斧', min: 1, max: 1, chance: 90000 },
     { item: '對武器施法的卷軸', min: 1, max: 1, chance: 40000 },
   ],
+  布拉伯: [
+    { item: '短劍的劍身', min: 1, max: 1, chance: 180000 },
+    { item: '長劍的劍身', min: 1, max: 1, chance: 100000 },
+    { item: '奧里哈魯根的劍身', min: 1, max: 1, chance: 55000 },
+    { item: '覆上米索莉的角', min: 1, max: 1, chance: 120000 },
+    { item: '覆上奧里哈魯根的角', min: 1, max: 1, chance: 60000 },
+    { item: '魔法寶石', min: 1, max: 3, chance: 260000 },
+  ],
 };
 for (const [mName, list] of Object.entries(SUPPLEMENTAL_DROPS)) {
   drops[mName] = list;
+}
+
+// 補充製作材料掉落（採累加合併，保留原始掉落表）
+const ADDITIONAL_DROPS = {
+  狼人: [{ item: '原木', min: 1, max: 2, chance: 180000 }],
+  歐格: [
+    { item: '原木', min: 1, max: 3, chance: 220000 },
+    { item: '木材', min: 2, max: 4, chance: 140000 },
+  ],
+  吐魯番獸人: [{ item: '原木', min: 1, max: 2, chance: 140000 }],
+  岩石魔怪: [{ item: '元素石', min: 1, max: 2, chance: 120000 }],
+  土咒師: [{ item: '元素石', min: 1, max: 3, chance: 350000 }],
+  火咒師: [{ item: '元素石', min: 1, max: 3, chance: 350000 }],
+  風咒師: [{ item: '元素石', min: 1, max: 3, chance: 350000 }],
+  水咒師: [{ item: '元素石', min: 1, max: 3, chance: 350000 }],
+  黑咒師: [{ item: '元素石', min: 1, max: 3, chance: 350000 }],
+  卡司托: [
+    { item: '芮克妮的網', min: 2, max: 5, chance: 260000 },
+    { item: '芮克妮的蛻皮', min: 1, max: 1, chance: 100000 },
+    { item: '元素石', min: 1, max: 2, chance: 140000 },
+  ],
+  地靈: [
+    { item: '安特之樹枝', min: 2, max: 5, chance: 240000 },
+    { item: '安特之樹皮', min: 1, max: 2, chance: 150000 },
+    { item: '精靈粉末', min: 5, max: 12, chance: 200000 },
+    { item: '元素石', min: 1, max: 1, chance: 160000 },
+  ],
+  艾多倫: [
+    { item: '潘的鬃毛', min: 1, max: 3, chance: 220000 },
+    { item: '安特之樹枝', min: 2, max: 5, chance: 220000 },
+  ],
+  蘑菇: [{ item: '安特之樹枝', min: 1, max: 3, chance: 180000 }],
+  奇岩盜賊: [
+    { item: '紅色布料', min: 1, max: 1, chance: 90000 },
+    { item: '藍色布料', min: 1, max: 1, chance: 90000 },
+    { item: '白色布料', min: 1, max: 2, chance: 120000 },
+  ],
+};
+for (const [mName, list] of Object.entries(ADDITIONAL_DROPS)) {
+  const existing = drops[mName] || [];
+  const seen = new Set(existing.map((e) => e.item));
+  const toAdd = list.filter((e) => !seen.has(e.item));
+  if (toAdd.length > 0) drops[mName] = [...existing, ...toAdd];
 }
 
 // 6. 全 64 張地圖 NPC 與商店（44 個原版缺少的 NPC 圖編號一律對映到封包既有精靈）
@@ -659,11 +710,13 @@ const groundPackedSet = new Set(
 );
 
 const items = {};
-for (const [name, it] of Object.entries(E.t)) {
+for (const [rawName, it] of Object.entries(E.t)) {
   if (!it) continue;
+  const name = normalizeItemName(rawName);
+  if (items[name] && rawName !== name) continue;
   const spStr = String(it.sprite ?? '');
   items[name] = {
-    name: it.name,
+    name,
     kind: it.kind,
     type: it.type,
     small: Number(it.small || 0),
@@ -779,6 +832,14 @@ function synthesizeMissingItem(name) {
     return { ...base, icon: 235, groundGfx: 773, weight: 1, stack: true, price: 150 };
   }
   return base;
+}
+
+const SUPPLEMENTAL_ITEMS = {
+  原木: { ...synthesizeMissingItem('原木'), stack: true, weight: 5, price: 20, icon: 309, groundGfx: 881 },
+  木材: { ...synthesizeMissingItem('木材'), stack: true, weight: 1, price: 8, icon: 311, groundGfx: 883 },
+};
+for (const [sName, def] of Object.entries(SUPPLEMENTAL_ITEMS)) {
+  if (!items[sName]) items[sName] = def;
 }
 
 for (const rows of Object.values(drops)) {

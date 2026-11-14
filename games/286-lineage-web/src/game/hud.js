@@ -2,6 +2,7 @@
 import { assetUrl } from '../app.js';
 import {
   CRAFT_RECIPES,
+  CRAFT_NPC_SET,
   DEFAULT_AUTO_CONFIG,
   TEACHER_SPELLS,
   MORPH_FORMS,
@@ -10,6 +11,7 @@ import {
 } from './world-state.js';
 import { AUTO_PRESETS } from './auto-hunt.js';
 import { computeDerivedAbilities } from './ability-tables.js';
+import { HUD_ICONS } from './hud-icons.js';
 import {
   MAP_NAMES,
   getMapMeta,
@@ -83,7 +85,22 @@ const NPC_DIALOGUE_START = {
   林果: 'lengo1',
   夢娜: 'mona1',
   莫麗雅: 'moria1',
-  丁: 'touma1',
+  平: 'Pin1',
+  朱利: 'Julie1',
+  喬治: 'Joel1',
+  文森: 'vincent1',
+  海克特: 'hector1',
+  哈巴特: 'herbert1',
+  傑森: 'jason1',
+  安東: 'anton1',
+  那翰: 'narhene1',
+  娜魯帕: 'nerupae1',
+  芮克妮: 'arachnee1',
+  潘: 'pane1',
+  精靈: 'fairye1',
+  精靈女皇: 'fairyqe1',
+  安特: 'ente1',
+  多特: 'doette1',
   盧卡斯: 'teleisland1',
   史提夫: 'telegludin1',
   史坦利: 'telekent1',
@@ -153,25 +170,16 @@ export class GameHud {
   }
 
   #mountDom() {
-    const iconBag = assetUrl('/lineage163/ui-redraw-v9/619.png');
-    const iconMagic = assetUrl('/lineage163/ui-redraw-v9/618.png');
-    const iconStatus = assetUrl('/lineage163/ui-redraw-v9/617.png');
-    const iconMap = assetUrl('/lineage163/ui-redraw-v9/620.png');
-    const iconAuto = assetUrl('/lineage163/ui-quickbar-v1/quickbar.png');
-    const iconSys = assetUrl('/lineage163/ui-quickbar-v1/options.png');
-    const swordDef = this.world.worldData.items['長劍'];
-    const iconAtk = swordDef ? this.world.assets.itemIconUrl(swordDef.icon) : iconStatus;
-    const coinDef = this.world.worldData.items['金幣'];
-    const iconLoot = coinDef ? this.world.assets.itemIconUrl(coinDef.icon) : iconBag;
     const potDef = this.world.worldData.items['紅色藥水'];
     const iconPot = potDef ? this.world.assets.itemIconUrl(potDef.icon) : assetUrl('/lineage163/ui-redraw-v8/468-fill.png');
     const sendIcon = assetUrl('/lineage163/ui-redraw-v8/send.png');
     const expandIcon = assetUrl('/lineage163/ui-redraw-v8/chat-expand.png');
 
-    // 1. 右上角小地圖雷達＋安全/戰鬥區＋可折疊任務與地監面板（左上角保持完全清空）
+    // 1. 左上角狀態／增益列＋右上角小地圖雷達／安全區與可折疊任務面板
     const topStrip = document.createElement('div');
     topStrip.className = 'll-top-strip';
     topStrip.innerHTML = `
+      <div class="ll-buff-strip" data-role="buff-strip"></div>
       <div class="ll-tr-cluster">
         <div class="ll-radar-card">
           <div class="ll-radar-head" data-win="map" title="點擊開啟完整世界地圖 (M)">
@@ -270,23 +278,22 @@ export class GameHud {
               <span class="ll-target-name" data-role="target-name"></span>
               <div class="ll-target-bar"><div class="ll-target-fill" data-role="target-fill" style="width:100%"></div></div>
             </div>
-            <div class="ll-buff-strip" data-role="buff-strip"></div>
             <div class="ll-br-actions">
-              <button type="button" class="ll-br-sub-btn" data-act="attack-nearest" title="鎖定最近目標 (Space)">周邊</button>
-              <button type="button" class="ll-play-btn" data-act="toggle-auto" data-role="hud-auto-btn" title="切換自動狩獵／內掛 (H)">
-                <span class="ll-play-ring">▶</span>
-                <span class="ll-play-label" data-role="auto-label">內掛</span>
+              <button type="button" class="ll-br-sub-btn" data-act="attack-nearest" title="鎖定最近目標 (Space)" aria-label="周邊鎖敵">${HUD_ICONS.scanTarget}</button>
+              <button type="button" class="ll-play-btn" data-act="toggle-auto" data-role="hud-auto-btn" title="切換自動狩獵／內掛 (H)" aria-label="切換自動狩獵">
+                <span class="ll-auto-ico ll-auto-idle">${HUD_ICONS.autoIdle}</span>
+                <span class="ll-auto-ico ll-auto-active">${HUD_ICONS.autoActive}</span>
               </button>
             </div>
             <div class="ll-tl-toolbar" data-role="tl-toolbar">
-              <button type="button" class="ll-tl-btn" data-win="inventory" title="道具欄 (I)"><img src="${esc(iconBag)}" alt="" /><span>道具</span></button>
-              <button type="button" class="ll-tl-btn" data-win="spells" title="魔法書 (K)"><img src="${esc(iconMagic)}" alt="" /><span>魔法</span></button>
-              <button type="button" class="ll-tl-btn" data-win="status" title="狀態紙娃娃 (S)"><img src="${esc(iconStatus)}" alt="" /><span>狀態</span></button>
-              <button type="button" class="ll-tl-btn" data-win="map" title="世界地圖 (M)"><img src="${esc(iconMap)}" alt="" /><span>地圖</span></button>
-              <button type="button" class="ll-tl-btn" data-win="auto" title="內掛設定 (H)"><img src="${esc(iconAuto)}" alt="" /><span>設定</span></button>
-              <button type="button" class="ll-tl-btn" data-act="attack-nearest" title="鎖敵攻擊 (Space)"><img src="${esc(iconAtk)}" alt="" /><span>鎖敵</span></button>
-              <button type="button" class="ll-tl-btn" data-act="pickup-nearest" title="拾取道具"><img src="${esc(iconLoot)}" alt="" /><span>拾取</span></button>
-              <button type="button" class="ll-tl-btn" data-win="system" title="系統與選角 (Esc)"><img src="${esc(iconSys)}" alt="" /><span>系統</span></button>
+              <button type="button" class="ll-tl-btn" data-win="inventory" title="道具欄 (I)" aria-label="道具欄">${HUD_ICONS.bag}</button>
+              <button type="button" class="ll-tl-btn" data-win="spells" title="魔法書 (K)" aria-label="魔法書">${HUD_ICONS.spells}</button>
+              <button type="button" class="ll-tl-btn" data-win="status" title="狀態紙娃娃 (S)" aria-label="狀態紙娃娃">${HUD_ICONS.status}</button>
+              <button type="button" class="ll-tl-btn" data-win="map" title="世界地圖 (M)" aria-label="世界地圖">${HUD_ICONS.map}</button>
+              <button type="button" class="ll-tl-btn" data-win="auto" title="內掛設定 (H)" aria-label="內掛設定">${HUD_ICONS.auto}</button>
+              <button type="button" class="ll-tl-btn" data-act="attack-nearest" title="鎖敵攻擊 (Space)" aria-label="鎖敵攻擊">${HUD_ICONS.targetSword}</button>
+              <button type="button" class="ll-tl-btn" data-act="pickup-nearest" title="拾取道具" aria-label="拾取道具">${HUD_ICONS.pickup}</button>
+              <button type="button" class="ll-tl-btn" data-win="system" title="系統與選角 (Esc)" aria-label="系統與選角">${HUD_ICONS.system}</button>
               <button type="button" class="ll-tl-chevron" data-act="toggle-tl" title="收合／展開工具列">›</button>
             </div>
           </div>
@@ -419,13 +426,12 @@ export class GameHud {
       coords: topStrip.querySelector('[data-role="coords"]'),
       zoneBadge: topStrip.querySelector('[data-role="zone-badge"]'),
       radarCanvas: topStrip.querySelector('[data-role="radar-canvas"]'),
-      buffStrip: bottomHud.querySelector('[data-role="buff-strip"]'),
+      buffStrip: topStrip.querySelector('[data-role="buff-strip"]'),
       questSummary: topStrip.querySelector('[data-role="quest-summary"]'),
       targetPill: bottomHud.querySelector('[data-role="target-pill"]'),
       targetName: bottomHud.querySelector('[data-role="target-name"]'),
       targetFill: bottomHud.querySelector('[data-role="target-fill"]'),
       hudAutoBtn: bottomHud.querySelector('[data-role="hud-auto-btn"]'),
-      autoLabel: bottomHud.querySelector('[data-role="auto-label"]'),
       charLevel: bottomHud.querySelector('[data-role="char-level"]'),
       charTitle: bottomHud.querySelector('[data-role="char-title"]'),
       lawful: bottomHud.querySelector('[data-role="lawful"]'),
@@ -498,7 +504,7 @@ export class GameHud {
     else if (npc.type === 'Craft') defaultMode = 'craft';
     else if (npc.type === 'PetShop') defaultMode = 'pet';
     else if (npc.type === 'ClanRegistrar') defaultMode = 'clan';
-    this.npcSession = { npc, mode: defaultMode, dialogueKey: key };
+    this.npcSession = { npc, mode: defaultMode, dialogueKey: key, craftFilter: 'all' };
     this.npcShopQty = {};
     this.npcShopTouched = new Set();
     this.shopTab = 'all';
@@ -1610,6 +1616,43 @@ export class GameHud {
     this.sync(true);
   }
 
+  #formatCraftOutputBrief(def) {
+    if (!def) return '';
+    const parts = [];
+    if (def.kind === 'weapon') {
+      const wType = WEAPON_TYPE_LABELS[def.type] || '武器';
+      parts.push(`攻擊 ${def.small}/${def.large} (${wType})`);
+      if (def.hit) parts.push(`命中 +${def.hit}`);
+      if (def.damage) parts.push(`傷 +${def.damage}`);
+      if (def.twoHand) parts.push('雙手');
+      parts.push(this.#formatAllowedClasses(def));
+    } else if (def.kind === 'armor') {
+      const slotName = PAPERDOLL_GRID_SLOTS.find((s) => s.key === def.type)?.label || '防具';
+      const ac = def.ac || 0;
+      parts.push(`AC ${ac >= 0 ? `-${ac}` : `+${Math.abs(ac)}`} (${slotName})`);
+      if (def.mr) parts.push(`魔防 +${def.mr}%`);
+      if (def.hp) parts.push(`體力 +${def.hp}`);
+      if (def.mp) parts.push(`魔力 +${def.mp}`);
+      if (def.str) parts.push(`力 +${def.str}`);
+      if (def.dex) parts.push(`敏 +${def.dex}`);
+      parts.push(this.#formatAllowedClasses(def));
+    } else {
+      parts.push(def.stack ? '可堆疊材料' : '製作材料／道具');
+    }
+    if (def.weight) parts.push(`重 ${def.weight}`);
+    return parts.join(' · ');
+  }
+
+  #buildNpcSellMaterialSpec(actLower) {
+    const map = {
+      'request adena2': { item: '皮革', price: 2 },
+      'request adena30': { item: '高級皮革', price: 30 },
+      'request adena5': { item: '金屬塊', price: 5 },
+      'request adena10': { item: '骨頭碎片', price: 10 },
+    };
+    return map[actLower] || null;
+  }
+
   #renderNpcModalHtml() {
     const sess = this.npcSession;
     if (!sess) return '';
@@ -1879,38 +1922,63 @@ export class GameHud {
           .join('')}
       `;
     } else if (mode === 'craft') {
-      const recipes = CRAFT_RECIPES.map((r, idx) => ({ r, idx })).filter(({ r }) => r.npc === npc.name);
+      const allRecipes = CRAFT_RECIPES.map((r, idx) => ({ r, idx, evalRes: this.world.evaluateCraftRecipe(r) }))
+        .filter(({ r }) => r.npc === npc.name);
       const countOwned = (matName) =>
-        p.inventory.filter((i) => i.name === matName && !i.equipped).reduce((s, i) => s + i.count, 0);
+        p.inventory.filter((i) => i.name === matName && !i.equipped && !i.locked).reduce((s, i) => s + i.count, 0);
+      const countLocked = (matName) =>
+        p.inventory.filter((i) => i.name === matName && !i.equipped && i.locked).reduce((s, i) => s + i.count, 0);
+      const readyCount = allRecipes.filter(({ evalRes }) => evalRes.ok).length;
+      const craftFilter = sess.craftFilter === 'ready' ? 'ready' : 'all';
+      const visible = craftFilter === 'ready' ? allRecipes.filter(({ evalRes }) => evalRes.ok) : allRecipes;
+      const filterBar = allRecipes.length > 5
+        ? `<div class="ll-craft-filters">
+            <button type="button" class="ll-act-btn ll-craft-batch ${craftFilter === 'all' ? '' : 'secondary'}" data-craft-filter="all">全部 (${allRecipes.length})</button>
+            <button type="button" class="ll-act-btn ll-craft-batch ${craftFilter === 'ready' ? '' : 'secondary'}" data-craft-filter="ready">可製作 (${readyCount})</button>
+          </div>`
+        : '';
       bodyHtml = `
-        <div style="margin-bottom:8px;color:#ffd872;">持有金幣：${p.gold.toLocaleString()} Adena · 工坊匠師：${esc(npc.name)}</div>
-        ${recipes
-          .map(({ r, idx }) => {
+        <div class="ll-craft-head">
+          <div>持有金幣：${p.gold.toLocaleString()} Adena · 背包 ${p.inventory.length}/120 · 負重 ${p.weightPercent}%</div>
+          ${filterBar}
+        </div>
+        ${visible
+          .map(({ r, idx, evalRes }) => {
             const def = this.world.worldData.items[r.output];
             const iconUrl = this.world.assets.itemIconUrl(def?.icon);
-            const hasGold = p.gold >= r.adena;
             const matsHtml = r.mats
               .map(([mName, need]) => {
                 const have = countOwned(mName);
+                const locked = countLocked(mName);
                 const lack = have < need;
-                return `<span class="ll-craft-mat ${lack ? 'lack' : ''}">${esc(mName)} ${have}/${need}</span>`;
+                const lockNote = locked > 0 ? ` (鎖${locked})` : '';
+                return `<span class="ll-craft-mat ${lack ? 'lack' : ''}">${esc(mName)} ${have}/${need}${lockNote}</span>`;
               })
               .join('');
-            const canCraft = hasGold && r.mats.every(([mName, need]) => countOwned(mName) >= need);
+            const brief = this.#formatCraftOutputBrief(def);
+            const adenaLabel = r.adena > 0 ? `${r.adena.toLocaleString()} 金幣` : '免費';
+            const canBatch5 = evalRes.ok && evalRes.maxCount >= 5;
+            const canBatchMax = evalRes.ok && evalRes.maxCount > 1;
             return `
               <div class="ll-list-row">
                 <div class="ll-list-left">
                   <img src="${esc(iconUrl)}" alt="" />
                   <div>
-                    <div style="font-weight:700;">${esc(r.output)}${r.count > 1 ? ` x${r.count}` : ''} <span style="font-size:11px;color:#ffd872;">(${r.adena} 金幣)</span></div>
+                    <div style="font-weight:700;">${esc(r.output)}${r.count > 1 ? ` x${r.count}` : ''} <span style="font-size:11px;color:#ffd872;">(${adenaLabel})</span></div>
+                    ${brief ? `<div class="ll-craft-brief">${esc(brief)}</div>` : ''}
                     <div class="ll-craft-reqs">${matsHtml}</div>
+                    ${!evalRes.ok && evalRes.reason ? `<div class="ll-craft-reason">${esc(evalRes.reason)}</div>` : ''}
                   </div>
                 </div>
-                <button type="button" class="ll-act-btn ${canCraft ? '' : 'secondary'}" data-craft-idx="${idx}">製作</button>
+                <div class="ll-craft-actions">
+                  ${canBatchMax ? `<button type="button" class="ll-act-btn secondary ll-craft-batch" data-craft-batch-idx="${idx}" data-craft-qty="${evalRes.maxCount}">全做(${evalRes.maxCount})</button>` : ''}
+                  ${canBatch5 ? `<button type="button" class="ll-act-btn secondary ll-craft-batch" data-craft-batch-idx="${idx}" data-craft-qty="5">x5</button>` : ''}
+                  <button type="button" class="ll-act-btn ${evalRes.ok ? '' : 'secondary'}" data-craft-idx="${idx}" ${evalRes.ok ? '' : `disabled title="${esc(evalRes.reason)}"`}>製作</button>
+                </div>
               </div>
             `;
           })
-          .join('') || '<div>目前暫無可製作項目。</div>'}
+          .join('') || `<div>${craftFilter === 'ready' ? '目前沒有材料足夠的可製作項目。' : '目前暫無可製作項目。'}</div>`}
       `;
     } else if (mode === 'teach') {
       const courses = TEACHER_SPELLS.filter((t) => t.npcs.includes(npc.name));
@@ -1955,7 +2023,7 @@ export class GameHud {
       if (npc.type === 'Inn') {
         extraBtns.push('<button type="button" class="ll-act-btn" data-npc-act="inn-rest">旅館休息回復體力與解毒 (30 金幣)</button>');
       }
-      if (npc.type === 'Craft') {
+      if (npc.type === 'Craft' || CRAFT_NPC_SET.has(npc.name)) {
         extraBtns.push('<button type="button" class="ll-act-btn" data-npc-mode="craft">開啟道具製作工坊</button>');
       }
       if (npc.name === '吉倫' || npc.name === '甘特') {
@@ -2031,6 +2099,12 @@ export class GameHud {
     }
     if (npc.name.includes('港口主人') || npc.name.includes('水手') || npc.name.includes('船長')) {
       return `<strong>${esc(npc.name)}：</strong>歡迎來到${esc(areaName)}港口，我可以為你安排往返說話之島與古魯丁港口或附近沿岸渡口的船班。`;
+    }
+    if (npc.name === '戴波羅哲') {
+      return `<strong>${esc(npc.name)}：</strong>我研究弗得倫傳下的「布拉伯煉金提煉法」，能協助將純粹的米索莉、奧里哈魯根與精靈羽翼熔鑄為各類武器劍身與金屬角材，需要委託提煉請開啟製作工坊！`;
+    }
+    if (CRAFT_NPC_SET.has(npc.name)) {
+      return `<strong>${esc(npc.name)}：</strong>歡迎來到${esc(areaName)}工坊！只要準備好相應的素材與鍛造費用，我就能為你製作或強化專屬裝備，點擊下方即可查看配方。`;
     }
     if (STATUE_BLESSINGS[npc.name]) {
       return `<strong>${esc(npc.name)}：</strong>古老的英雄意志在此閃耀，虔誠祈禱即可獲得免費戰鬥加護。`;
@@ -2515,7 +2589,7 @@ export class GameHud {
               <select class="ll-set-select ll-set-sel-light" data-auto-select="lootFilter" aria-label="拾取過濾條件">
                 <option value="all" ${(cfg.lootFilter || 'all') === 'all' ? 'selected' : ''}>拾取全部掉落物</option>
                 <option value="goldAndGear" ${cfg.lootFilter === 'goldAndGear' ? 'selected' : ''}>僅金幣與武器裝備</option>
-                <option value="valuable" ${cfg.lootFilter === 'valuable' ? 'selected' : ''}>高價值 (金幣/裝/捲/寶石)</option>
+                <option value="valuable" ${cfg.lootFilter === 'valuable' ? 'selected' : ''}>高價值 (金幣/裝/捲/寶石/材料)</option>
                 <option value="goldOnly" ${cfg.lootFilter === 'goldOnly' ? 'selected' : ''}>只拾取金幣</option>
               </select>
             </div>
@@ -2883,8 +2957,24 @@ export class GameHud {
       } else if (act === 'cancel' || act === 'close') {
         this.closeModal();
         return;
-      } else if (act.startsWith('request ') && this.npcSession.npc.type === 'Craft') {
-        this.npcSession.mode = 'craft';
+      } else if (act.startsWith('request ')) {
+        const normAct = act.toLowerCase().trim();
+        const sellSpec = this.#buildNpcSellMaterialSpec(normAct);
+        if (sellSpec) {
+          this.world.sellMaterialToNpc(this.npcSession.npc.name, sellSpec.item, sellSpec.price);
+        } else {
+          const matchIdx = CRAFT_RECIPES.findIndex(
+            (r) => r.npc === this.npcSession.npc.name && r.reqAction === normAct,
+          );
+          if (matchIdx >= 0) {
+            const ok = this.world.craftItem(matchIdx, 1);
+            if (!ok) this.npcSession.mode = 'craft';
+          } else if (this.npcSession.npc.type === 'Craft' || CRAFT_NPC_SET.has(this.npcSession.npc.name)) {
+            this.npcSession.mode = 'craft';
+          } else {
+            this.world.addLog(`${this.npcSession.npc.name}：目前無對應製作委託。`, 'info');
+          }
+        }
       } else {
         const alt = this.#findDialogueHtml(act);
         if (alt) this.npcSession.dialogueKey = act;
@@ -2895,9 +2985,18 @@ export class GameHud {
       return;
     }
 
-    const craftBtn = ev.target.closest('[data-craft-idx]');
+    const craftFilterBtn = ev.target.closest('[data-craft-filter]');
+    if (craftFilterBtn && this.npcSession) {
+      this.npcSession.craftFilter = craftFilterBtn.dataset.craftFilter === 'ready' ? 'ready' : 'all';
+      this.renderModal();
+      return;
+    }
+
+    const craftBtn = ev.target.closest('[data-craft-idx], [data-craft-batch-idx]');
     if (craftBtn && this.npcSession) {
-      this.world.craftItem(Number(craftBtn.dataset.craftIdx));
+      const idx = craftBtn.dataset.craftBatchIdx ?? craftBtn.dataset.craftIdx;
+      const qty = Number(craftBtn.dataset.craftQty || 1);
+      this.world.craftItem(Number(idx), qty);
       this.renderModal();
       this.sync(true);
       return;
@@ -3422,8 +3521,12 @@ export class GameHud {
       if (statsEl) statsEl.innerHTML = this.#renderAutoTelemetryHtml(this.autoHunt.getSummary(now));
     }
 
-    el.hudAutoBtn?.classList.toggle('active', Boolean(p.autoConfig.enabled));
-    if (el.autoLabel) el.autoLabel.textContent = p.autoConfig.enabled ? '狩獵中' : '內掛';
+    const autoOn = Boolean(p.autoConfig.enabled);
+    el.hudAutoBtn?.classList.toggle('active', autoOn);
+    if (el.hudAutoBtn) {
+      el.hudAutoBtn.title = autoOn ? '自動狩獵執行中 — 點擊暫停 (H)' : '切換自動狩獵／內掛 (H)';
+      el.hudAutoBtn.setAttribute('aria-label', autoOn ? '暫停自動狩獵' : '開啟自動狩獵');
+    }
 
     const clsLabel = p.className || CLASS_LABELS[p.classId] || '勇者';
     if (el.charLevel) el.charLevel.textContent = String(p.level);

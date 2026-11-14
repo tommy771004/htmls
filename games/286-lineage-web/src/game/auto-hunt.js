@@ -1,6 +1,6 @@
 // 286 智慧自動練功（內掛）控制器：支援靜態障礙物／牆壁／建築碰撞偵測與重新規劃（明確排除怪物）
 import { tileDistance, HEADING_DELTAS } from './map-iso.js';
-import { AOE_SPELLS, DEFAULT_AUTO_CONFIG, UNDEAD_MOBS } from './world-state.js';
+import { AOE_SPELLS, CRAFT_MATERIAL_SET, DEFAULT_AUTO_CONFIG, UNDEAD_MOBS } from './world-state.js';
 import { getMapMeta, isSafetyZone } from './world-maps.js';
 
 export const AUTO_PRESETS = {
@@ -1169,7 +1169,7 @@ export class AutoHuntController {
     return false;
   }
 
-  #isDesiredDrop(drop) {
+  isDesiredDrop(drop) {
     const cfg = this.world.player.autoConfig;
     if (this.unreachableDrops.has(drop.id)) return false;
     if (isSafetyZone(drop.map, drop.tx, drop.ty, this.world.isoMap) && cfg.avoidSafetyBorder) return false;
@@ -1184,6 +1184,7 @@ export class AutoHuntController {
     if (filter === 'valuable') {
       return (
         isGear ||
+        CRAFT_MATERIAL_SET.has(drop.item) ||
         (def?.price || 0) >= 250 ||
         /卷軸|寶石|鑽石|紅寶|綠寶|藍寶|祝福|強化/.test(drop.item)
       );
@@ -1212,7 +1213,7 @@ export class AutoHuntController {
     let best = null;
     let bestD = 1e9;
     for (const d of this.world.drops) {
-      if (!this.#isDesiredDrop(d)) continue;
+      if (!this.isDesiredDrop(d)) continue;
       const dist = tileDistance(p.tx, p.ty, d.tx, d.ty);
       if (dist <= pickupRadius && dist < bestD) {
         bestD = dist;

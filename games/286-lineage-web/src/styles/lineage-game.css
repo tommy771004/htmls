@@ -22,14 +22,14 @@
   image-rendering: pixelated;
 }
 
-/* 頂部右側懸浮區：即時小地圖＋可折疊任務面板（左側清空給遊戲視野） */
+/* 頂部懸浮區：左側為狀態／增益列，右側為即時小地圖＋可折疊任務面板 */
 .ll-top-strip {
   position: fixed;
   top: 8px;
-  left: auto;
+  left: 8px;
   right: 8px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: flex-start;
   gap: 10px;
   pointer-events: none;
@@ -64,33 +64,36 @@
 }
 
 .ll-tl-btn {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 1px;
-  min-width: 34px;
+  width: 34px;
   height: 34px;
-  padding: 2px 4px;
+  padding: 0;
   border: none;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.045);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.055);
   color: #dce2ec;
-  font-size: 9px;
-  line-height: 1;
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .ll-tl-btn:hover {
-  background: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.16);
   color: #ffffff;
 }
 
-.ll-tl-btn img {
-  width: 17px;
-  height: 17px;
-  object-fit: contain;
+.ll-tl-btn svg {
+  width: 22px;
+  height: 22px;
   display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.ll-tl-btn:hover svg {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.45));
 }
 
 .ll-tl-chevron {
@@ -110,34 +113,50 @@
 }
 
 .ll-buff-strip {
-  pointer-events: auto;
+  pointer-events: none;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 3px;
+  justify-content: flex-start;
+  align-content: flex-start;
+  gap: 5px 6px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .ll-buff-badge {
+  pointer-events: auto;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
-  border-radius: 2px;
-  background: rgba(8, 10, 14, 0.72);
+  justify-content: flex-start;
+  gap: 1px;
+  min-width: 28px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
   border: none;
   color: #a7f3d0;
-  font-size: 10px;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.98), 0 0 4px rgba(0, 0, 0, 0.92);
+}
+
+.ll-buff-badge span {
+  text-align: center;
+  white-space: nowrap;
 }
 
 .ll-buff-badge.auto {
-  background: rgba(16, 185, 129, 0.24);
+  background: transparent;
   color: #6ee7b7;
   font-weight: 700;
+  justify-content: center;
 }
 
 .ll-buff-badge.debuff {
-  background: rgba(192, 38, 211, 0.28);
+  background: transparent;
   color: #f5d0fe;
   font-weight: 700;
 }
@@ -156,6 +175,50 @@
 
 .ll-craft-mat.lack {
   color: #fca5a5;
+}
+
+.ll-craft-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #ffd872;
+}
+
+.ll-craft-filters {
+  display: flex;
+  gap: 4px;
+}
+
+.ll-craft-brief {
+  font-size: 11px;
+  color: #93c5fd;
+  margin-top: 2px;
+}
+
+.ll-craft-reason {
+  font-size: 11px;
+  color: #fca5a5;
+  margin-top: 2px;
+}
+
+.ll-craft-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.ll-act-btn.ll-craft-batch {
+  padding: 4px 7px;
+  font-size: 11px;
+}
+
+.ll-act-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .ll-item-sub.warn {
@@ -200,9 +263,11 @@
 }
 
 .ll-buff-badge img {
-  width: 14px;
-  height: 14px;
+  width: 28px;
+  height: 28px;
+  display: block;
   object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.92));
 }
 
 .ll-target-pill {
@@ -253,6 +318,7 @@
   flex-direction: column;
   gap: 4px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .ll-radar-card {
@@ -854,15 +920,19 @@
 }
 
 .ll-br-sub-btn {
-  padding: 5px 11px;
-  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
   border: none;
-  background: rgba(8, 10, 14, 0.78);
+  background: rgba(10, 13, 18, 0.82);
   color: #e2e8f0;
-  font-size: 11px;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.52);
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .ll-br-sub-btn:hover {
@@ -870,41 +940,83 @@
   color: #ffffff;
 }
 
+.ll-br-sub-btn svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.ll-br-sub-btn:hover svg {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.45));
+}
+
 .ll-play-btn {
-  width: 56px;
-  height: 56px;
+  width: 54px;
+  height: 54px;
+  padding: 0;
   border-radius: 50%;
   border: none;
-  background: rgba(8, 10, 14, 0.82);
+  background: radial-gradient(circle at 35% 30%, rgba(28, 34, 46, 0.92), rgba(8, 10, 15, 0.88));
   color: #e2e8f0;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
   cursor: pointer;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.58);
+  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
 }
 
 .ll-play-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: radial-gradient(circle at 35% 30%, rgba(44, 52, 68, 0.95), rgba(14, 18, 26, 0.92));
+  box-shadow: 0 4px 20px rgba(234, 179, 8, 0.25);
+  transform: translateY(-1px);
   color: #ffffff;
 }
 
 .ll-play-btn.active {
-  background: rgba(16, 185, 129, 0.28);
+  background: radial-gradient(circle at 35% 30%, rgba(16, 125, 89, 0.48), rgba(6, 40, 32, 0.9));
   color: #6ee7b7;
-  box-shadow: 0 0 18px rgba(16, 185, 129, 0.42);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.48);
 }
 
-.ll-play-ring {
-  font-size: 16px;
-  line-height: 1;
+.ll-auto-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.ll-play-label {
-  font-size: 10px;
-  font-weight: 700;
+.ll-auto-ico svg {
+  width: 34px;
+  height: 34px;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+}
+
+.ll-play-btn .ll-auto-active {
+  display: none;
+}
+
+.ll-play-btn.active .ll-auto-idle {
+  display: none;
+}
+
+.ll-play-btn.active .ll-auto-active {
+  display: inline-flex;
+  animation: ll-auto-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ll-auto-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.45));
+  }
+  50% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.8));
+  }
 }
 
 /* 最底端 100% 滿版經驗條（Remaster 招牌風格） */
@@ -3110,9 +3222,14 @@
   }
 
   .ll-tl-btn {
-    min-width: 29px;
-    height: 32px;
-    padding: 2px 3px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+  }
+
+  .ll-tl-btn svg {
+    width: 19px;
+    height: 19px;
   }
 }
 
@@ -3378,18 +3495,14 @@
   }
 
   .ll-tl-btn {
-    min-width: 24px;
+    width: 26px;
     height: 26px;
-    padding: 1px 2px;
+    padding: 0;
   }
 
-  .ll-tl-btn img {
-    width: 14px;
-    height: 14px;
-  }
-
-  .ll-tl-btn span {
-    display: none;
+  .ll-tl-btn svg {
+    width: 17px;
+    height: 17px;
   }
 
   .ll-tl-chevron {
@@ -3400,6 +3513,11 @@
   .ll-play-btn {
     width: 40px;
     height: 40px;
+  }
+
+  .ll-auto-ico svg {
+    width: 26px;
+    height: 26px;
   }
 
   .ll-level-card {
@@ -3436,13 +3554,14 @@
   }
 
   .ll-tl-btn {
-    min-width: 30px;
-    height: 32px;
-    padding: 2px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
   }
 
-  .ll-tl-btn span {
-    display: none;
+  .ll-tl-btn svg {
+    width: 19px;
+    height: 19px;
   }
 
   .ll-tl-chevron {
